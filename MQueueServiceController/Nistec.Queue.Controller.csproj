@@ -117,6 +117,10 @@
       <Project>{0839a364-a34d-4143-ad4c-aef4c7b232ac}</Project>
       <Name>Nistec.Channels</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Nistec.Lib\Nistec.Lib.csproj">
+      <Project>{54f52ed5-aecd-47c6-93d8-7b3358ba7f8c}</Project>
+      <Name>Nistec.Lib</Name>
+    </ProjectReference>
     <ProjectReference Include="..\MQueue.Agent\MQueue.Agent.csproj">
       <Project>{f45ac58e-5e80-4dd9-a61c-fdd051de4f2c}</Project>
       <Name>MQueue.Agent</Name>

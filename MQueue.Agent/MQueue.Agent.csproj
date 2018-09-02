@@ -128,6 +128,14 @@
       <Project>{d5fd6c68-86ea-48bf-8f6d-29ce57419500}</Project>
       <Name>Nistec.Data</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Nistec.Lib\Nistec.Lib.csproj">
+      <Project>{54f52ed5-aecd-47c6-93d8-7b3358ba7f8c}</Project>
+      <Name>Nistec.Lib</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Nistec.Logger\Nistec.Logger.csproj">
+      <Project>{e510dd2c-859c-476c-9901-60edfc5e71f1}</Project>
+      <Name>Nistec.Logger</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Messaging\Nistec.Messaging.csproj">
       <Project>{EBE9E021-8D1E-4DBB-A350-3C79B05EC73E}</Project>
       <Name>Nistec.Messaging</Name>

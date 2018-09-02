@@ -322,6 +322,10 @@
       <Project>{d5fd6c68-86ea-48bf-8f6d-29ce57419500}</Project>
       <Name>Nistec.Data</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Nistec.Lib\Nistec.Lib.csproj">
+      <Project>{54f52ed5-aecd-47c6-93d8-7b3358ba7f8c}</Project>
+      <Name>Nistec.Lib</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Messaging\Nistec.Messaging.csproj">
       <Project>{ebe9e021-8d1e-4dbb-a350-3c79b05ec73e}</Project>
       <Name>Nistec.Messaging</Name>
