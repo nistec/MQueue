@@ -1,0 +1,55 @@
+﻿Enqueue
+=======
+begin tran
+            add to queue
+            save to file
+            return state
+end tran           
+--------
+Dequeue
+=======
+begin tran
+            get from queue
+			if is trans
+				create scop
+				save scop file
+			end if
+            read from file
+            return item
+end tran           
+--------
+Commit trans
+============
+begin tran
+            get scop
+            delete scop file
+            delete scop
+            delete file
+end tran           
+--------
+Abort trans
+============
+begin tran
+            get scop
+            if is max retry
+                        create journal
+                        delete scop file
+                        delete scop
+                        delete file
+            else
+                        update scop
+                        update scop file
+                        re enqueue
+			end if
+end tran           
+--------
+
+Load items with trans
+=====================
+begin tran
+            read scop files
+            re create scop
+            read files
+            re enqueue
+end tran           
+--------

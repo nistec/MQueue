@@ -1,0 +1,29 @@
+﻿
+Enqueue
+========
+	Client
+	======
+	RemoteQueue.Enqueu
+		EnqueueApi.Exec
+			PipeClientQueue.Execute
+				QueueMessage.EntityWrite
+
+	Server
+	======
+	ServerEnqueue.ReadRequest
+		ServerEnqueue.ExecRequset
+			AgentManager.Queue Get
+				QueueManager.Enqueue
+					QueueManager.ExecSet
+						MQueue.Enqueue
+							PriorityQueue.Enqueue
+								{
+								PriorityFileQueue.TryAdd
+									QueueItemStream.SaveFile
+								||
+								PriorityMemQueue.TryAdd
+									<Ptr, IQueueItem> QueueList Add
+								}
+								GenericPtrQueue.Enqueue
+					QueueResponse.DoResponse
+

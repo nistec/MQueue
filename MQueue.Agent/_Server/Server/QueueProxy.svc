@@ -1,0 +1,1 @@
+﻿<%@ ServiceHost Language="C#" Debug="true" Service="Nistec.Queue.Service.QueueProxy" CodeBehind="QueueProxy.svc.cs" %>

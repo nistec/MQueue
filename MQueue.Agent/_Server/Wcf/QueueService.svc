@@ -1,0 +1,1 @@
+﻿<%@ ServiceHost Language="C#" Debug="true" Service="MControl.Queue.Servic.QueueService" CodeBehind="QueueService.svc.cs" %>

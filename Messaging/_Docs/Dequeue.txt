@@ -1,0 +1,20 @@
+﻿
+Dequeue
+========
+	Client
+	======
+	RemoteQueue.Dequeue
+		DequeueApi.Exec
+			PipeClientQueue.Execute
+				QueueMessage.EntityWrite
+
+	Server
+	======
+	ServerEnqueue.ReadRequest
+		ServerEnqueue.ExecRequset
+			AgentManager.Queue Get
+				QueueManager.Enqueue
+					QueueManager.ExecGet
+						MQueue.Dequeue
+							PriorityQueue.Dequeue
+								GenericPtrQueue.Dequeue

@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+
+  <system.runtime.remoting>
+    <application name="RemoteQueue">
+      <service>
+        <activated type="MControl.Queue.Service.RemoteServer, MControl.Queue.Service" />
+      </service>
+      <channels>
+        <channel ref="ipc" portName="RemoteQueueManager" authorizedGroup="Everyone">
+          <!--
+          <channel ref="tcp" port="9009" rejectRemoteRequests="true">
+          -->
+          <serverProviders>
+            <formatter ref="binary" typeFilterLevel="Full" />
+          </serverProviders>
+        </channel>
+      </channels>
+    </application>
+  </system.runtime.remoting>
+  </configuration>

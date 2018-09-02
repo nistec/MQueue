@@ -1,0 +1,38 @@
+﻿
+Hierarchy
+========
+
+QueueManager
+	TransactionDispatcher
+	SyncTimer
+
+
+MQueueBase
+--MQueue
+	PriorityQueue
+		GenericPtrQueue
+
+
+Config
+========
+QueueSettings
+
+Collections
+========
+ConcurrentDictionary<string, MQueue> MQ;
+
+Entities
+========
+
+
+Runtime
+========
+
+
+Utility
+========
+
+
+Events
+========
+

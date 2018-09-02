@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<mailerSettings
+  EnableMailerQueue="false" 
+  DefaultMailerHost=""
+  IntervalManager="60000"
+  IntervalDequeue="60000"
+  MailerStorePath="C:\Nistec\MailQueue\"
+  MailerQueuePath="C:\Nistec\MailStore\"
+  MinItemsPerQueue="999999"
+  MaxItemsPerSession="1000"
+  DeleteIntervalSeconds="120">
+  <host id="myt_relay">
+    <Auth value=""/>
+    <QueuePath value="C:\Nistec\MailQueue\"/>
+    <EnableChunk value="true"/>
+    <MailerMode value="1"/>
+  </host>
+</mailerSettings>
