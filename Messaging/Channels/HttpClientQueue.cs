@@ -144,7 +144,7 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override TransStream RequestToStream(IQueueMessage message)
+        protected override NetStream RequestToStream(IQueueMessage message)
         {
             return message.ToStream();
         }
@@ -156,7 +156,8 @@ namespace Nistec.Messaging.Channels
         /// <returns></returns>
         protected override byte[] RequestToBinary(IQueueMessage message)
         {
-            return message.ToStream().GetStream().ToArray();
+            //return message.ToStream().GetStream().ToArray();
+            return message.ToStream().ToArray();
         }
 
        

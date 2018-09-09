@@ -197,7 +197,7 @@ namespace Nistec.Messaging.Remote
                 QCommand = QueueCmd.AddQueue,
             };
 
-            message.SetBody(qp.GetEntityStream(false), qp.GetType());
+            message.SetBody(qp.GetEntityStream(false), qp.GetType().FullName);
             var response = base.SendDuplex(message, OnFault);
             return response;// == null ? null : response.ToMessage();
         }

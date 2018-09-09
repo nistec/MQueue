@@ -95,9 +95,11 @@ namespace Nistec.Messaging.UI
                 mcManagment.ListCaption = "Queue Items";
 
                 var ts = ManagementApi.Get().Report(QueueCmdReport.ReportQueueList);
+                //string[] list = TransStream.ReadValue<string[]>(ts);
 
-                string[] list = TransStream.ReadValue<string[]>(ts);
-
+                if (ts == null)
+                    goto Label_Exit;
+                string[] list = ts.ReadValue<string[]>();
 
                 //string[] list = AgentManager.Queue.GetQueueList();
                 if (list == null)
@@ -148,8 +150,8 @@ namespace Nistec.Messaging.UI
             try
             {
                 var ts = ManagementApi.Get(name).Report(QueueCmdReport.ReportQueueItems);
-                var dt = TransStream.ReadValue(ts);
-
+                //var dt = TransStream.ReadValue(ts);
+                var dt = (ts != null) ? ts.ReadValue() : null;
                 //var q= AgentManager.Queue.Get(name);
                 //DataTable dt = null;
 
@@ -770,10 +772,11 @@ namespace Nistec.Messaging.UI
         private void DoRemoveItem()
         {
             string name = GetSelectedItem();
-            if (MsgBox.ShowQuestion("Delete Queue " + name + "?", "Nistec", MessageBoxButtons.YesNo)== DialogResult.Yes)
+            if (MsgBox.ShowQuestion("Delete Queue " + name + "?", "Nistec", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
                 var ts = ManagementApi.Get(name).Command(QueueCmd.RemoveQueue);
-                var val = TransStream.ReadValue(ts);
+                object val = (ts != null) ? ts.ReadValue():null;
+                //var val = TransStream.ReadValue(ts);
 
                 //AgentManager.Queue.RemoveQueue(name);
                 CreateNodeItems(true);
@@ -786,7 +789,8 @@ namespace Nistec.Messaging.UI
             if (MsgBox.ShowQuestion("Clear All items Queue " + name + "?", "Nistec", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
                 TransStream ts = ManagementApi.Get(name).Command(QueueCmd.ClearQueue);
-                var val = TransStream.ReadValue(ts);
+                object val = (ts != null) ? ts.ReadValue() : null;
+                //var val = TransStream.ReadValue(ts);
 
                 //AgentManager.Queue.ClearAllItems(name);
                 CreateNodeItems(true);
@@ -803,14 +807,14 @@ namespace Nistec.Messaging.UI
             string itemName = "";
 
             TransStream ts = ManagementApi.Get(name).Command(QueueCmd.QueueProperty);
-            var obj = TransStream.ReadValue(ts);
-
+            //var obj = TransStream.ReadValue(ts);
+            var obj = (ts != null) ? ts.ReadValue() : null;
 
             //var obj = AgentManager.Queue.Get(name);
 
             //RemoteQueue Client = new RemoteQueue(name);
             //obj = Client;
-                itemName= "RemoteQueue";
+            itemName = "RemoteQueue";
 
 
             if (obj != null)

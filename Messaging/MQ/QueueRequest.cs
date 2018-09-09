@@ -36,7 +36,6 @@ namespace Nistec.Messaging
         /// </summary>
         public static Formatters DefaultFormatter { get { return Formatters.BinarySerializer; } }
 
-    
         #endregion
 
         #region property
@@ -178,7 +177,8 @@ namespace Nistec.Messaging
             Creation = DateTime.Now;
             Version = QueueDefaults.CurrentVersion;
             TransformType = TransformType.Object;
-            EnsureDuplex();
+            //DuplexType = DuplexTypes.None;
+            //EnsureDuplex();
         }
 
         public QueueRequest(Stream stream)
@@ -325,6 +325,12 @@ namespace Nistec.Messaging
         }
         */
         #endregion
+
+        public TransStream ToTransStream()
+        {
+            TransStream stream = new TransStream(this);
+            return stream;
+        }
 
         public Ptr GetPtr()
         {

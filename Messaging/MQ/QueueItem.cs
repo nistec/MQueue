@@ -1305,25 +1305,25 @@ namespace Nistec.Messaging
 
         #region IMessageStream
 
-        public TransStream ToStream()
+        public TransStream ToTransStream()
         {
             TransStream stream = new TransStream(this);
             return stream;
         }
 
-        public TransStream ToStream(MessageState state)
+        public TransStream ToTransStream(MessageState state)
         {
             this.SetState(state);
             TransStream stream = new TransStream(this);
             return stream;
         }
 
-        //public NetStream ToStream()
-        //{
-        //    NetStream stream = new NetStream();
-        //    EntityWrite(stream, null);
-        //    return stream;
-        //}
+        public NetStream ToStream()
+        {
+            NetStream stream = new NetStream();
+            EntityWrite(stream, null);
+            return stream;
+        }
 
         /// <summary>
         /// Get body stream after set the position to first byte in buffer, This method is a part of <see cref="IMessageStream"/> implementation.
@@ -1839,7 +1839,9 @@ namespace Nistec.Messaging
             }
             //string filename = GetPtrLocation(location);
 
-            stream.GetStream().Copy().SaveToFile(filename);
+            //stream.GetStream().Copy().SaveToFile(filename);
+            stream.Copy().SaveToFile(filename);
+
             //BodyStream.Position = 0;
             //return filename;
         }

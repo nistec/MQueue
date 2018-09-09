@@ -64,13 +64,13 @@ namespace Nistec.Messaging
         public static TransStream DoResponse(this QueueItem item)
         {
             if (item != null)
-                return item.ToStream();//.BodyStream;
+                return item.ToTransStream();//.BodyStream;
             return null;
         }
         public static TransStream DoResponse(this IQueueItem item)
         {
             if (item != null)
-                return item.ToStream();
+                return item.ToTransStream();
             return null;
         }
 

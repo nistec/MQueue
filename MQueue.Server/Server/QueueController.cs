@@ -484,7 +484,7 @@ namespace Nistec.Messaging.Server
                     Host = message.Host
                 };
                 QLogger.InfoFormat("QueueController GetQueueReport QueueNotFound : {0}", message.Host);
-                return ack.ToStream();
+                return ack.ToTransStream();
             }
             var report = queue.GetReport();
             string result = null;
@@ -499,7 +499,7 @@ namespace Nistec.Messaging.Server
             item.SetBody(report);
             QLogger.InfoFormat("QueueController GetQueueReport : {0}", result);
 
-            return item.ToStream();
+            return item.ToTransStream();
         }
 
         /// <summary>Creates a non-transactional Message Queuing queue at the specified path.</summary>

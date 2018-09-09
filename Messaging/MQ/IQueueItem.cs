@@ -51,8 +51,9 @@ namespace Nistec.Messaging
         /// </summary>
         NetStream BodyStream { get; }
 
+        TransStream ToTransStream();
 
-        TransStream ToStream();
+        NetStream ToStream();
         string ToJson();
         string Print();
     }
