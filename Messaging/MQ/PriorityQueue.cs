@@ -93,6 +93,18 @@ namespace Nistec.Messaging
                 ErrorOccured(this, e);
         }
 
+        protected virtual void OnTryAdd(Ptr ptr, IQueueItem item, bool result)
+        {
+            QLogger.DebugFormat("OnTryAdd {0} item:{1}", result, item.Print());
+        }
+        protected virtual void OnTryDequeue(Ptr ptr, IQueueItem item, bool result)
+        {
+            QLogger.DebugFormat("TryDequeue {0} item:{1}", result, item.Print());
+        }
+        protected virtual void OnTryPeek(Ptr ptr, IQueueItem item, bool result)
+        {
+            QLogger.DebugFormat("TryPeek {0} item:{1}", result, item.Print());
+        }
         #endregion
 
         #region abstract

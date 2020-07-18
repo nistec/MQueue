@@ -18,10 +18,14 @@ namespace QueueListenerDemo
 
             Console.WriteLine("QueueListener started...");
 
-           
+            QueueReceiver.DoGet(QueueReceiver.GetHost("tcp", "127.0.0.1:15000", "NC_Bulk"));
+            //QueueReceiver.DoListnning(QueueReceiver.GetHost("tcp", "127.0.0.1:15000", "NC_Bulk"));
+
+ /*          
             //var api= QueueApi.Get(Nistec.Channels.NetProtocol.Pipe);
             var hostPipe = QueueHost.Parse("ipc:.:nistec_queue_listener?NC_Quick");
             var hostTcp = QueueHost.Parse("tcp:localhost:15001?NC_Quick");
+
 
             //var lista = AppDomain.CurrentDomain.GetAssemblies();
             //Console.WriteLine(lista);
@@ -36,14 +40,19 @@ namespace QueueListenerDemo
             //var listb = AppDomain.CurrentDomain.GetAssemblies();
             //Console.WriteLine(listb);
 
+            DoGet(hostTcp);
+
+
             //DoQuery(hostPipe);
 
-            DoListnning(hostTcp);
-            
+            //DoListnning(hostTcp);
+*/
+
             Console.WriteLine("QueueListener finished...");
             Console.ReadLine();
         }
 
+/*
         static void DoListnning(QueueHost host)
         {
 
@@ -89,6 +98,16 @@ namespace QueueListenerDemo
             Console.ReadLine();
         }
 
+        static void DoGet(QueueHost host)
+        {
+            QueueApi q = new QueueApi(host);
+            var item = q.Receive(Nistec.Runtime.DuplexTypes.WaitOne);
+
+            if (item != null)
+            {
+                Console.WriteLine(item.Print());
+            }
+        }
         static void DoQuery(QueueHost host)
         {
             QueueApi q = new QueueApi(host);
@@ -129,7 +148,7 @@ namespace QueueListenerDemo
         //{
         //    Console.WriteLine("ReceiveCompleted " + e.Item.Print());
         //}
-
+*/
      
     }
 }

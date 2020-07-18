@@ -23,6 +23,9 @@ namespace Nistec.Messaging.Remote
     /// </summary>
     public class QueueApi : RemoteApi, IQueueClient
     {
+
+        #region ctor
+
         /// <summary>
         /// Get queue api.
         /// </summary>
@@ -42,6 +45,9 @@ namespace Nistec.Messaging.Remote
             //RemoteHostName = ChannelSettings.RemoteQueueHostName;
             EnableRemoteException = ChannelSettings.EnableRemoteException;
         }
+        #endregion
+
+        #region override
 
         protected void OnFault(string message)
         {
@@ -66,7 +72,7 @@ namespace Nistec.Messaging.Remote
         //        return null;
         //    return JsonSerializer.Serialize(obj, null, format);
         //}
-
+        #endregion
 
         #region members
 
@@ -162,11 +168,15 @@ namespace Nistec.Messaging.Remote
             message.QCommand = QueueCmd.Enqueue;
             Timeout = connectTimeout;
 
-            var ack = Enqueue(message,OnFault);//., ".", connectTimeout);
+            var ack = Enqueue(message, connectTimeout,OnFault);//., ".", connectTimeout);
             //var ack = (IQueueAck)res;
             if (ack == null)
             {
-                ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+                if (message.IsDuplex)
+                    ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+                else
+                    ack = new QueueAck(MessageState.Arrived, "Message Arrived on way", message.Identifier, message.Host);
+
                 //ack.HostAddress = message.HostAddress;
             }
             Assists.SetArrived(ack);
@@ -246,6 +256,17 @@ namespace Nistec.Messaging.Remote
             }
         }
 
+        public Task<IQueueAck> SendAsyncTask(QueueItem message, int connectTimeout)
+        {
+            Task<IQueueAck> task = Task<IQueueAck>.Factory.StartNew(() =>
+                Send(message, connectTimeout)
+            ,
+            canceller.Token,
+            TaskCreationOptions.None,
+            TaskScheduler.Default);
+                task.Wait();
+            return task;
+        }
         #endregion
 
         #region Receive

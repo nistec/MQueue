@@ -52,19 +52,23 @@ namespace Nistec.Messaging
 
         protected override bool TryAdd(Ptr ptr, IQueueItem item)
         {
-            return m_db.TryAdd(ptr.Identifier,item.Copy());
+            var res= m_db.TryAdd(ptr.Identifier,item.Copy());
+            OnTryAdd(ptr, item, res);
+            return res;
         }
 
         protected override bool TryPeek(Ptr ptr, out IQueueItem item)
         {
-            return m_db.TryGetValue(ptr.Identifier, out item); 
+            var res = m_db.TryGetValue(ptr.Identifier, out item);
+            OnTryPeek(ptr, item, res);
+            return res;
         }
 
         protected override bool TryDequeue(Ptr ptr, out IQueueItem item)
         {
-
-            return m_db.TryRemove(ptr.Identifier, out item);
-
+            var res = m_db.TryRemove(ptr.Identifier, out item);
+            OnTryDequeue(ptr, item, res);
+            return res;
         }
 
         protected override IQueueItem GetFirstItem()

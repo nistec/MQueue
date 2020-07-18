@@ -140,6 +140,7 @@ namespace Nistec.Messaging
         /// <param name="e"></param>
         void OnMessageArraived(QueueItemEventArgs e)
         {
+            LogActionInfo("OnMessageArraived", e.Message);
             if (MessageArraived != null)
                 MessageArraived(this, e);
         }
@@ -149,6 +150,7 @@ namespace Nistec.Messaging
         /// <param name="e"></param>
         void OnMessageReceived(QueueItemEventArgs e)
         {
+            LogActionInfo("OnMessageReceived", e.Message);
             if (MessageReceived != null)
                 MessageReceived(this, e);
         }
@@ -164,6 +166,7 @@ namespace Nistec.Messaging
         {
             Console.WriteLine("Init MQueue " + prop);
 
+            LogActionInfo("MQueue ctor", "Init MQueue " + prop.Print());
 
             TimeStarted = DateTime.Now;
             LOCK();
@@ -260,7 +263,7 @@ namespace Nistec.Messaging
             catch (Exception ex)
             {
                 Console.WriteLine(QueueName + " Error:" + ex.Message);
-
+                LogActionError("InitRecoverQueue", QueueName + " Error:" + ex.Message);
             }
         }
 
@@ -378,6 +381,7 @@ namespace Nistec.Messaging
         /// <param name="e"></param>
         void OnCapacityExceeds(GenericEventArgs<string> e)
         {
+            LogActionError("OnCapacityExceeds", e.Args);
             if (CapacityExceeds != null)
                 CapacityExceeds(this, e);
         }
@@ -388,7 +392,7 @@ namespace Nistec.Messaging
         /// <param name="msg"></param>
         private void OnErrorOcurred(string msg)
         {
-            Console.WriteLine("ErrorOcurred: " + msg);
+            //Console.WriteLine("ErrorOcurred: " + msg);
             OnErrorOcurred(new GenericEventArgs<string>(msg));
         }
         /// <summary>
@@ -397,6 +401,8 @@ namespace Nistec.Messaging
         /// <param name="e"></param>
         void OnErrorOcurred(GenericEventArgs<string> e)
         {
+            LogActionError("OnErrorOcurred", e.Args);
+
             if (ErrorOcurred != null)
                 ErrorOcurred(this, e);
         }
@@ -407,12 +413,15 @@ namespace Nistec.Messaging
         /// <param name="e"></param>
         void OnPropertyChanged(GenericEventArgs<string, object> e)
         {
+            LogActionInfo("PropertyChanged", string.Format("propertyName:{0},propertyValue:{1}", e.Args1, e.Args1));
+
             if (PropertyChanged != null)
                 PropertyChanged(this, e);
         }
 
         internal void OnPropertyChanged(string propertyName, object propertyValue)
         {
+
             OnPropertyChanged(new GenericEventArgs<string, object>(propertyName, propertyValue));
         }
 
@@ -1589,12 +1598,18 @@ namespace Nistec.Messaging
         internal static void LogAction(MessageState state, string message)
         {
             if ((int)state < 100)
-                QLogger.InfoFormat("State:{0}, Message:{1}", state, message);
+                QLogger.InfoFormat("State:{0}, Message:{1}", state.ToString(), message);
             else
+                QLogger.ErrorFormat("State:{0}, Message:{1}", state.ToString(), message);
+        }
+        internal static void LogActionInfo(string state, string message)
+        {
+                QLogger.InfoFormat("State:{0}, Message:{1}", state, message);
+        }
+        internal static void LogActionError(string state, string message)
+        {
                 QLogger.ErrorFormat("State:{0}, Message:{1}", state, message);
         }
-           
-
     }
 }
 

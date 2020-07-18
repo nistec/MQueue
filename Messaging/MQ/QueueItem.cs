@@ -1505,19 +1505,21 @@ namespace Nistec.Messaging
         #endregion
 
         #region ITransformMessage
-        /// <summary>
-        /// Get or Set The return type name.
-        /// </summary>
-        public TransformType TransformType { get; set; }
+        ///// <summary>
+        ///// Get or Set The return type name.
+        ///// </summary>
+        //public TransformType TransformType { get; set; }
 
-        /// <summary>
-        /// Get or Set indicate wether the message is a duplex type.
-        /// </summary>
-        public bool IsDuplex { get; set; }
-        /// <summary>
-        ///  Get or Set The message expiration.
-        /// </summary>
-        public int Expiration { get; set; }
+        ///// <summary>
+        ///// Get or Set indicate wether the message is a duplex type.
+        ///// </summary>
+        //public bool IsDuplex { get; set; }
+
+
+        ///// <summary>
+        /////  Get or Set The message expiration.
+        ///// </summary>
+        //public int Expiration { get; set; }
 
         #endregion
 

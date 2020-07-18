@@ -236,6 +236,31 @@ namespace Nistec.Messaging
             if (streamer == null)
                 streamer = new BinaryStreamer(stream);
 
+
+            //streamer.WriteValue(ToBinary());
+
+            streamer.WriteValue(Version);
+            streamer.WriteValue((byte)MessageState.Sending);
+            streamer.WriteValue((byte)MessageType);
+            streamer.WriteValue((byte)QCommand);
+            streamer.WriteValue((byte)Priority);
+            streamer.WriteString(Identifier);//.WriteValue(ItemId);
+            streamer.WriteValue((byte)0);//Retry
+            streamer.WriteValue(Modified);// ArrivedTime);
+            streamer.WriteValue(Creation);
+            streamer.WriteValue(Modified);
+            streamer.WriteValue((int)0);// Duration);
+            streamer.WriteValue((byte)TransformType);
+            streamer.WriteValue((byte)DuplexType);
+            streamer.WriteValue(Expiration);
+            streamer.WriteString(Host);
+            streamer.WriteString(Label);
+            streamer.WriteString(Sender);
+            streamer.WriteValue(BodyStream);
+            streamer.WriteString(TypeName);
+
+
+            /*
             streamer.WriteValue(Version);
             streamer.WriteValue((byte)MessageType);
             streamer.WriteValue((byte)QCommand);
@@ -251,6 +276,7 @@ namespace Nistec.Messaging
 
             streamer.WriteValue(BodyStream);
             //streamer.WriteString(TypeName);
+            */
         }
 
         
@@ -264,6 +290,30 @@ namespace Nistec.Messaging
             if (streamer == null)
                 streamer = new BinaryStreamer(stream);
 
+
+            Version = streamer.ReadValue<int>();
+            var MessageState = (MessageState)streamer.ReadValue<byte>();
+            var  MessageType = (MQTypes)streamer.ReadValue<byte>();
+            QCommand = (QueueCmd)streamer.ReadValue<byte>();
+            Priority = (Priority)streamer.ReadValue<byte>();
+            Identifier = streamer.ReadString();//.ReadValue<Guid>();
+            var Retry = streamer.ReadValue<byte>();
+            var  ArrivedTime = streamer.ReadValue<DateTime>();
+            Creation = streamer.ReadValue<DateTime>();
+            Modified = streamer.ReadValue<DateTime>();
+            var Duration = streamer.ReadValue<int>();
+
+            TransformType = (TransformType)streamer.ReadValue<byte>();
+            DuplexType = (DuplexTypes)streamer.ReadValue<byte>();
+            Expiration = streamer.ReadValue<int>();
+            Host = streamer.ReadString();
+            Label = streamer.ReadString();
+            Sender = streamer.ReadString();
+            BodyStream = (NetStream)streamer.ReadValue();
+            TypeName = streamer.ReadString();
+
+
+            /*
             Version = streamer.ReadValue<int>();
             var MessageType = (MQTypes)streamer.ReadValue<byte>();
             QCommand = (QueueCmd)streamer.ReadValue<byte>();
@@ -279,6 +329,7 @@ namespace Nistec.Messaging
             //Sender = streamer.ReadString();
             BodyStream = (NetStream)streamer.ReadValue();
             //_TypeName = streamer.ReadString();
+            */
         }
 
 
@@ -325,6 +376,55 @@ namespace Nistec.Messaging
         }
         */
         #endregion
+
+        public byte[] ToBinary() {
+
+            byte[] binary = null;
+
+            using (NetStream s = new NetStream())
+            {
+                using (var strmer = new BinaryStreamer(s))
+                {
+                    //strmer.WriteValue(Version);
+                    //strmer.WriteValue((byte)MessageType);
+                    //strmer.WriteValue((byte)QCommand);
+                    //strmer.WriteValue((byte)Priority);
+                    //strmer.WriteString(Identifier);//.WriteValue(ItemId);
+                    //strmer.WriteValue(Creation);
+                    //strmer.WriteValue((byte)TransformType);
+                    //strmer.WriteValue((byte)DuplexType);
+                    //strmer.WriteValue(Expiration);
+                    //strmer.WriteString(Host);
+                    ////strmer.WriteString(Sender);
+                    //strmer.WriteValue(BodyStream);
+                    ////strmer.WriteString(TypeName);
+
+                    strmer.WriteValue(Version);
+                    strmer.WriteValue((byte)MessageState.Sending);
+                    strmer.WriteValue((byte)MessageType);
+                    strmer.WriteValue((byte)QCommand);
+                    strmer.WriteValue((byte)Priority);
+                    strmer.WriteString(Identifier);//.WriteValue(ItemId);
+                    strmer.WriteValue((byte)0);//Retry
+                    strmer.WriteValue(Modified);// ArrivedTime);
+                    strmer.WriteValue(Creation);
+                    strmer.WriteValue(Modified);
+                    strmer.WriteValue((int)0);// Duration);
+                    strmer.WriteValue((byte)TransformType);
+                    strmer.WriteValue((byte)DuplexType);
+                    strmer.WriteValue(Expiration);
+                    strmer.WriteString(Host);
+                    strmer.WriteString(Label);
+                    strmer.WriteString(Sender);
+                    strmer.WriteValue(BodyStream);
+                    strmer.WriteString(TypeName);
+
+
+                    binary = s.ToArray();
+                }
+            }
+            return binary;
+        }
 
         public TransStream ToTransStream()
         {

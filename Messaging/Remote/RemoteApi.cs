@@ -67,11 +67,20 @@ namespace Nistec.Messaging.Remote
 
         bool _IsAsync = false;
         public bool IsAsync { get { return _IsAsync; } set { _IsAsync = value; } }
+        //int _MaxRetry = 1;
+        //public int MaxRetry { get { return _MaxRetry; } set { _MaxRetry = value <=0 ? 1: value > 5 ? 5: value; } }
 
         int _WaitInterval = DefaultWaitInterval;
         public int WaitInterval { get { return _WaitInterval; } set { _WaitInterval = value<=10? DefaultWaitInterval: value; } }
         int _Timeout = DefaultTimeout;
-        public int Timeout { get { return _Timeout; } set { _Timeout = value <0 ? DefaultTimeout : value; } }
+        public int Timeout { get { return _Timeout; } set { _Timeout = (value <0 ? DefaultTimeout : value); } }
+
+        public int GetValidTimeout(int timeout) {
+
+            if (timeout <= 0)
+                return Timeout;
+            return timeout;
+        }
 
         #region members
 
@@ -273,12 +282,29 @@ namespace Nistec.Messaging.Remote
             TransStream ts = SendDuplexStream(message, Timeout, IsAsync);
             if (ts == null)
             {
-                onFault(message.QCommand.ToString() + " return null");
+                if (message.IsDuplex)
+                    onFault(message.QCommand.ToString() + " return null");
                 return null;
             }
             return ts.ReadValue<QueueAck>(onFault);
         }
 
+        internal QueueAck Enqueue(QueueItem message, int timeout, Action<string> onFault)
+        {
+            message.Host = this._QueueName;
+
+            //ChannelSettings.HttpTimeout;
+            //ChannelSettings.IsAsync
+            message.MessageState = MessageState.Sending;
+            TransStream ts = SendDuplexStream(message, GetValidTimeout(timeout), IsAsync);
+            if (ts == null)
+            {
+                if (message.IsDuplex)
+                    onFault(message.QCommand.ToString() + " return null");
+                return null;
+            }
+            return ts.ReadValue<QueueAck>(onFault);
+        }
 
         internal TransStream SendWaitOneDuplex(QueueRequest message)
         {
@@ -521,7 +547,6 @@ namespace Nistec.Messaging.Remote
                     //}
                     //task.TryDispose();
 
-
                     message.QCommand = QueueCmd.QueueHasValue;
                     ts = SendDuplexStream(message, Timeout, IsAsync);
                     if (ts != null && ts.ReadValue<int>() > 0)
@@ -532,7 +557,8 @@ namespace Nistec.Messaging.Remote
                     }
                     if (!ok)
                     {
-                        Thread.Sleep(WaitInterval);
+                        //Thread.Sleep(WaitInterval);
+                        return null;
                     }
                 }
 

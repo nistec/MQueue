@@ -18,13 +18,17 @@ namespace QueueTasker
 
             Console.WriteLine("QueueTasker started...");
 
-            var host = QueueHost.Parse("tcp:127.0.0.1:15000?NC_Quick");
-            QueueApi q = new QueueApi(host);
-            q.IsAsync = false;
+            //QueueClientDemo.SendItem(true);
+
+            QueueClientDemo.SendMulti(false,100);
+
+            //var host = QueueHost.Parse("tcp:127.0.0.1:15000?NC_Quick");
+            //QueueApi q = new QueueApi(host);
+            //q.IsAsync = false;
 
             //SendItem(q,1);
 
-            SendMulti(q,100);
+            //SendMulti(q,100);
 
             Console.WriteLine("QueueTasker finished...");
             Console.ReadLine();

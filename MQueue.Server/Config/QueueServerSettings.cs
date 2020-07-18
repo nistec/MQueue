@@ -46,7 +46,8 @@ namespace Nistec.Messaging.Config
                 ReceiveBufferSize = settings.ReceiveBufferSize,
                 SendBufferSize = settings.SendBufferSize,
                MaxServerConnections = settings.MaxServerConnections,
-               MaxAllowedServerInstances = settings.MaxAllowedServerInstances
+               MaxAllowedServerInstances = settings.MaxAllowedServerInstances,
+               IsAsync=settings.IsAsync
            };
         }
 

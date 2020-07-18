@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Nistec</RootNamespace>
-    <AssemblyName>Nistec.Cache.Controller</AssemblyName>
+    <AssemblyName>Nistec.Service.Controller</AssemblyName>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
     <OldToolsVersion>3.5</OldToolsVersion>
