@@ -46,11 +46,11 @@ namespace Nistec.Caching.Demo
               Console.ForegroundColor = ConsoleColor.Yellow;
               Console.WindowHeight =(int) (Console.LargestWindowHeight*0.70);
               Console.WindowWidth = (int)(Console.LargestWindowWidth * 0.70);
-              Console.Title = "Nistec cache console";
+              Console.Title = "Nistec service console";
               
               
 
-              Console.WriteLine("Welcome to: Nistec Cache commander...");
+              Console.WriteLine("Welcome to: Nistec Service commander...");
               Console.WriteLine("=====================================");
               Controller.Run(args);
               Console.WriteLine("Finished...");

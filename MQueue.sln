@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.852
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nistec.Messaging", "Messaging\Nistec.Messaging.csproj", "{EBE9E021-8D1E-4DBB-A350-3C79B05EC73E}"
 EndProject
@@ -19,7 +19,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nistec.Channels", "..\Niste
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Client", "Client", "{FBD9E833-4849-4D2F-92AA-912649F9886C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nistec.Queue.Controller", "MQueueServiceController\Nistec.Queue.Controller.csproj", "{0FD2097A-D345-45A9-9592-162516FDD974}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nistec.Service.Controller", "MQueueServiceController\Nistec.Service.Controller.csproj", "{0FD2097A-D345-45A9-9592-162516FDD974}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QueueListener", "_Test\QueueListener\QueueListener.csproj", "{EAA96DC7-941C-4FEA-B7FE-96DA1B33D981}"
 EndProject
@@ -223,5 +223,8 @@ Global
 		{7677B859-5613-4984-AD2D-62F1FE2524D1} = {FBD9E833-4849-4D2F-92AA-912649F9886C}
 		{54F52ED5-AECD-47C6-93D8-7B3358BA7F8C} = {DB0CC2F1-8C0E-4523-A60D-389EF03BC56F}
 		{E510DD2C-859C-476C-9901-60EDFC5E71F1} = {DB0CC2F1-8C0E-4523-A60D-389EF03BC56F}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AD42F11B-D62C-45A7-941A-D65E094059DB}
 	EndGlobalSection
 EndGlobal

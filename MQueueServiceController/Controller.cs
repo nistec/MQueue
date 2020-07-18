@@ -18,7 +18,7 @@
 // 10/01/2006  Nissim   Created the code
 //===============================================================================================================
 //licHeader|
-using Nistec.Channels.RemoteCache;
+//using Nistec.Channels.RemoteCache;
 using Nistec.Serialization;
 using Nistec.Generic;
 using System;
@@ -86,7 +86,7 @@ namespace Nistec
                         case "operation-type":
                             DisplayOperationMessage();
                             operationType = GetOperationType(Console.ReadLine().ToLower(), operationType);
-                            Console.WriteLine("Current cache type : {0}.", operationType);
+                            Console.WriteLine("Current operation type : {0}.", operationType);
                             break;
                         case "protocol":
                             Console.WriteLine("Choose protocol : tcp , pipe, http");
@@ -218,7 +218,7 @@ namespace Nistec
                     Console.WriteLine("Enter: operation-type, To change operation type");
                     Console.WriteLine("Enter: protocol, To change protocol (tcp, pipe, http)");
                     Console.WriteLine("Enter: menu, To display menu");
-                    Console.WriteLine("Enter: menu-items, To display menu items for current cache-type");
+                    Console.WriteLine("Enter: menu-items, To display menu items for current operation-type");
                     Console.WriteLine("Enter: args, and /command to display command argument");
                     break;
                 case "menu-items":

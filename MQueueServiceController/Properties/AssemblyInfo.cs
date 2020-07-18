@@ -25,11 +25,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Nistec.Cache.Controller")]
-[assembly: AssemblyDescription("Nistec cache service controller")]
+[assembly: AssemblyTitle("Nistec.Service.Controller")]
+[assembly: AssemblyDescription("Nistec service controller")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Nistec.Cache.Controller")]
+[assembly: AssemblyProduct("Nistec.Service.Controller")]
 [assembly: AssemblyCopyright("Copyright Nistec.Net ©  2007")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
