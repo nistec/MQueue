@@ -10,6 +10,7 @@ using System.Collections.ObjectModel;
 using Nistec.Messaging.Remote;
 using Nistec.Messaging.Io;
 using Nistec.Runtime;
+using Nistec.Threading;
 
 namespace Nistec.Messaging.Listeners
 {
@@ -79,19 +80,26 @@ namespace Nistec.Messaging.Listeners
         #endregion
 
 
-        protected override IQueueAck Send(QueueItem message)
-        {
-            return _api.Enqueue(message);
-        }
+        //protected override IQueueAck Send(QueueItem message)
+        //{
+        //    return _api.Enqueue(message);
+        //}
 
-        protected override void ReceiveAsync(AutoResetEvent resetEvent)
+        protected override void ReceiveAsync(IDynamicWait dw)
         {
-            _api.DequeueAsync(
-                (err) => OnErrorOcurred(new GenericEventArgs<string>(err)),
-                (qitem) => OnMessageReceived(qitem),
-                 DuplexTypes.WaitOne,
-                 resetEvent
-                );
+            _api.Dequeue((IQueueItem item) => {
+
+                if (dw!=null)
+                    dw.DynamicWaitAck(item!=null);
+                OnMessageReceived(item);
+            });
+
+            //_api.DequeueAsync(
+            //    (err) => OnErrorOcurred(new GenericEventArgs<string>(err)),
+            //    (qitem) => OnMessageReceived(qitem),
+            //     DuplexTypes.WaitOne,
+            //     resetEvent
+            //    );
         }
 
         protected override IQueueItem Receive()

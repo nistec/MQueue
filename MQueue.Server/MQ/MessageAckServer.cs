@@ -17,7 +17,7 @@ namespace Nistec.Messaging
         {
             int length = response.Length;
 
-            QLogger.DebugFormat("Serevr WriteReponse:{0}", length);
+            QLogger.Debug("Serevr WriteReponse:{0}", length);
 
             pipeServer.Write(response, 0, length);
 
@@ -43,7 +43,7 @@ namespace Nistec.Messaging
                 WriteReponse(pipeStream, stream.ToArray());
             }
 
-            QLogger.DebugFormat("Server Ack State:{0}, Label: {1}", state, label);
+            QLogger.Debug("Server Ack State:{0}, Label: {1}", state, label);
         }
 
         public static void WriteError(Stream pipeStream, MessageState state, QueueCmd cmd, Exception ex)
@@ -62,7 +62,7 @@ namespace Nistec.Messaging
             }
             catch (Exception x)
             {
-                QLogger.ErrorFormat("QueueResponse WriteError Exception: " + x.Message);
+                QLogger.Error("QueueResponse WriteError Exception: " + x.Message);
             }
         }
         
@@ -116,30 +116,50 @@ namespace Nistec.Messaging
                 WriteReponse(pipeStream, response.ToStream().ToArray());
             }
 
-            QLogger.DebugFormat("Server WriteReport State:{0}, Command: {1}", state, cmd);
+            QLogger.Debug("Server WriteReport State:{0}, Command: {1}", state, cmd);
         }
 
-        public static TransStream DoError(MessageState state, QueueCmd cmd, Exception ex)
+        
+
+        public static TransStream DoError(MessageState state, IQueueMessage message, bool responseAck, Exception ex)
         {
 
             try
             {
                 string lbl = ex.Message;
-                return QueueItem.Ack(state, cmd, ex).ToTransStream(); ;
-                //using (NetStream stream = new NetStream())
-                //{
-                //    response.EntityWrite(stream, null);
-                //    WriteReponse(pipeStream, stream.ToArray());
-                //}
+                if (responseAck)
+                    return new QueueAck(state, message, ex.Message).ToTransStream();
+                return QueueItem.Ack(state, message.QCommand, ex).ToTransStream();
             }
             catch (Exception x)
             {
-                QLogger.ErrorFormat("QueueResponse WriteError Exception: " + x.Message);
+                QLogger.Error("QueueResponse WriteError Exception: " + x.Message);
                 //var ack = new Message(MessageState.StreamReadWriteError, new MessageException(MessageState.StreamReadWriteError, "Invalid stream to write ack"));
                 //return ack.GetEntityStream(false);
                 return null;
             }
         }
+        //public static TransStream DoError(MessageState state, QueueCmd cmd, Exception ex)
+        //{
+
+        //    try
+        //    {
+        //        string lbl = ex.Message;
+        //        return QueueItem.Ack(state, cmd, ex).ToTransStream();
+        //        //using (NetStream stream = new NetStream())
+        //        //{
+        //        //    response.EntityWrite(stream, null);
+        //        //    WriteReponse(pipeStream, stream.ToArray());
+        //        //}
+        //    }
+        //    catch (Exception x)
+        //    {
+        //        QLogger.ErrorFormat("QueueResponse WriteError Exception: " + x.Message);
+        //        //var ack = new Message(MessageState.StreamReadWriteError, new MessageException(MessageState.StreamReadWriteError, "Invalid stream to write ack"));
+        //        //return ack.GetEntityStream(false);
+        //        return null;
+        //    }
+        //}
 
         public static TransStream DoResponse(IQueueAck item)
         {
@@ -148,8 +168,8 @@ namespace Nistec.Messaging
                 return null;
                 //throw new MessageException(MessageState.MessageError, "Invalid queue item to write response");
             }
-            QLogger.DebugFormat("QueueController DoResponse IQueueAck: {0}", item.Print());
-            return item.ToStream();
+            QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
+            return item.ToTransStream();
         }
         public static TransStream DoResponse(IQueueItem item)
         {
@@ -158,7 +178,7 @@ namespace Nistec.Messaging
                 return null;
                 //throw new MessageException(MessageState.MessageError, "Invalid queue item to write response");
             }
-            QLogger.DebugFormat("QueueController DoResponse IQueueAck: {0}", item.Print());
+            QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
             return item.ToTransStream();
         }
         public static TransStream DoResponse(IQueueItem item, MessageState state)
@@ -172,7 +192,7 @@ namespace Nistec.Messaging
             var ts=((QueueItem)item).ToTransStream(state);
 
             //((QueueItem)item).SetState(state);
-            QLogger.DebugFormat("QueueController DoResponse IQueueAck: {0}", item.Print());
+            QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
             //return item.ToStream();
 
             return ts;

@@ -46,15 +46,20 @@ namespace Nistec.Messaging
         private GenericPtrQueue mediumQ;
         private GenericPtrQueue highQ;
 
+        ILogger _Logger;
+        /// <summary>
+        /// Get or Set Logger that implements <see cref="ILogger"/> interface.
+        /// </summary>
+        public ILogger Logger { get { return _Logger; } set { if (value != null) _Logger = value; } }
         //private ConcurrentDictionary<Guid, IQueueItem> QueueList;
- 
+
         //private bool isTrans;
-        private string host;
+        //private string host;
         //private Hashtable hashAsyncTrans;
         //private static object syncTrans;
 
         //public string RootPath { get; set; }
-       
+
         #endregion
 
         #region events
@@ -95,15 +100,15 @@ namespace Nistec.Messaging
 
         protected virtual void OnTryAdd(Ptr ptr, IQueueItem item, bool result)
         {
-            QLogger.DebugFormat("OnTryAdd {0} item:{1}", result, item.Print());
+            Logger.Debug("OnTryAdd {0} item:{1}", result, item.Print());
         }
         protected virtual void OnTryDequeue(Ptr ptr, IQueueItem item, bool result)
         {
-            QLogger.DebugFormat("TryDequeue {0} item:{1}", result, item.Print());
+            Logger.Debug("TryDequeue {0} item:{1}", result, item.Print());
         }
         protected virtual void OnTryPeek(Ptr ptr, IQueueItem item, bool result)
         {
-            QLogger.DebugFormat("TryPeek {0} item:{1}", result, item.Print());
+            Logger.Debug("TryPeek {0} item:{1}", result, item.Print());
         }
         #endregion
 
@@ -131,14 +136,14 @@ namespace Nistec.Messaging
 
         #region ctor
 
-        public PriorityQueue(string host)
+        public PriorityQueue(string name)
         {
-            this.host = host;
+            this.Name = name;
             //this.isTrans = false;
             normalQ = new GenericPtrQueue();
             mediumQ = new GenericPtrQueue();
             highQ = new GenericPtrQueue();
-
+            _Logger = QLogger.Logger.ILog;
         }
 
    
@@ -220,10 +225,8 @@ namespace Nistec.Messaging
         /// <summary>
         /// Get the queue host name
         /// </summary>
-        public string Host
-        {
-            get { return host; }
-        }
+        public string Name { get; private set; }
+        
         #endregion
 
         #region Trans
@@ -787,11 +790,11 @@ namespace Nistec.Messaging
             }
             catch (TransactionAbortedException tex)
             {
-                QLogger.Exception("PriorityQueue Dequeue error ", tex);
+                Logger.Exception("PriorityQueue Dequeue error ", tex);
             }
             catch(Exception ex)
             {
-                QLogger.Exception("PriorityQueue Dequeue error ", ex);
+                Logger.Exception("PriorityQueue Dequeue error ", ex);
             }
 
             return null;
@@ -844,7 +847,7 @@ namespace Nistec.Messaging
             }
             catch (Exception ex)
             {
-                QLogger.Exception("PriorityQueue Dequeue error ", ex);
+                Logger.Exception("PriorityQueue Dequeue error ", ex);
             }
 
             return null;
@@ -888,7 +891,7 @@ namespace Nistec.Messaging
             }
             catch (Exception ex)
             {
-                QLogger.Exception("PriorityQueue Dequeue error ", ex);
+                Logger.Exception("PriorityQueue Dequeue error ", ex);
             }
 
             item = null;
@@ -950,7 +953,7 @@ namespace Nistec.Messaging
             }
             catch (Exception ex)
             {
-                QLogger.Exception("PriorityQueue Dequeue error ", ex);
+                Logger.Exception("PriorityQueue Dequeue error ", ex);
             }
 
             return null;
@@ -997,7 +1000,7 @@ namespace Nistec.Messaging
                 //((QueueItem)item).SetState(MessageState.Arrived);
                 //((QueueItem)item).ArrivedTime = DateTime.Now;
 
-                Ptr ptr = ((QueueItem)item).SetArrivedPtr(Host);
+                Ptr ptr = ((QueueItem)item).SetArrivedPtr(Name);
                 //Ptr ptr = new Ptr(item, Host);
 
                 if (TryAdd(ptr, item))
@@ -1033,9 +1036,9 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        internal protected void ReEnqueue(IQueueItem item)
+        internal protected virtual void ReEnqueue(IQueueItem item)
         {
-            Ptr ptr = new Ptr(item, Host);
+            Ptr ptr = new Ptr(item, Name);
 
             switch (item.Priority)
             {

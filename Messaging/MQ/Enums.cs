@@ -14,7 +14,31 @@ namespace Nistec.Messaging
         public const string QPTR = "QPTR";
     }
 
-    
+    public static class Defaults
+    {
+        //public const string DefaultHostName = "localhost";
+        //public const string DefaultAddress = "127.0.0.1";
+        //public const int DefaultPort = 15000;
+        public const int ReceiveBufferSize = 4096;
+        public const int SendBufferSize = 4096;
+        public const int ConnectTimeout = 6000;
+        public const int ReadTimeout = 180000;
+        public const int MaxSocketError = 50;
+        public const int InfiniteReadTimeout = -1;
+    }
+
+
+    /// <summary>
+    /// QueueChannel
+    /// </summary>
+    public enum QueueChannel
+    {
+        Producer,
+        Consumer,
+        Manager,
+        All
+    }
+
     // Summary:
     //     Specifies the result of an attempted message delivery.
     public enum Acknowledgment
@@ -241,7 +265,7 @@ namespace Nistec.Messaging
     {
         Memory=0,
         Persistent=1,
-        File=2,
+        FileStream=2,
         Db=3,
         Rout=100
     }
@@ -303,10 +327,12 @@ namespace Nistec.Messaging
         Peeking=14,
         Peeked = 15,
 
+        TransCommited = 19,
+
         OperationFailed = 20,
         OperationCanceled = 21,
         TransAborted = 22,
-        TransCommited = 23,
+        //TransCommited = 23,
         FailedEnqueue = 24,
         FailedDequeue = 25,
         FailedPeek = 26,

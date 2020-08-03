@@ -31,9 +31,10 @@ namespace Nistec.Messaging
         string ServerPath { get; }
         string QueueName { get; }
         bool IsTrans { get; }
+        bool IsTopic { get; }
         byte MaxRetry { get; }
         CoverMode Mode { get; }
-        string CoverPath { get; }
+        string TargetPath { get; }
         int ConnectTimeout { get; }
 
         bool ReloadOnStart { get; }
@@ -70,11 +71,12 @@ namespace Nistec.Messaging
         public bool IsTrans { get; set; }
         public byte MaxRetry{ get; set; }
         public CoverMode Mode { get; set; }
-        public string CoverPath { get; set; }
+        public string TargetPath { get; set; }
         public int ConnectTimeout { get; set; }
+        public bool IsTopic { get; set; }
 
         //public QCover Cover { get; set; }
-        
+
         public bool ReloadOnStart{ get; set; }
 
         //Persist properties
@@ -87,8 +89,8 @@ namespace Nistec.Messaging
 
         public string Print()
         {
-            return string.Format("QueueName: {0}, ServerPath: {1}, IsTrans: {2}, Mode: {3}, ConnectTimeout: {4}, CoverPath:{5}",
-                QueueName, ServerPath, IsTrans, Mode, ConnectTimeout, CoverPath
+            return string.Format("QueueName: {0}, ServerPath: {1}, IsTrans: {2}, Mode: {3}, ConnectTimeout: {4}, TargetPath:{5}",
+                QueueName, ServerPath, IsTrans, Mode, ConnectTimeout, TargetPath
                 );
         }
 
@@ -111,7 +113,7 @@ namespace Nistec.Messaging
         {
             get
             {
-                return Mode == CoverMode.File;
+                return Mode == CoverMode.FileStream;
             }
         }
         internal bool IsValid()
@@ -146,7 +148,7 @@ namespace Nistec.Messaging
                 //    throw new ArgumentException("Invalid Connection");
                 //}
             }
-            if(Mode== CoverMode.Rout && CoverPath==null || CoverPath=="")
+            if(Mode== CoverMode.Rout && TargetPath == null || TargetPath == "")
             {
                 throw new Exception("Invalid Cover Path for Rout mod");
             }
@@ -163,7 +165,8 @@ namespace Nistec.Messaging
             IsTrans = false;
             MaxRetry = DefaultMaxRetry;
             ReloadOnStart = false;
-            CoverPath = null;
+            IsTopic = false;
+            TargetPath = null;
             CommitMode = PersistCommitMode.None;
         }
 
@@ -179,7 +182,8 @@ namespace Nistec.Messaging
             IsTrans = false;
             MaxRetry = DefaultMaxRetry;
             ReloadOnStart = false;
-            CoverPath = null;
+            IsTopic = false;
+            TargetPath = null;
             CommitMode = PersistCommitMode.None;
         }
 
@@ -197,7 +201,8 @@ namespace Nistec.Messaging
             IsTrans = isTrans;
             MaxRetry = DefaultMaxRetry;
             ReloadOnStart = false;
-            CoverPath = null;
+            IsTopic = false;
+            TargetPath = null;
             CommitMode = PersistCommitMode.None;
         }
 
@@ -220,7 +225,8 @@ namespace Nistec.Messaging
             Mode = (CoverMode)(int)parser.GetAttributeValue(node, "CoverMode", "value", (int)CoverMode.Memory);
             IsTrans = Types.ToBool(parser.GetAttributeValue(node, "IsTrans", "value", "false"), false);
             MaxRetry = (byte)parser.GetAttributeValue(node, "MaxRetry", "value", (int)DefaultMaxRetry);
-            CoverPath = parser.GetAttributeValue(node, "CoverPath", "value", null);
+            IsTopic = Types.ToBool(parser.GetAttributeValue(node, "IsTopic", "value", "false"), false);
+            TargetPath = parser.GetAttributeValue(node, "TargetPath", "value", null);
             CommitMode = (PersistCommitMode)(int)parser.GetAttributeValue(node, "CommitMode", "value", (int)PersistCommitMode.None);
         }
 
@@ -245,11 +251,11 @@ namespace Nistec.Messaging
 
             if(Mode== CoverMode.Rout)
             {
-                if(CoverPath== null || CoverPath=="")
+                if(TargetPath== null || TargetPath == "")
                 {
                     return null;
                 }
-                return QueueHost.Parse(CoverPath);
+                return QueueHost.Parse(TargetPath);
             }
             return null;
         }
@@ -263,7 +269,8 @@ namespace Nistec.Messaging
             prop["IsTrans"] = IsTrans;
             prop["MaxRetry"] = MaxRetry;
             prop["ReloadOnStart"] = ReloadOnStart;
-            prop["CoverPath"] = CoverPath;
+            prop["TargetPath"] = TargetPath;
+            prop["IsTopic"] = IsTopic;
             prop["CommitMode"] = (int)CommitMode;
             return prop;
         }
@@ -277,8 +284,9 @@ namespace Nistec.Messaging
            prop["IsTrans"] = IsTrans.ToString();
            prop["MaxRetry"] = MaxRetry.ToString();
            prop["ReloadOnStart"] = ReloadOnStart.ToString();
-           prop["CoverPath"] = CoverPath;
-           prop["CommitMode"] = ((int)CommitMode).ToString();
+            prop["TargetPath"] = TargetPath;
+            prop["IsTopic"] = IsTopic.ToString();
+            prop["CommitMode"] = ((int)CommitMode).ToString();
             return prop;
        }
 
@@ -293,7 +301,8 @@ namespace Nistec.Messaging
             mqp.IsTrans = Types.ToBool(prop["IsTrans"], false);
             mqp.MaxRetry = (byte)Types.ToInt(prop["MaxRetry"], DefaultMaxRetry);
             mqp.ReloadOnStart = Types.ToBool(prop["ReloadOnStart"], false);
-            mqp.CoverPath = Types.NZ(prop["CoverPath"], null);
+            mqp.TargetPath = Types.NZ(prop["TargetPath"], null);
+            mqp.IsTopic = Types.ToBool(prop["IsTopic"], false);
             mqp.CommitMode = (PersistCommitMode)Types.ToInt(prop["Mode"], (int)PersistCommitMode.None);
             return mqp;
         }
@@ -308,7 +317,8 @@ namespace Nistec.Messaging
                 IsTrans = gnv.Get<bool>("IsTrans", false),
                 MaxRetry = (byte)gnv.Get<byte>("MaxRetry", DefaultMaxRetry),
                 ReloadOnStart = gnv.Get<bool>("ReloadOnStart", false),
-                CoverPath = gnv.Get("CoverPath", null),
+                TargetPath = gnv.Get("TargetPath", null),
+                IsTopic = gnv.Get<bool>("IsTopic", false),
                 CommitMode = (PersistCommitMode)gnv.Get<byte>("CommitMode", (byte)PersistCommitMode.None),
             };
             return mqp;
@@ -337,7 +347,8 @@ namespace Nistec.Messaging
             streamer.WriteValue(ServerPath);
             //streamer.WriteValue(Cover);
             streamer.WriteValue(ConnectTimeout);
-            streamer.WriteValue(CoverPath);
+            streamer.WriteValue(TargetPath);
+            streamer.WriteValue(IsTopic);
             streamer.WriteValue((byte)CommitMode);
             streamer.Flush();
         }
@@ -366,7 +377,8 @@ namespace Nistec.Messaging
             ServerPath = streamer.ReadString();
             //Cover = streamer.ReadValue<QCover>();
             ConnectTimeout = streamer.ReadValue<int>();
-            CoverPath = streamer.ReadString();
+            TargetPath = streamer.ReadString();
+            IsTopic = streamer.ReadValue<bool>();
             CommitMode = (PersistCommitMode) streamer.ReadValue<byte>();
         }
 

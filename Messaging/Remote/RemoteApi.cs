@@ -12,6 +12,7 @@ using Nistec.Channels.Http;
 using Nistec.Channels.Tcp;
 using System.Threading;
 using System.Threading.Tasks;
+using Nistec.Threading;
 
 namespace Nistec.Messaging.Remote
 {
@@ -56,7 +57,9 @@ namespace Nistec.Messaging.Remote
 
     public abstract class RemoteApi
     {
-        public const int DefaultTimeout = 5000;
+        public const int DefaultConnectTimeout = 6000;
+        public const int DefaultReadTimeout = 180000;
+        public const int DefaultWaitTimeout = 180000;
         public const int DefaultWaitInterval = 100;
 
 
@@ -72,14 +75,26 @@ namespace Nistec.Messaging.Remote
 
         int _WaitInterval = DefaultWaitInterval;
         public int WaitInterval { get { return _WaitInterval; } set { _WaitInterval = value<=10? DefaultWaitInterval: value; } }
-        int _Timeout = DefaultTimeout;
-        public int Timeout { get { return _Timeout; } set { _Timeout = (value <0 ? DefaultTimeout : value); } }
+        int _ConnectTimeout = DefaultConnectTimeout;
+        public int ConnectTimeout { get { return _ConnectTimeout; } set { _ConnectTimeout = (value <=0 ? DefaultConnectTimeout : value); } }
+        int _ReadTimeout = DefaultReadTimeout;
+        public int ReadTimeout { get { return _ReadTimeout; } set { _ReadTimeout = ((value == 0 || value< -1) ? DefaultReadTimeout : value); } }
+        int _WaitTimeout = DefaultWaitTimeout;
+        public int WaitTimeout { get { return _WaitTimeout; } set { _WaitTimeout = ((value == 0 || value <=0) ? DefaultWaitTimeout : value); } }
 
-        public int GetValidTimeout(int timeout) {
+        public int EnsureConnectTimeout(int timeout) {
 
             if (timeout <= 0)
-                return Timeout;
+                return ConnectTimeout;
             return timeout;
+        }
+        public string EnsureHost(string host)
+        {
+            return (host == null || host == "") ? QueueName : host;
+        }
+        public string QueueName
+        {
+            get { return _QueueName; }
         }
 
         #region members
@@ -123,7 +138,7 @@ namespace Nistec.Messaging.Remote
                     return JsonSerializer.Serialize(obj, null, format);
             }
         }
-
+        /*
         public int GetTimeout(int timeout, int protocolTimeout)
         {
             if (timeout > 0)
@@ -150,6 +165,95 @@ namespace Nistec.Messaging.Remote
                     return DefaultTimeout;
             }
         }
+        */
+
+        #region on completed
+
+        protected void OnFault(string message)
+        {
+            Console.WriteLine("QueueApi Fault: " + message);
+        }
+        //protected void OnCompleted(QueueItem message)
+        //{
+        //    Console.WriteLine("QueueApi Completed: " + message.Identifier);
+        //}
+
+        protected void OnItemCompleted(TransStream ts, IQueueMessage message, Action<IQueueAck> onCompleted) {
+
+            //QueueAck ack = (ts == null) ? null : ts.ReadValue<QueueAck>(OnFault);
+
+            //if (ack == null)
+            //{
+            //    if (message.IsDuplex)
+            //        ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+            //    else
+            //        ack = new QueueAck(MessageState.Arrived, "Message Arrived on way", message.Identifier, message.Host);
+
+            //    //ack.HostAddress = message.HostAddress;
+            //}
+
+            //Assists.SetArrived(ack);
+
+
+            IQueueAck ack = OnItemCompleted(ts, message);
+
+            onCompleted(ack);
+        }
+
+        protected IQueueAck OnItemCompleted(TransStream ts, IQueueMessage message)
+        {
+
+            QueueAck ack = (ts == null || ts.IsEmpty) ? null : ts.ReadValue<QueueAck>(OnFault);
+
+            if (ack == null)
+            {
+                if (message.IsDuplex)
+                    ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+                else
+                    ack = new QueueAck(MessageState.Arrived, "Message Arrived on way", message.Identifier, message.Host);
+
+                //ack.HostAddress = message.HostAddress;
+            }
+
+            Assists.SetArrived(ack);
+
+            return ack;
+        }
+
+        protected bool OnQItemCompleted(TransStream ts, Action<IQueueItem> onCompleted)
+        {
+
+            IQueueItem item = OnQItemCompleted(ts);
+            if (item != null)
+            {
+                onCompleted(item);
+                return true;
+            }
+            return false;
+        }
+
+        protected IQueueItem OnQItemCompleted(TransStream ts)//, IQueueMessage message)
+        {
+
+            QueueItem item = (ts == null || ts.IsEmpty) ? null : ts.ReadValue<QueueItem>(OnFault);
+
+            if (item == null)
+            {
+
+                return null;
+                //if (message.IsDuplex)
+                //    item = new QueueItem() { MessageState = MessageState.UnExpectedError, Label = "Server was not responsed for this message", Identifier = message.Identifier, Host = message.Host };
+                //else
+                //    item = new QueueItem() { MessageState = MessageState.Arrived, Label = "Message Arrived on way", Identifier = message.Identifier, Host = message.Host };
+
+                ////ack.HostAddress = message.HostAddress;
+            }
+
+            Assists.SetArrived(item);
+
+            return item;
+        }
+        #endregion
 
         #region internal
         /*
@@ -272,6 +376,8 @@ namespace Nistec.Messaging.Remote
             */
         #endregion
 
+            /*
+
         internal QueueAck Enqueue(QueueItem message, Action<string> onFault)
         {
             message.Host = this._QueueName;
@@ -279,7 +385,7 @@ namespace Nistec.Messaging.Remote
             //ChannelSettings.HttpTimeout;
             //ChannelSettings.IsAsync
             message.MessageState = MessageState.Sending;
-            TransStream ts = SendDuplexStream(message, Timeout, IsAsync);
+            TransStream ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
             if (ts == null)
             {
                 if (message.IsDuplex)
@@ -296,16 +402,37 @@ namespace Nistec.Messaging.Remote
             //ChannelSettings.HttpTimeout;
             //ChannelSettings.IsAsync
             message.MessageState = MessageState.Sending;
-            TransStream ts = SendDuplexStream(message, GetValidTimeout(timeout), IsAsync);
+            TransStream ts = SendDuplexStream(message, EnsureConnectTimeout(timeout), IsAsync);
             if (ts == null)
             {
-                if (message.IsDuplex)
-                    onFault(message.QCommand.ToString() + " return null");
+                //"Enqueue return null"
+                //if (message.IsDuplex)
+                //    onFault(message.QCommand.ToString() + " return null");
                 return null;
             }
             return ts.ReadValue<QueueAck>(onFault);
         }
+        */
+        //internal void EnqueueAsync(QueueItem message, int timeout, Action<string> onFault, Action<TransStream> onCompleted)
+        //{
+        //    message.Host = this._QueueName;
 
+        //    //ChannelSettings.HttpTimeout;
+        //    //ChannelSettings.IsAsync
+        //    message.MessageState = MessageState.Sending;
+
+        //    PublishAsync(message, timeout, onFault, onCompleted, null);
+
+        //    //if (ts == null)
+        //    //{
+        //    //    if (message.IsDuplex)
+        //    //        onFault(message.QCommand.ToString() + " return null");
+        //    //    return null;
+        //    //}
+        //    //return ts.ReadValue<QueueAck>(onFault);
+        //}
+
+        /*
         internal TransStream SendWaitOneDuplex(QueueRequest message)
         {
             message.Host = this._QueueName;
@@ -318,11 +445,11 @@ namespace Nistec.Messaging.Remote
             bool ok = false;
 
             message.QCommand = QueueCmd.QueueHasValue;
-            ts = SendDuplexStream(message, Timeout, IsAsync);
+            ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
             if (ts != null && ts.ReadValue<int>() > 0)
             {
                 message.QCommand = cmd;
-                ts = SendDuplexStream(message, Timeout, IsAsync);
+                ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
                 ok = (ts != null && ts.GetLength() > 0);
                 Console.WriteLine(ok);
             }
@@ -332,12 +459,554 @@ namespace Nistec.Messaging.Remote
             return ts;//.ReadValue<QueueItem>(onFault);
 
         }
+        */
 
-         internal void SendDuplexStreamAsync(QueueRequest message, Action<string> onFault, Action<TransStream> onCompleted, AutoResetEvent resetEvent)
+        #region Publish
+
+        public TransStream PublishItemStream(QueueItem message, int timeout)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            EnableRemoteException = true;
+            TransStream ts = ExecDuplexStream(message, timeout);
+            return ts;
+        }
+
+        public IQueueAck PublishItem(QueueItem message)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            try
+            {
+
+                TransStream ts = ExecDuplexStream(message, ConnectTimeout);
+                return OnItemCompleted(ts, message);
+            }
+            catch (Exception ex)
+            {
+                OnFault("PublishItem error:" + ex.Message);
+                return OnItemCompleted(null, message);
+            }
+        }
+
+        public IQueueAck PublishItem(QueueItem message, int timeout)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            try
+            {
+
+                TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout));
+                return OnItemCompleted(ts, message);
+            }
+            catch (Exception ex)
+            {
+                OnFault("PublishItem error:" + ex.Message);
+                return OnItemCompleted(null, message);
+            }
+        }
+
+        public void PublishItemStream(QueueItem message, int timeout, Action<TransStream> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            bool isCompleted = false;
+            EnableRemoteException = true;
+            
+            Task task = Task.Factory.StartNew(() =>
+            {
+                ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                {
+                    onCompleted(ts);
+                    isCompleted = true;
+                }, IsAsync);
+
+                //while (!isCompleted)
+                //{
+                //    Thread.Sleep(100);
+                //}
+
+            });
+
+            task.Wait(WaitTimeout);
+        }
+
+        public void PublishItem(QueueItem message, int timeout, Action<IQueueAck> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            bool isCompleted = false;
+
+            try
+            {
+
+                Task task = Task.Factory.StartNew(() =>
+                {
+                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                    {
+                        OnItemCompleted(ts, message,onCompleted);
+                        isCompleted = true;
+                    }, IsAsync);
+
+                    //while (!isCompleted)
+                    //{
+                    //    Thread.Sleep(100);
+                    //}
+
+                });
+
+                task.Wait(WaitTimeout);
+            }
+            catch (Exception ex)
+            {
+                OnFault("PublishItem error:" + ex.Message);
+                OnItemCompleted(null, message, onCompleted);
+            }
+        }
+
+        public void PublishItemStream(QueueItem message, int timeout, Action<string> onFault, Action<TransStream> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            bool isCompleted = false;
+
+            try
+            {
+
+                Task task = Task.Factory.StartNew(() =>
+                {
+                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                    {
+                        onCompleted(ts);
+                        isCompleted = true;
+                    }, IsAsync);
+
+                    //while (!isCompleted)
+                    //{
+                    //    Thread.Sleep(100);
+                    //}
+
+                });
+
+                task.Wait(WaitTimeout);
+            }
+            catch (Exception ex)
+            {
+                onFault("PublishItem error:" + ex.Message);
+            }
+        }
+
+        public void PublishItemStream(QueueItem message, int timeout, Action<string> onFault, Action<TransStream> onCompleted, CancellationTokenSource cts)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            bool isCompleted = false;
+            CancellationToken ct = cts.Token;
+
+            try
+            {
+
+                Task task = Task.Factory.StartNew(() =>
+                {
+
+                    if (ct.WaitCancellationRequested(TimeSpan.FromMilliseconds(WaitTimeout)))
+                    {
+                        ct.ThrowIfCancellationRequested();
+                    }
+                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                    {
+                        onCompleted(ts);
+                        isCompleted = true;
+                    }, IsAsync);
+
+                    while (!isCompleted)
+                    {
+                        // Poll on this property if you have to do
+                        // other cleanup before throwing.
+                        if (ct.IsCancellationRequested)
+                        {
+                            // Clean up here, then...
+                            ct.ThrowIfCancellationRequested();
+                        }
+                        Thread.Sleep(WaitInterval);
+                    }
+
+                }, ct, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+                task.Wait(WaitTimeout);
+            }
+            catch (OperationCanceledException cex)
+            {
+                //Console.WriteLine($"{nameof(OperationCanceledException)} thrown with message: {cex.Message}");
+                onFault("PublishItem OperationCanceledException:" + cex.Message);
+            }
+            catch (Exception ex)
+            {
+                onFault("PublishAsync error:" + ex.Message);
+            }
+            finally
+            {
+                cts.Dispose();
+            }
+        }
+
+        #endregion
+
+        #region Consum
+
+        public IQueueAck ConsumItem(QueueItem message, int timeout)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Receiving;
+            timeout = EnsureConnectTimeout(timeout);
+
+            try
+            {
+
+                TransStream ts = ExecDuplexStream(message, timeout);
+                return OnItemCompleted(ts, message);
+            }
+            catch (Exception ex)
+            {
+                OnFault("ConsumItem error:" + ex.Message);
+                return OnItemCompleted(null, message);
+            }
+        }
+
+
+        public IQueueItem ConsumItem(QueueRequest message, int timeout)
+        {
+            message.Host = EnsureHost(message.Host);
+            //message.MessageState = MessageState.Receiving;
+
+            try
+            {
+
+                TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout));
+                return OnQItemCompleted(ts);
+            }
+            catch (Exception ex)
+            {
+                OnFault("ConsumItem error:" + ex.Message);
+                return null;// OnQItemCompleted(null, message);
+            }
+        }
+
+
+        public void ConsumItem(QueueRequest message, int timeout, Action<IQueueItem> onCompleted, IDynamicWait dw)//Action<bool> onAck)
+        {
+            message.Host = EnsureHost(message.Host);
+            //message.MessageState = MessageState.Receiving;
+            timeout = EnsureConnectTimeout(timeout);
+            bool isCompleted = false;
+            bool ack = false;
+            try
+            {
+
+                Task task = Task.Factory.StartNew(() =>
+                {
+                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                    {
+                        if (TransStream.IsEmptyStream(ts))
+                        {
+                            ack = false;
+                        }
+                        else
+                        {
+                            OnQItemCompleted(ts, onCompleted);
+                            ack = true;
+                        }
+                        //if (onAck != null)
+                        //    onAck(ack);
+                        if (dw != null)
+                            dw.DynamicWaitAck(ack);
+
+                        isCompleted = true;
+                    }, IsAsync);
+
+                    //while (!isCompleted)
+                    //{
+                    //    Thread.Sleep(WaitInterval);
+                    //}
+
+                });
+
+                task.Wait(WaitTimeout);
+            }
+            catch (Exception ex)
+            {
+                OnFault("ConsumItem error:" + ex.Message);
+                //OnQItemCompleted(null, message, onCompleted);
+            }
+        }
+
+        //public void ConsumItem(QueueRequest message, int timeout, Action<IQueueItem> onCompleted, Action<bool> onAck, AutoResetEvent resetEvent)
+        //{
+        //    message.Host = EnsureHost(message.Host);
+        //    //message.MessageState = MessageState.Receiving;
+        //    timeout = EnsureConnectTimeout(timeout);
+        //    bool isCompleted = false;
+        //    bool ack = false;
+        //    try
+        //    {
+
+        //        Task task = Task.Factory.StartNew(() =>
+        //        {
+        //            ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+        //            {
+        //                if (TransStream.IsEmptyStream(ts))
+        //                    ack = false;
+        //                else
+        //                {
+        //                    OnQItemCompleted(ts, onCompleted);
+        //                    ack = true;
+        //                }
+        //                onAck(ack);
+        //                isCompleted = true;
+        //                resetEvent.Set();
+        //            }, IsAsync);
+
+        //            //while (!isCompleted)
+        //            //{
+        //            //    Thread.Sleep(WaitInterval);
+        //            //}
+
+        //        });
+
+        //        task.Wait(WaitTimeout);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        OnFault("ConsumItem error:" + ex.Message);
+        //        //OnQItemCompleted(null, onCompleted);
+        //    }
+        //}
+
+
+        public void ConsumItem(QueueRequest message, Action<string> onFault, Action<IQueueItem> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            bool isCompleted = false;
+
+            try
+            {
+
+                Task task = Task.Factory.StartNew(() =>
+                {
+                    ExecDuplexStreamAsync(message, ConnectTimeout, (TransStream ts) =>
+                    {
+                        OnQItemCompleted(ts, onCompleted);
+                        isCompleted = true;
+                    }, IsAsync);
+
+                    //while (!isCompleted)
+                    //{
+                    //    Thread.Sleep(WaitInterval);
+                    //}
+
+                });
+                task.Wait(WaitTimeout);
+            }
+            catch (Exception ex)
+            {
+                onFault("ConsumItem error:" + ex.Message);
+                //OnQItemCompleted(null, message, onCompleted);
+            }
+        }
+ 
+        public void ConsumItemStream(QueueRequest message, int timeout, Action<string> onFault, Action<TransStream> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            timeout = EnsureConnectTimeout(timeout);
+            bool isCompleted = false;
+
+            try
+            {
+
+                Task task = Task.Factory.StartNew(() =>
+                {
+                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                    {
+                        onCompleted(ts);
+                        isCompleted = true;
+                    }, IsAsync);
+
+                    //while (!isCompleted)
+                    //{
+                    //    Thread.Sleep(100);
+                    //}
+
+                });
+
+                task.Wait(WaitTimeout);
+            }
+            catch (Exception ex)
+            {
+                onFault("ConsumItemStream error:" + ex.Message);
+            }
+        }
+
+        public void ConsumItemStream(QueueRequest message, int timeout, Action<string> onFault, Action<TransStream> onCompleted, CancellationTokenSource cts)
+        {
+            message.Host = EnsureHost(message.Host);
+            timeout = EnsureConnectTimeout(timeout);
+            bool isCompleted = false;
+            CancellationToken ct = cts.Token;
+
+            try
+            {
+
+                Task task = Task.Factory.StartNew(() =>
+                {
+
+                    if (ct.WaitCancellationRequested(TimeSpan.FromMilliseconds(WaitTimeout)))
+                    {
+                        ct.ThrowIfCancellationRequested();
+                    }
+                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                    {
+                        onCompleted(ts);
+                        isCompleted = true;
+                    }, IsAsync);
+
+                    while (!isCompleted)
+                    {
+                        // Poll on this property if you have to do
+                        // other cleanup before throwing.
+                        if (ct.IsCancellationRequested)
+                        {
+                            // Clean up here, then...
+                            ct.ThrowIfCancellationRequested();
+                        }
+                        Thread.Sleep(WaitInterval);
+                    }
+
+                }, ct, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+                task.Wait(WaitTimeout);
+            }
+            catch (OperationCanceledException cex)
+            {
+                //Console.WriteLine($"{nameof(OperationCanceledException)} thrown with message: {cex.Message}");
+                onFault("ConsumItemStream OperationCanceledException:" + cex.Message);
+            }
+            catch (Exception ex)
+            {
+                onFault("ConsumItemStream error:" + ex.Message);
+            }
+            finally
+            {
+                cts.Dispose();
+            }
+        }
+
+        /*
+        public IQueueItem ConsumWaitOne(QueueRequest message, Action<string> onFault)
+        {
+            //message.Host = this._QueueName;
+            //int timeout = -1;
+            //bool isCompleted = false;
+            //CancellationToken ct = cts.Token;
+
+
+            try
+            {
+
+                TransStream ts = WaitForStream(message);
+                return OnQItemCompleted(ts, message);
+
+            }
+            catch (OperationCanceledException cex)
+            {
+                //Console.WriteLine($"{nameof(OperationCanceledException)} thrown with message: {cex.Message}");
+                onFault("ConsumItemStream OperationCanceledException:" + cex.Message);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                onFault("ConsumItemStream error:" + ex.Message);
+                return null;
+            }
+            finally
+            {
+                //cts.Dispose();
+                //resetEvent.Set();
+            }
+        }
+
+        public void ConsumWaitOne(QueueRequest message, Action<string> onFault, Action<IQueueItem> onCompleted, AutoResetEvent resetEvent)
+        {
+            //message.Host = this._QueueName;
+            //int timeout = -1;
+            bool isCompleted = false;
+            //CancellationToken ct = cts.Token;
+
+
+            try
+            {
+
+                Task task = Task.Factory.StartNew(() =>
+                {
+
+                    //if (ct.WaitCancellationRequested(TimeSpan.FromMilliseconds(WaitInterval)))
+                    //{
+                    //    ct.ThrowIfCancellationRequested();
+                    //}
+                    WaitForStream(message, (TransStream ts) =>
+                    {
+                        OnQItemCompleted(ts, message, onCompleted);
+                        isCompleted = true;
+                    }, IsAsync);
+                    resetEvent.WaitOne();
+
+                    //while (!isCompleted)
+                    //{
+                    //    // Poll on this property if you have to do
+                    //    // other cleanup before throwing.
+                    //    if (ct.IsCancellationRequested)
+                    //    {
+                    //        // Clean up here, then...
+                    //        ct.ThrowIfCancellationRequested();
+                    //    }
+                    //    Thread.Sleep(100);
+                    //}
+
+                }, TaskCreationOptions.LongRunning);//, ct, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+                task.Wait(WaitTimeout);
+            }
+            catch (OperationCanceledException cex)
+            {
+                //Console.WriteLine($"{nameof(OperationCanceledException)} thrown with message: {cex.Message}");
+                onFault("ConsumItemStream OperationCanceledException:" + cex.Message);
+            }
+            catch (Exception ex)
+            {
+                onFault("ConsumItemStream error:" + ex.Message);
+            }
+            finally
+            {
+                //cts.Dispose();
+                resetEvent.Set();
+            }
+        }
+
+        */
+
+        #endregion
+
+        /*
+        internal void b_SendDuplexStreamAsync(QueueItem message, int timeout, Action<string> onFault, Action<TransStream> onCompleted, AutoResetEvent resetEvent)
         {
             message.Host = this._QueueName;
             QueueCmd cmd = message.QCommand;
             TransStream ts = null;
+            timeout = EnsureConnectTimeout(timeout);
 
             var cancellationTokenSource = new CancellationTokenSource();
 
@@ -346,7 +1015,7 @@ namespace Nistec.Messaging.Remote
                 Task.Factory.StartNew(
                 () =>
                 {
-                    for (;;)
+                    for (; ; )
                     {
                         if (cancellationTokenSource.Token.WaitCancellationRequested(TimeSpan.FromMilliseconds(WaitInterval)))
                         {
@@ -354,11 +1023,11 @@ namespace Nistec.Messaging.Remote
                         }
 
                         message.QCommand = QueueCmd.QueueHasValue;
-                        ts = SendDuplexStream(message, Timeout, IsAsync);
+                        ts = SendDuplexStream(message, timeout, IsAsync);
                         if (ts != null && ts.ReadValue<int>() > 0)
                         {
                             message.QCommand = cmd;
-                            ts = SendDuplexStream(message, Timeout, IsAsync);
+                            ts = SendDuplexStream(message, timeout, IsAsync);
                             bool ok = (ts != null && ts.GetLength() > 0);
                             Console.WriteLine(ok);
                             if (ok)
@@ -367,7 +1036,8 @@ namespace Nistec.Messaging.Remote
                                 //Assists.SetReceived(res, cmd);
                                 //Assists.SetArrived(res);
                                 onCompleted(ts);
-                                resetEvent.Set();
+                                if (resetEvent != null)
+                                    resetEvent.Set();
                                 break;
                             }
                         }
@@ -387,11 +1057,11 @@ namespace Nistec.Messaging.Remote
                    }
 
                    message.QCommand = QueueCmd.QueueHasValue;
-                   ts = SendDuplexStream(message, Timeout, IsAsync);
+                   ts = SendDuplexStream(message, timeout, IsAsync);
                    if (ts != null && ts.ReadValue<int>() > 0)
                    {
                        message.QCommand = cmd;
-                       ts = SendDuplexStream(message, Timeout, IsAsync);
+                       ts = SendDuplexStream(message, timeout, IsAsync);
                        bool ok = (ts != null && ts.GetLength() > 0);
                        Console.WriteLine(ok);
                        if (ok)
@@ -400,15 +1070,16 @@ namespace Nistec.Messaging.Remote
                            //Assists.SetReceived(res, cmd);
                            //Assists.SetArrived(res);
                            onCompleted(ts);
-                           resetEvent.Set();
+                           if (resetEvent != null)
+                               resetEvent.Set();
                            return;
                        }
                    }
                }, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
             }
         }
-
-        internal void SendDuplexAsync(QueueRequest message, Action<string> onFault, Action<QueueItem> onCompleted,AutoResetEvent resetEvent)
+        
+        internal void b_SendDuplexStreamAsync(QueueRequest message, Action<string> onFault, Action<TransStream> onCompleted, AutoResetEvent resetEvent)
         {
             message.Host = this._QueueName;
             QueueCmd cmd = message.QCommand;
@@ -421,7 +1092,7 @@ namespace Nistec.Messaging.Remote
                 Task.Factory.StartNew(
                 () =>
                 {
-                    for (;;)
+                    for (; ; )
                     {
                         if (cancellationTokenSource.Token.WaitCancellationRequested(TimeSpan.FromMilliseconds(WaitInterval)))
                         {
@@ -429,20 +1100,98 @@ namespace Nistec.Messaging.Remote
                         }
 
                         message.QCommand = QueueCmd.QueueHasValue;
-                        ts = SendDuplexStream(message, Timeout, IsAsync);
+                        ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
                         if (ts != null && ts.ReadValue<int>() > 0)
                         {
                             message.QCommand = cmd;
-                            ts = SendDuplexStream(message, Timeout, IsAsync);
+                            ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
                             bool ok = (ts != null && ts.GetLength() > 0);
                             Console.WriteLine(ok);
+                            if (ok)
+                            {
+                                //var res = ts.ReadValue<QueueItem>(onFault);
+                                //Assists.SetReceived(res, cmd);
+                                //Assists.SetArrived(res);
+                                onCompleted(ts);
+                                if (resetEvent != null)
+                                    resetEvent.Set();
+                                break;
+                            }
+                        }
+                    }
+                }, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+            }
+            else
+            {
+
+                Task.Factory.StartNew(
+               () =>
+               {
+                   if (cancellationTokenSource.Token.WaitCancellationRequested(TimeSpan.FromMilliseconds(WaitInterval)))
+                   {
+                       return;
+                   }
+
+                   message.QCommand = QueueCmd.QueueHasValue;
+                   ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
+                   if (ts != null && ts.ReadValue<int>() > 0)
+                   {
+                       message.QCommand = cmd;
+                       ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
+                       bool ok = (ts != null && ts.GetLength() > 0);
+                       Console.WriteLine(ok);
+                       if (ok)
+                       {
+                           //var res =ts.ReadValue<QueueItem>(onFault);
+                           //Assists.SetReceived(res, cmd);
+                           //Assists.SetArrived(res);
+                           onCompleted(ts);
+                           if (resetEvent != null)
+                               resetEvent.Set();
+                           return;
+                       }
+                   }
+               }, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            }
+        }
+
+        internal void b_SendDuplexAsync(QueueRequest message, Action<string> onFault, Action<QueueItem> onCompleted, AutoResetEvent resetEvent)
+        {
+            message.Host = this._QueueName;
+            QueueCmd cmd = message.QCommand;
+            TransStream ts = null;
+
+            var cancellationTokenSource = new CancellationTokenSource();
+
+            if (message.DuplexType == DuplexTypes.WaitOne)
+            {
+                Task.Factory.StartNew(
+                () =>
+                {
+                    for (; ; )
+                    {
+                        if (cancellationTokenSource.Token.WaitCancellationRequested(TimeSpan.FromMilliseconds(WaitInterval)))
+                        {
+                            break;
+                        }
+
+                        message.QCommand = QueueCmd.QueueHasValue;
+                        ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
+                        if (ts != null && ts.ReadValue<int>() > 0)
+                        {
+                            message.QCommand = cmd;
+                            ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
+                            bool ok = (ts != null && ts.GetLength() > 0);
+                            //Console.WriteLine(ok);
                             if (ok)
                             {
                                 var res = ts.ReadValue<QueueItem>(onFault);
                                 Assists.SetReceived(res, cmd);
                                 //Assists.SetArrived(res);
                                 onCompleted(res);
-                                resetEvent.Set();
+                                if (resetEvent != null)
+                                    resetEvent.Set();
                                 break;
                             }
                         }
@@ -462,11 +1211,11 @@ namespace Nistec.Messaging.Remote
                 }, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
                 //message.QCommand = QueueCmd.QueueHasValue;
-                //ts = SendDuplexStream(message, Timeout, IsAsync);
+                //ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
                 //if (ts != null && ts.ReadValue<int>() > 0)
                 //{
                 //    message.QCommand = cmd;
-                //    ts = SendDuplexStream(message, Timeout, IsAsync);
+                //    ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
                 //    ok = (ts != null && ts.GetLength() > 0);
                 //    Console.WriteLine(ok);
                 //}
@@ -491,26 +1240,27 @@ namespace Nistec.Messaging.Remote
                    }
 
                    message.QCommand = QueueCmd.QueueHasValue;
-                   ts = SendDuplexStream(message, Timeout, IsAsync);
+                   ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
                    if (ts != null && ts.ReadValue<int>() > 0)
                    {
                        message.QCommand = cmd;
-                       ts = SendDuplexStream(message, Timeout, IsAsync);
+                       ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
                        bool ok = (ts != null && ts.GetLength() > 0);
-                       Console.WriteLine(ok);
+                       //Console.WriteLine(ok);
                        if (ok)
                        {
                            var res = ts.ReadValue<QueueItem>(onFault);
                            Assists.SetReceived(res, cmd);
                            //Assists.SetArrived(res);
                            onCompleted(res);
-                           resetEvent.Set();
+                           if (resetEvent != null)
+                               resetEvent.Set();
                            return;
                        }
                    }
                }, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
-                //ts = SendDuplexStream(message, Timeout, IsAsync);
+                //ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
                 //if (ts == null)
                 //    onFault(message.QCommand.ToString() + " return null");
                 ////return ts.ReadValue<QueueItem>(onFault);
@@ -520,6 +1270,7 @@ namespace Nistec.Messaging.Remote
                 //onCompleted(item);
             }
         }
+        
         internal QueueItem SendDuplex(QueueRequest message, Action<string> onFault)
         {
             message.Host = this._QueueName;
@@ -531,51 +1282,63 @@ namespace Nistec.Messaging.Remote
             if (message.DuplexType == DuplexTypes.WaitOne)
             {
 
-                
-                bool ok = false;
-                while (!ok)
+
+                ts = WaitForStream(message, IsAsync);// SendDuplexStream(message, ConnectTimeout, IsAsync);
+                if (ts == null)
+                    onFault(message.QCommand.ToString() + " return null");
+
+
+                //bool ok = false;
+                //while (!ok)
+                //{
+                //    //Task task = Task.Factory.Scheduler.StartNew(() => SendWaitOneDuplex(message));
+                //    //{
+                //    //    task.Wait(ConnectTimeout);
+                //    //    if (task.IsCompleted)
+                //    //    {
+                //    //        ok = (ts != null && ts.GetLength() > 0);
+                //    //        if (ok)
+                //    //            return ts.ReadValue<QueueItem>(onFault);
+                //    //    }
+                //    //}
+                //    //task.TryDispose();
+
+                //    message.QCommand = QueueCmd.QueueHasValue;
+                //    ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
+                //    if (ts != null && ts.ReadValue<int>() > 0)
+                //    {
+                //        message.QCommand = cmd;
+                //        ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
+                //        ok = (ts != null && ts.GetLength() > 0);
+                //    }
+                //    if (!ok)
+                //    {
+                //        //Thread.Sleep(WaitInterval);
+                //        return null;
+                //    }
+                //}
+                else
                 {
-                    //Task task = Task.Factory.Scheduler.StartNew(() => SendWaitOneDuplex(message));
-                    //{
-                    //    task.Wait(Timeout);
-                    //    if (task.IsCompleted)
-                    //    {
-                    //        ok = (ts != null && ts.GetLength() > 0);
-                    //        if (ok)
-                    //            return ts.ReadValue<QueueItem>(onFault);
-                    //    }
-                    //}
-                    //task.TryDispose();
-
-                    message.QCommand = QueueCmd.QueueHasValue;
-                    ts = SendDuplexStream(message, Timeout, IsAsync);
-                    if (ts != null && ts.ReadValue<int>() > 0)
-                    {
-                        message.QCommand = cmd;
-                        ts = SendDuplexStream(message, Timeout, IsAsync);
-                        ok = (ts != null && ts.GetLength() > 0);
-                    }
-                    if (!ok)
-                    {
-                        //Thread.Sleep(WaitInterval);
-                        return null;
-                    }
+                    qitem = ts.ReadValue<QueueItem>(onFault);
+                    Assists.SetReceived(qitem, cmd);
                 }
-
-                qitem = ts.ReadValue<QueueItem>(onFault);
-                Assists.SetReceived(qitem, cmd);
                 return qitem;
             }
+            else
+            {
 
-
-            ts = SendDuplexStream(message, Timeout, IsAsync);
-            if (ts == null)
-                onFault(message.QCommand.ToString() + " return null");
-            qitem= ts.ReadValue<QueueItem>(onFault);
-            Assists.SetReceived(qitem, cmd);
-            return qitem;
+                ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
+                if (ts == null)
+                    onFault(message.QCommand.ToString() + " return null");
+                else
+                {
+                    qitem = ts.ReadValue<QueueItem>(onFault);
+                    Assists.SetReceived(qitem, cmd);
+                }
+                return qitem;
+            }
         }
-
+        */
         internal void SendOut(QueueItem message)
         {
             //message.Host = this._QueueName;
@@ -584,21 +1347,21 @@ namespace Nistec.Messaging.Remote
             switch (Protocol)
             {
                 case NetProtocol.Http:
-                    HttpClient.SendOut(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, GetTimeout(Timeout, ChannelSettings.HttpTimeout), EnableRemoteException);
+                    HttpClient.SendOut(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, ConnectTimeout, EnableRemoteException);
                     break;
                 case NetProtocol.Pipe:
                     PipeClient.SendOut(message, RemoteHostAddress, EnableRemoteException, IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
                 default:
-                    TcpClient.SendOut(message, RemoteHostAddress, RemoteHostPort, Timeout, IsAsync, EnableRemoteException);
+                    TcpClient.SendOut(message, RemoteHostAddress, RemoteHostPort, ConnectTimeout, IsAsync, EnableRemoteException);
                     break;
             }
         }
 
-      
 
-        #region Send Stream
+
+        #region Exec Stream
 
 
         //public T SendDuplexStream<T>(QueueItem message, Action<string> onFault)
@@ -623,14 +1386,33 @@ namespace Nistec.Messaging.Remote
         //    return (CacheState)ts.ReadState();
         //}
 
-        public TransStream SendDuplexStream(QueueItem message, int timeout, bool isAsync = false)
+        public void ExecDuplexStreamAsync(QueueItem message, int connectTimeout, Action<TransStream> onCompleted, bool isChannelAsync = false)
         {
             message.TransformType = TransformType.Stream;
 
             switch (Protocol)
             {
                 case NetProtocol.Http:
-                    return HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort,ChannelSettings.HttpMethod, GetTimeout(timeout, ChannelSettings.HttpTimeout), EnableRemoteException);
+                    HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+                    break;
+                case NetProtocol.Pipe:
+                    //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                    PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
+                    break;
+                case NetProtocol.Tcp:
+                    TcpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, isChannelAsync, EnableRemoteException);
+                    break;
+            }
+        }
+
+        public TransStream ExecDuplexStream(QueueItem message, int connectTimeout, bool isAsync = false)
+        {
+            message.TransformType = TransformType.Stream;
+
+            switch (Protocol)
+            {
+                case NetProtocol.Http:
+                    return HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort,ChannelSettings.HttpMethod, ConnectTimeout, EnableRemoteException);
 
                 case NetProtocol.Pipe:
                     //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
@@ -639,18 +1421,36 @@ namespace Nistec.Messaging.Remote
                 case NetProtocol.Tcp:
                     break;
             }
-            return TcpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, timeout, isAsync, EnableRemoteException);
+            return TcpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, isAsync, EnableRemoteException);
         }
-               
 
-        public TransStream SendDuplexStream(QueueRequest message, int timeout, bool isAsync = false)
+        public void ExecDuplexStreamAsync(QueueRequest message, int connectTimeout, Action<TransStream> onCompleted, bool isChannelAsync = false)
         {
             message.TransformType = TransformType.Stream;
 
             switch (Protocol)
             {
                 case NetProtocol.Http:
-                    return HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, GetTimeout(timeout, ChannelSettings.HttpTimeout), EnableRemoteException);
+                    HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+                    break;
+                case NetProtocol.Pipe:
+                    //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                    PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
+                    break;
+                case NetProtocol.Tcp:
+                    TcpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, isChannelAsync, EnableRemoteException);
+                    break;
+            }
+        }
+
+        public TransStream ExecDuplexStream(QueueRequest message, int connectTimeout, bool isAsync = false)
+        {
+            message.TransformType = TransformType.Stream;
+
+            switch (Protocol)
+            {
+                case NetProtocol.Http:
+                    return HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, ConnectTimeout, EnableRemoteException);
 
                 case NetProtocol.Pipe:
                     //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
@@ -659,10 +1459,48 @@ namespace Nistec.Messaging.Remote
                 case NetProtocol.Tcp:
                     break;
             }
-            return TcpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort,timeout, isAsync, EnableRemoteException);
+            return TcpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, isAsync, EnableRemoteException);
 
         }
-       
+        /*
+        public TransStream WaitForStream(QueueRequest message, bool isAsync = false)
+        {
+            message.TransformType = TransformType.Stream;
+
+            switch (Protocol)
+            {
+                case NetProtocol.Http:
+                    //return HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, GetTimeout(connectTimeout, ChannelSettings.HttpTimeout), EnableRemoteException);
+                    throw new InvalidOperationException("Http not supported this method");
+                case NetProtocol.Pipe:
+                    //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                    return PipeClient.SendDuplexStream(message, RemoteHostAddress,0, EnableRemoteException, isAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
+
+                case NetProtocol.Tcp:
+                    break;
+            }
+            return TcpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, ConnectTimeout, -1, isAsync, EnableRemoteException);
+
+        }
+        public void WaitForStream(QueueRequest message, Action<TransStream> onCompleted, bool isChannelAsync = false)
+        {
+            message.TransformType = TransformType.Stream;
+
+            switch (Protocol)
+            {
+                case NetProtocol.Http:
+                    //HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, GetTimeout(connectTimeout, ChannelSettings.HttpTimeout), onCompleted, EnableRemoteException);
+                    throw new InvalidOperationException("Http not supported this method");
+                case NetProtocol.Pipe:
+                    //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                    PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, 0, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
+                    break;
+                case NetProtocol.Tcp:
+                    TcpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, ConnectTimeout, -1, onCompleted, isChannelAsync, EnableRemoteException);
+                    break;
+            }
+        }
+        */
         #endregion
     }
 }

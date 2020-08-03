@@ -32,8 +32,17 @@ namespace Nistec.Messaging
     {
         #region Members
 
-        private PriorityQueue Q;
+        PriorityComplexQueue Q;
 
+        #endregion
+
+        #region Topic
+        TopicController Topic;
+
+        public IQueueAck EnqueueTopicItem(QueueItem item)
+        {
+            return Topic.AddItem(item);
+        }
 
         #endregion
 
@@ -54,7 +63,7 @@ namespace Nistec.Messaging
         //internal int m_Server;
         internal string m_QueueName;
         internal CoverMode m_CoverMode = CoverMode.Memory;
-        bool _Coverable = false;
+        //bool _Coverable = false;
         //QCover _QCover;
 
         internal int m_EnqueueWait = 10;
@@ -78,6 +87,7 @@ namespace Nistec.Messaging
 
         //private bool serializeBody = false;
 
+        public bool IsTopic { get; private set; }
 
         internal bool IsDbQueue
         {
@@ -90,7 +100,7 @@ namespace Nistec.Messaging
         {
             get
             {
-                return Mode == CoverMode.File;// || Mode == QueueMode.FileStream;
+                return Mode == CoverMode.FileStream;// || Mode == QueueMode.FileStream;
             }
         }
         internal bool IsCoverable
@@ -100,7 +110,10 @@ namespace Nistec.Messaging
                 return Mode != CoverMode.Memory;
             }
         }
-
+        /// <summary>
+        /// Get or Set Logger that implements <see cref="ILogger"/> interface.
+        /// </summary>
+        public ILogger Logger { get; set; }
 
         private int m_Lock;
 
@@ -164,6 +177,8 @@ namespace Nistec.Messaging
         /// <param name="mqp"></param>
         public MQueue(IQProperties prop)
         {
+            Logger = QLogger.Logger.ILog;
+
             Console.WriteLine("Init MQueue " + prop);
 
             LogActionInfo("MQueue ctor", "Init MQueue " + prop.Print());
@@ -178,6 +193,9 @@ namespace Nistec.Messaging
             m_CoverMode = prop.Mode;
             m_maxRetry = prop.MaxRetry;
             m_isTrans = prop.IsTrans;
+            IsTopic = prop.IsTopic;
+            TargetPath = prop.TargetPath;
+
             RoutHost = prop.GetRoutHost();
             if (IsCoverable)
             {
@@ -189,19 +207,32 @@ namespace Nistec.Messaging
                 //};
                 m_QueuesPath = AgentManager.Settings.QueuesPath;
             }
+            if (IsTopic)
+            {
+                Topic = new TopicController(this);
+            }
 
             resetEvent = new ManualResetEvent(false);
 
             m_Perfmon = new QueuePerformanceCounter(this, QueueAgentType.MQueue, m_QueueName);
 
-            Q = prop.Factory();
+
+            //Q = prop.Factory();
+            Q=new PriorityComplexQueue(prop);
+            Q.Logger = Logger;
 
             Q.MessageArrived += new QueueItemEventHandler(Q_MessageArrived);
             Q.MessageReceived += new QueueItemEventHandler(Q_MessageReceived);
             Q.TransactionBegin += new QueueItemEventHandler(Q_MessageTransBegin);
             Q.TransactionEnd += new QueueItemEventHandler(Q_MessageTransEnd);
             Q.ErrorOccured += new QueueItemEventHandler(Q_ErrorOccured);
-            InitRecoverQueue(DefaultIntervalMinuteRecover);
+            //InitRecoverQueue(DefaultIntervalMinuteRecover);
+
+            if(prop.ReloadOnStart)
+            {
+                Q.ReloadItemsInternal();
+            }
+
             UNLOCK();
             //if (recoverable)
             //{
@@ -227,55 +258,56 @@ namespace Nistec.Messaging
 
 
 
-        internal void InitRecoverQueue(int intervalMinuteRecover)
-        {
+        //internal void InitRecoverQueue(int intervalMinuteRecover)
+        //{
 
-            Console.WriteLine("Init RecoverQueue");
+        //    Console.WriteLine("Init RecoverQueue");
 
-            try
-            {
-                if (IsFileQueue)
-                {
-                    Assists.EnsureQueueSectionPath(m_QueuesPath, Assists.FolderQueue, m_QueueName);
-                    Assists.EnsureQueueSectionPath(m_QueuesPath, Assists.FolderInfo, m_QueueName);
-                    Assists.EnsureQueueSectionPath(m_QueuesPath, Assists.FolderCovered, m_QueueName);
-                    Assists.EnsureQueueSectionPath(m_QueuesPath, Assists.FolderSuspend, m_QueueName);
+        //    try
+        //    {
+        //        if (IsFileQueue)
+        //        {
+        //            Assists.EnsureQueueSectionPath(m_QueuesPath, Assists.FolderQueue, m_QueueName);
+        //            Assists.EnsureQueueSectionPath(m_QueuesPath, Assists.FolderInfo, m_QueueName);
+        //            Assists.EnsureQueueSectionPath(m_QueuesPath, Assists.FolderCovered, m_QueueName);
+        //            Assists.EnsureQueueSectionPath(m_QueuesPath, Assists.FolderSuspend, m_QueueName);
 
-                    //string path = GetQueuePath();
-                    //if (!Directory.Exists(path))
-                    //{
-                    //    Directory.CreateDirectory(Path.Combine(m_QueuesPath, IoAssists.FolderQueue));
-                    //    Directory.CreateDirectory(Path.Combine(m_QueuesPath, IoAssists.FolderInfo));
-                    //    Directory.CreateDirectory(Path.Combine(m_QueuesPath, IoAssists.FolderCovered));
-                    //    Directory.CreateDirectory(Path.Combine(m_QueuesPath, IoAssists.FolderSuspend));
-                    //    Console.WriteLine("Create MQueue Folder: " + path);
-                    //}
+        //            //string path = GetQueuePath();
+        //            //if (!Directory.Exists(path))
+        //            //{
+        //            //    Directory.CreateDirectory(Path.Combine(m_QueuesPath, IoAssists.FolderQueue));
+        //            //    Directory.CreateDirectory(Path.Combine(m_QueuesPath, IoAssists.FolderInfo));
+        //            //    Directory.CreateDirectory(Path.Combine(m_QueuesPath, IoAssists.FolderCovered));
+        //            //    Directory.CreateDirectory(Path.Combine(m_QueuesPath, IoAssists.FolderSuspend));
+        //            //    Console.WriteLine("Create MQueue Folder: " + path);
+        //            //}
 
-                    AsyncReEnqueueItems();
+        //            AsyncReEnqueueItems();
 
-                }
+        //        }
 
-                if (IsTrans)
-                {
+        //        if (IsTrans)
+        //        {
 
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(QueueName + " Error:" + ex.Message);
-                LogActionError("InitRecoverQueue", QueueName + " Error:" + ex.Message);
-            }
-        }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine(QueueName + " Error:" + ex.Message);
+        //        LogActionError("InitRecoverQueue", QueueName + " Error:" + ex.Message);
+        //    }
+        //}
 
-        internal void Reload()
-        {
-            if (Q is PriorityMemQueue)
-                ((PriorityMemQueue)Q).ReloadItemsInternal();
-            else if (Q is PriorityPersistQueue)
-                ((PriorityPersistQueue)Q).ReloadItemsInternal();
+        //internal void Reload()
+        //{
+        //    //if (Q is PriorityMemQueue)
+        //    //    ((PriorityMemQueue)Q).ReloadItemsInternal();
+        //    //else if (Q is PriorityPersistQueue)
+        //    //    ((PriorityPersistQueue)Q).ReloadItemsInternal();
 
-            //Q.ReloadItems();
-        }
+        //    Q.ReloadItemsInternal();
+        //}
+
         internal void Clear()
         {
             Q.Clear();
@@ -1340,6 +1372,8 @@ namespace Nistec.Messaging
         //private string m_StartupPath = "";
         private string m_QueuesPath = "";
         internal QueueHost RoutHost { get; set; }
+        internal string TargetPath { get; set; }
+
 
         #region sys file
 
@@ -1598,17 +1632,17 @@ namespace Nistec.Messaging
         internal static void LogAction(MessageState state, string message)
         {
             if ((int)state < 100)
-                QLogger.InfoFormat("State:{0}, Message:{1}", state.ToString(), message);
+                QLogger.Info("State:{0}, Message:{1}", state.ToString(), message);
             else
-                QLogger.ErrorFormat("State:{0}, Message:{1}", state.ToString(), message);
+                QLogger.Error("State:{0}, Message:{1}", state.ToString(), message);
         }
         internal static void LogActionInfo(string state, string message)
         {
-                QLogger.InfoFormat("State:{0}, Message:{1}", state, message);
+                QLogger.Info("State:{0}, Message:{1}", state, message);
         }
         internal static void LogActionError(string state, string message)
         {
-                QLogger.ErrorFormat("State:{0}, Message:{1}", state, message);
+                QLogger.Error("State:{0}, Message:{1}", state, message);
         }
     }
 }

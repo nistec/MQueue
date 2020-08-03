@@ -18,7 +18,7 @@
 // 10/01/2006  Nissim   Created the code
 //===============================================================================================================
 //licHeader|
-//#define SERVICE
+#define SERVICE
 
 using System;
 using System.Collections.Generic;

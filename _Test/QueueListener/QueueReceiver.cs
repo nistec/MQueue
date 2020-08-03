@@ -1,5 +1,9 @@
-﻿using Nistec.Collections;
+﻿using Nistec;
+using Nistec.Channels;
+using Nistec.Channels.Tcp;
+using Nistec.Collections;
 using Nistec.Data.Sqlite;
+using Nistec.Logging;
 using Nistec.Messaging;
 using Nistec.Messaging.Listeners;
 using Nistec.Messaging.Remote;
@@ -30,8 +34,9 @@ namespace QueueListenerDemo
         public static void DoGet(QueueHost host)
         {
             QueueApi q = new QueueApi(host);
-            q.Timeout = 500000000;
-            var item = q.Receive(DuplexTypes.WaitOne);
+            q.ConnectTimeout = 500000000;
+            //q.ReadTimeout = -1;
+            var item = q.Dequeue();// DuplexTypes.WaitOne);
 
             if (item != null)
             {
@@ -47,7 +52,7 @@ namespace QueueListenerDemo
         {
             QueueApi q = new QueueApi(host);
             var req = new QueueRequest() { QCommand = QueueCmd.ReportQueueItems, DuplexType = DuplexTypes.NoWaite, Host = "NC_Quick" };
-            var ts = q.SendDuplexStream(req, 1000000);
+            var ts = q.ExecDuplexStream(req, 1000000);
 
             if (ts != null)
             {
@@ -76,7 +81,9 @@ namespace QueueListenerDemo
                 IsAsync = true,
                 //Interval = 100,
                 ConnectTimeout = 5000,
-                WorkerCount = 4,
+                ReadTimeout = 180000,
+                WorkerCount = 1,
+                EnableDynamicWait = true,
                 QueueAction = (message) =>
                 {
                     Console.WriteLine("State:{0},Arrived:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}", message.MessageState, message.ArrivedTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), message.Host, message.Label, message.Identifier, message.Duration);
@@ -84,12 +91,18 @@ namespace QueueListenerDemo
                     var body = message.GetBody();
                     string sbody = body == null ? "null" : body.ToString();
                     Console.WriteLine("body: " + sbody);
+                },
+                FaultAction = (message) =>
+                {
+                    Console.WriteLine(message);
                 }
             };
 
-            QueueListener listener = new QueueListener(adapter, 10);
-            listener.ErrorOcurred += Listener_ErrorOcurred;
-            listener.MessageReceived += Listener_MessageReceived;
+            QueueListener listener = new QueueListener(adapter, 100);
+            string logpath = NetlogSettings.GetDefaultPath("qlistener");
+            listener.Logger = new Logger(logpath);
+            //listener.ErrorOcurred += Listener_ErrorOcurred;
+            //listener.MessageReceived += Listener_MessageReceived;
             listener.Start();
 
             //QueueApi api = new QueueApi(host);
@@ -123,5 +136,69 @@ namespace QueueListenerDemo
         {
             Console.WriteLine(e.Args);
         }
+
+        public static void DoSbscriberListener()
+        {
+            var settings = new TcpSettings()
+            {
+                Address = "127.0.0.1",
+                ConnectTimeout = 5000,
+                HostName = "Netcell",
+                Port = 15002,
+                IsAsync = false
+            };
+            var host = QueueHost.Parse(string.Format("file:{0}:Queues?{1}", Assists.EXECPATH, settings.HostName));
+            host.CoverMode = CoverMode.FileStream;
+            host.CommitMode = PersistCommitMode.OnMemory;
+            host.ReloadOnStart = true;
+
+            var listener = new TopicSbscriberListener(host,true)
+            {
+                OnItemReceived = (IQueueItem message) =>
+                {
+
+                    Console.WriteLine("State:{0},Arrived:{1},Host:{2},Label:{3}, Identifier:{4}", message.MessageState, message.ArrivedTime, message.Host, message.Label, message.Identifier);
+
+                    return new QueueAck(Nistec.Messaging.MessageState.Received, message).ToTransStream();
+                },
+                OnError= (string message) => {
+                    Console.WriteLine("OnError:{0}", message);
+
+                }
+            };
+            string logpath = NetlogSettings.GetDefaultPath("topicSubs");
+            listener.Logger = new Logger(logpath,LoggerMode.Console| LoggerMode.File);
+            listener.InitServerQueue(settings,true);
+            //listener.PausePersistQueue(true);
+        }
+
     }
+
+    /*
+    public class TopicSubs : TopicSbscriberListener
+    {
+
+        public TopicSubs() : base()
+        {
+
+            var settings = new TcpSettings()
+            {
+                Address = "127.0.0.1",
+                ConnectTimeout = 5000000,
+                HostName = "Netcell",
+                Port = 15002,
+                IsAsync = false
+            };
+            InitTcpServerQueue(settings);
+        }
+
+
+        public override TransStream OnMessageReceived(IQueueItem message)
+        {
+            Console.WriteLine("State:{0},Arrived:{1},Host:{2},Label:{3}, Identifier:{4}", message.MessageState, message.ArrivedTime, message.Host, message.Label, message.Identifier);
+
+            return new QueueAck(Nistec.Messaging.MessageState.Received,message).ToTransStream();
+        }
+    }
+    */
 }

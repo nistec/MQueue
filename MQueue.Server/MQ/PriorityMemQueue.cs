@@ -14,7 +14,7 @@ using Nistec.Data.Sqlite;
 
 namespace Nistec.Messaging
 {
-
+    
     public sealed class PriorityMemQueue : PriorityQueue
     {
 
@@ -28,7 +28,7 @@ namespace Nistec.Messaging
                 {
                     foreach (var g in QueueList)
                     {
-                        list.Add(new PersistItem() { body = g.Value, key = g.Key.Identifier, name = Host, timestamp = g.Key.ArrivedTime });
+                        list.Add(new PersistQueueItem() { body = g.Value, key = g.Key.Identifier, name = Host, timestamp = g.Key.ArrivedTime });
                     }
                 }
             }

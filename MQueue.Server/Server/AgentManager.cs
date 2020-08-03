@@ -1,4 +1,5 @@
 ﻿using Nistec.Messaging.Config;
+using Nistec.Messaging.Topic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,26 @@ namespace Nistec.Messaging.Server
  
     public class AgentManager
     {
+
+        public static void StartController()
+        {
+            Queue.Start();
+            //if (Settings.EnableQueueController && Queue.IsStarted==false)
+            //    Queue.Start();
+            //if (Settings.EnableTopicController && Topic.IsStarted == false)
+            //    Topic.Start();
+        }
+
+
+        public static void StopController()
+        {
+            Queue.Stop();
+            //if (_Queues!= null)
+            //    Queue.Stop();
+            //if (_Topic!=null)
+            //    Topic.Stop();
+        }
+
 
         static QueueController _Queues;// = new MQueueList();
 
@@ -26,6 +47,21 @@ namespace Nistec.Messaging.Server
             }
         }
 
+        //static TopicController _Topic;
+
+        //public static TopicController Topic
+        //{
+        //    get
+        //    {
+        //        if (_Topic == null)
+        //        {
+        //            _Topic = new TopicController();
+        //        }
+        //        return _Topic;
+        //    }
+        //}
+
+
         static QueueSettings _Settings;
         public static QueueSettings Settings
         {
@@ -39,10 +75,15 @@ namespace Nistec.Messaging.Server
             }
         }
 
-        public static void Start()
+        public static void Start()//bool enableQueueController, bool enableTopicController)
         {
             Settings.Load();
-            Queue.LoadQueueConfig();
+            Queue.LoadQueueConfig(Settings.EnableJournalQueue);
+
+            //if (enableQueueController)
+            //    Queue.LoadQueueConfig();
+            //if (enableTopicController)
+            //    Topic.LoadTopicConfig();
         }
 
         public static void Stop()

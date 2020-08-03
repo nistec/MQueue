@@ -18,9 +18,11 @@ namespace QueueTasker
 
             Console.WriteLine("QueueTasker started...");
 
-            //QueueClientDemo.SendItem(true);
+            //QueueClientDemo.PublishItem();
+            QueueClientDemo.PublishMulti(100);
 
-            QueueClientDemo.SendMulti(false,100);
+            //QueueClientDemo.SendItem(false);
+            //QueueClientDemo.SendMulti(false,10000);
 
             //var host = QueueHost.Parse("tcp:127.0.0.1:15000?NC_Quick");
             //QueueApi q = new QueueApi(host);
@@ -30,9 +32,9 @@ namespace QueueTasker
 
             //SendMulti(q,100);
 
-            Console.WriteLine("QueueTasker finished...");
             Console.ReadLine();
-      
+            Console.WriteLine("QueueTasker finished...");
+
         }
 
         static void SendItem(QueueApi q, long item)
@@ -50,7 +52,7 @@ namespace QueueTasker
             }
             else
             {
-                var ack = q.Send(msg, 50000000);
+                var ack = q.Enqueue(msg, 50000000);
                 Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item);
             }
             //var duration = DateTime.Now.Subtract(start);
@@ -84,7 +86,7 @@ namespace QueueTasker
                     }
                     else
                     {
-                        var ack = q.Send(msg, 50000000);
+                        var ack = q.Enqueue(msg, 50000000);
                         Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration);
                         Interlocked.Increment(ref counter);
                     }

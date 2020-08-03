@@ -92,19 +92,24 @@ namespace QueueTasker
 
         public static IQueueAck SendItem(QueueApi q, QueueItem item, int connectTimeOut)
         {
-            var ack = q.Send(item, connectTimeOut);
+            var ack = q.PublishItem(item, connectTimeOut);
             //Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item);
             return ack;
         }
-        public static IQueueAck SendItemAsync(QueueApi q, QueueItem item, int connectTimeOut)
+        public static IQueueAck PublishItem(QueueApi q, QueueItem item, int connectTimeOut)
         {
-            return q.SendAsync(item, connectTimeOut);
+            return q.PublishItem(item, connectTimeOut);
         }
 
-        public static void SendItemAsync(QueueApi q, QueueItem item, int connectTimeOut, Action<IQueueAck> action)
+        public static void PublishItem(QueueApi q, QueueItem item, int connectTimeOut, Action<IQueueAck> action)
+        {
+            q.PublishItem(item, connectTimeOut, action);
+        }
+
+        public static void EnqueueItem(QueueApi q, QueueItem item, int connectTimeOut, Action<IQueueAck> action)
         {
 
-            q.SendAsync(item, connectTimeOut, action);
+            q.EnqueueAsync(item, connectTimeOut, action);
 
             //DateTime start = DateTime.Now;
             //q.SendAsync(item, connectTimeOut, (ack) =>
@@ -117,19 +122,67 @@ namespace QueueTasker
 
     public static class QueueClientDemo {
 
-       public static void SendItem(bool isAsync)
+        public static void PublishItem()
         {
-            var host = QueueHost.Parse("tcp:127.0.0.1:15000?NC_Quick");
+            var host = QueueHost.Parse("tcp:127.0.0.1:15000?Netcell");
             QueueApi q = QueueClient.GetApi(host);
             var item = QueueClient.CreateQueueItem("Hello world " + DateTime.Now.ToString("s"), "test");
-            IQueueAck ack = null;
+            item.Host = "Netcell";
+            item.QCommand = QueueCmd.Enqueue;
+            //IQueueAck ack = null;
 
-            if (q.IsAsync)
-                ack = QueueClient.SendItemAsync(q, item, 0);
-            else
-                ack = QueueClient.SendItem(q, item, 0);
+            QueueClient.PublishItem(q, item, 0, (IQueueAck ack) =>
+            {
+                Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item.Id);
 
-            Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item.Id);
+            });
+
+        }
+
+        public static void PublishMulti(int maxItems)
+        {
+            long counter = 0;
+            int interval = 1;
+            DateTime start = DateTime.Now;
+
+            for (int i = 0; i < maxItems; i++)
+            {
+                PublishItem();
+                //Thread.Sleep(interval);
+            }
+
+            var duration = DateTime.Now.Subtract(start);
+            var milliseconds = duration.TotalMilliseconds;
+            Console.WriteLine("duration: {0}, count: {1}, itemDuration: {2}", milliseconds - (interval * counter), counter, (milliseconds - (interval * counter)) / counter);
+
+        }
+
+        public static void SendItem(bool isAsync)
+        {
+            var host = QueueHost.Parse("tcp:127.0.0.1:15000?NC_Bulk");
+            QueueApi q = QueueClient.GetApi(host);
+            var item = QueueClient.CreateQueueItem("Hello world " + DateTime.Now.ToString("s"), "test");
+            item.Host = "NC_Bulk";
+            //IQueueAck ack = null;
+
+            QueueClient.EnqueueItem(q, item, 0, (IQueueAck ack) =>
+            {
+                Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item.Id);
+
+            });
+
+            //if (q.IsAsync)
+            //{
+            //    IQueueAck ack = QueueClient.SendItemAsync(q, item, 0);
+            //    Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item.Id);
+            //}
+            //else
+            //{
+            //    QueueClient.SendItemAsync(q, item, 0, (IQueueAck ack) =>
+            //    {
+            //        Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item.Id);
+            //    });
+            //}
 
             //var duration = DateTime.Now.Subtract(start);
             //var milliseconds = duration.TotalMilliseconds;
@@ -157,7 +210,7 @@ namespace QueueTasker
 
                     if (isAsync)
                     {
-                        q.SendAsync(item, 50000000, (ack) =>
+                        q.SendAsync(item, 0, (ack) =>
                         {
                             Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration);
                             Interlocked.Increment(ref counter);
@@ -165,7 +218,7 @@ namespace QueueTasker
                     }
                     else
                     {
-                        var ack = q.Send(item, 50000000);
+                        var ack = q.Enqueue(item, 0);
                         Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration);
                         Interlocked.Increment(ref counter);
                     }

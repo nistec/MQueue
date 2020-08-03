@@ -336,40 +336,58 @@ namespace Nistec.Messaging.Io
         }
 
         /// <summary>
-        /// Dequeue message from queue, using sync methods.
+        /// Dequeue
         /// </summary>
+        /// <param name="onTake"></param>
         /// <returns></returns>
+        public int Dequeue(Action<IQueueItem> onTake)
+        {
+            return m_fileMessage.DequeueFolder(1, onTake);
+        }
+
         public IQueueItem Dequeue()
         {
-
-            try
-            {
-                CurrentItem = null;
-                //EnsureSync();
-
-                if (m_fileMessage.CanQueue())
-                {
-                    //Thread.Sleep(1000);
-                    string folder = m_fileMessage.GetFirstBatchFolder(FileOrderType);
-                    if (folder != null)
-                    {
-                        if (m_fileMessage.DequeueFolder(FileOrderType,MaxItemsPerSession) > 0)
-                        {
-                            return CurrentItem;//.GetMessage();
-                        }
-                    }
-                }
-                else
-                {
-                    Thread.Sleep(1000);
-                }
-            }
-            catch (Exception ex)
-            {
-                Netlog.ErrorFormat("error FolderQueue.Dequeue :{0}, Trace:{1} ", ex.Message, ex.StackTrace);
-            }
-            return null;
+            return m_fileMessage.DequeueFolder(1).FirstOrDefault();
         }
+
+        ///// <summary>
+        ///// Dequeue message from queue, using sync methods.
+        ///// </summary>
+        ///// <returns></returns>
+        //public IQueueItem Dequeue()
+        //{
+
+        //    try
+        //    {
+        //        CurrentItem = null;
+        //        //EnsureSync();
+
+        //        m_fileMessage.DequeueFirstItem()
+
+        //        if (m_fileMessage.CanQueue())
+        //        {
+        //            //Thread.Sleep(1000);
+
+        //            //string folder = m_fileMessage.GetFirstBatchFolder(FileOrderType);
+        //            //if (folder != null)
+        //            //{
+        //            //    if (m_fileMessage.DequeueFolder(FileOrderType,MaxItemsPerSession) > 0)
+        //            //    {
+        //            //        return CurrentItem;//.GetMessage();
+        //            //    }
+        //            //}
+        //        }
+        //        else
+        //        {
+        //            Thread.Sleep(1000);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Netlog.ErrorFormat("error FolderQueue.Dequeue :{0}, Trace:{1} ", ex.Message, ex.StackTrace);
+        //    }
+        //    return null;
+        //}
 
         /// <summary>
         /// Dequeue message from queue with specified item id , using sync methods.
@@ -386,7 +404,7 @@ namespace Nistec.Messaging.Io
 
                 if (m_fileMessage.CanQueue())
                 {
-                    string filename = m_fileMessage.Host.GetFullFilename(identifier);
+                    string filename = m_fileMessage.GetQueueFilename(identifier);
                     var item = m_fileMessage.DequeueFile(filename);
                     if (item == null)
                         return null;
@@ -411,174 +429,186 @@ namespace Nistec.Messaging.Io
             return null;
         }
 
-
-        public void DequeueAsync(Action<string> onFault, Action<QueueItem> onCompleted, DuplexTypes DuplexType, AutoResetEvent resetEvent)// = DuplexTypes.WaitOne)
+        public int Dequeue(int maxItemsPerSession, Action<IQueueItem> onTake)
         {
-            try
-            {
-                CurrentItem = null;
-                //EnsureSync();
-
-                if (DuplexType == DuplexTypes.WaitOne)
-                {
-
-                    var cancellationTokenSource = new CancellationTokenSource();
-
-                    Task.Factory.StartNew(
-                    () =>
-                    {
-                        for (;;)
-                        {
-                            if (cancellationTokenSource.Token.WaitCancellationRequested(TimeSpan.FromMilliseconds(WaitInterval)))
-                                break;
-
-
-                            if (m_fileMessage.CanQueue())
-                            {
-                                //Thread.Sleep(1000);
-                                string folder = m_fileMessage.GetFirstBatchFolder(FileOrderType);
-                                if (folder != null)
-                                {
-                                    if (m_fileMessage.DequeueFolder(FileOrderType, MaxItemsPerSession) > 0)
-                                    {
-                                        onCompleted(CurrentItem);
-                                        break;
-                                    }
-                                }
-                            }
-                            //else
-                            //{
-                            //    Thread.Sleep(1000);
-                            //}
-
-                        }
-                    }, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-
-                }
-                else
-                {
-
-
-                    if (m_fileMessage.CanQueue())
-                    {
-                        //Thread.Sleep(1000);
-                        string folder = m_fileMessage.GetFirstBatchFolder(FileOrderType);
-                        if (folder != null)
-                        {
-                            if (m_fileMessage.DequeueFolder(FileOrderType, MaxItemsPerSession) > 0)
-                            {
-                                onCompleted(CurrentItem);
-                                //return CurrentItem;//.GetMessage();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Thread.Sleep(1000);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Netlog.ErrorFormat("error FolderQueue.Dequeue :{0}, Trace:{1} ", ex.Message, ex.StackTrace);
-            }
-
-
-            //QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
-            //{
-            //    Host = _QueueName,
-            //    QCommand = QueueCmd.Dequeue,
-            //    DuplexType = DuplexType
-            //};
-
-            //base.SendDuplexAsync(request, onFault, onCompleted);
-
+            return m_fileMessage.DequeueFolder(maxItemsPerSession, onTake);
         }
-        /// <summary>
-        /// Dequeue message from queue, using async methods.
-        /// </summary>
-        /// <returns></returns>
-        public int DequeueAsync()
+
+        public int DequeueFolderTransfer(int maxItemsPerSession)
         {
-            int count = 0;
-            try
-            {
-                CurrentItem = null;
-                EnsureRecieve();
-
-                if (m_fileMessage.CanQueue())
-                {
-                    //Thread.Sleep(1000);
-                    string folder = m_fileMessage.GetFirstBatchFolder(FileOrderType);
-                    if (folder != null)
-                    {
-                        count = m_fileMessage.DequeueFolder(FileOrderType,MaxItemsPerSession);
-                    }
-                }
-                else
-                {
-                    Thread.Sleep(1000);
-                }
-            }
-            catch (Exception ex)
-            {
-                Netlog.ErrorFormat("error FolderQueue.DequeueAsync :{0}, Trace:{1} ", ex.Message, ex.StackTrace);
-            }
-
-            return count;
+            return m_fileMessage.DequeueFolder(maxItemsPerSession, true);
         }
-        /// <summary>
-        /// Recieve and transfer messages from queue to other queue, using async methods.
-        /// </summary>
-        /// <returns></returns>
-        public IQueueAck ReceiveTo()
-        {
-            int count = 0;
-            try
-            {
-                CurrentItem = null;
-                EnsureTransfer();
-
-                if (m_fileMessage.CanQueue())
-                {
-                    //Thread.Sleep(1000);
-                    string folder = m_fileMessage.GetFirstBatchFolder(FileOrderType);
-                    if (folder != null)
-                    {
-                        count = m_fileMessage.DequeueFolderTransfer(FileOrderType, 1);
-                        //if (count > 0 && CurrentItem != null)
-                        //{
-                        //    return new QueueItem() { Host = m_fileMessage.HostName, State = MessageState.Received, Identifier = CurrentItem.Identifier };
-                        //}
-                    }
-                }
-                else
-                {
-                    Thread.Sleep(1000);
-                }
-            }
-            catch (Exception ex)
-            {
-                Netlog.ErrorFormat("error FolderQueue.DequeueAsync :{0}, Trace:{1} ", ex.Message, ex.StackTrace);
-            }
-            //return count;
-
-            //CurrentItem = null;
-            //int count = m_fileMessage.DequeueFileTransfer();
-            //if (count > 0 && CurrentItem != null)
-            //{
-            //    return new QueueItem() { Host = m_host.HostName, State = MessageState.Received, Identifier = CurrentItem.Identifier };
-            //}
-            //return count;
 
 
-            return new QueueAck()
-            {
-                //ArrivedTime = DateTime.Now,
-                MessageState = MessageState.Received,
-                Count = count
-            };
-        }
+
+        //public void DequeueAsync(Action<string> onFault, Action<QueueItem> onCompleted, DuplexTypes DuplexType, AutoResetEvent resetEvent)// = DuplexTypes.WaitOne)
+        //{
+        //    try
+        //    {
+        //        CurrentItem = null;
+        //        //EnsureSync();
+
+        //        if (DuplexType == DuplexTypes.WaitOne)
+        //        {
+
+        //            var cancellationTokenSource = new CancellationTokenSource();
+
+        //            Task.Factory.StartNew(
+        //            () =>
+        //            {
+        //                for (;;)
+        //                {
+        //                    if (cancellationTokenSource.Token.WaitCancellationRequested(TimeSpan.FromMilliseconds(WaitInterval)))
+        //                        break;
+
+
+        //                    if (m_fileMessage.CanQueue())
+        //                    {
+        //                        //Thread.Sleep(1000);
+        //                        string folder = m_fileMessage.GetFirstBatchFolder(FileOrderType);
+        //                        if (folder != null)
+        //                        {
+        //                            if (m_fileMessage.DequeueFolder(FileOrderType, MaxItemsPerSession) > 0)
+        //                            {
+        //                                onCompleted(CurrentItem);
+        //                                break;
+        //                            }
+        //                        }
+        //                    }
+        //                    //else
+        //                    //{
+        //                    //    Thread.Sleep(1000);
+        //                    //}
+
+        //                }
+        //            }, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+        //        }
+        //        else
+        //        {
+
+
+        //            if (m_fileMessage.CanQueue())
+        //            {
+        //                //Thread.Sleep(1000);
+        //                string folder = m_fileMessage.GetFirstBatchFolder(FileOrderType);
+        //                if (folder != null)
+        //                {
+        //                    if (m_fileMessage.DequeueFolder(FileOrderType, MaxItemsPerSession) > 0)
+        //                    {
+        //                        onCompleted(CurrentItem);
+        //                        //return CurrentItem;//.GetMessage();
+        //                    }
+        //                }
+        //            }
+        //            else
+        //            {
+        //                Thread.Sleep(1000);
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Netlog.ErrorFormat("error FolderQueue.Dequeue :{0}, Trace:{1} ", ex.Message, ex.StackTrace);
+        //    }
+
+
+        //    //QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
+        //    //{
+        //    //    Host = _QueueName,
+        //    //    QCommand = QueueCmd.Dequeue,
+        //    //    DuplexType = DuplexType
+        //    //};
+
+        //    //base.SendDuplexAsync(request, onFault, onCompleted);
+
+        //}
+
+        ///// <summary>
+        ///// Dequeue message from queue, using async methods.
+        ///// </summary>
+        ///// <returns></returns>
+        //public int DequeueAsync()
+        //{
+        //    int count = 0;
+        //    try
+        //    {
+        //        CurrentItem = null;
+        //        EnsureRecieve();
+
+        //        if (m_fileMessage.CanQueue())
+        //        {
+        //            //Thread.Sleep(1000);
+        //            string folder = m_fileMessage.GetFirstBatchFolder(FileOrderType);
+        //            if (folder != null)
+        //            {
+        //                count = m_fileMessage.DequeueFolder(FileOrderType,MaxItemsPerSession);
+        //            }
+        //        }
+        //        else
+        //        {
+        //            Thread.Sleep(1000);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Netlog.ErrorFormat("error FolderQueue.DequeueAsync :{0}, Trace:{1} ", ex.Message, ex.StackTrace);
+        //    }
+
+        //    return count;
+        //}
+        ///// <summary>
+        ///// Recieve and transfer messages from queue to other queue, using async methods.
+        ///// </summary>
+        ///// <returns></returns>
+        //public IQueueAck ReceiveTo()
+        //{
+        //    int count = 0;
+        //    try
+        //    {
+        //        CurrentItem = null;
+        //        EnsureTransfer();
+
+        //        if (m_fileMessage.CanQueue())
+        //        {
+        //            //Thread.Sleep(1000);
+        //            string folder = m_fileMessage.GetFirstBatchFolder(FileOrderType);
+        //            if (folder != null)
+        //            {
+        //                count = m_fileMessage.DequeueFolderTransfer(FileOrderType, 1);
+        //                //if (count > 0 && CurrentItem != null)
+        //                //{
+        //                //    return new QueueItem() { Host = m_fileMessage.HostName, State = MessageState.Received, Identifier = CurrentItem.Identifier };
+        //                //}
+        //            }
+        //        }
+        //        else
+        //        {
+        //            Thread.Sleep(1000);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Netlog.ErrorFormat("error FolderQueue.DequeueAsync :{0}, Trace:{1} ", ex.Message, ex.StackTrace);
+        //    }
+        //    //return count;
+
+        //    //CurrentItem = null;
+        //    //int count = m_fileMessage.DequeueFileTransfer();
+        //    //if (count > 0 && CurrentItem != null)
+        //    //{
+        //    //    return new QueueItem() { Host = m_host.HostName, State = MessageState.Received, Identifier = CurrentItem.Identifier };
+        //    //}
+        //    //return count;
+
+
+        //    return new QueueAck()
+        //    {
+        //        //ArrivedTime = DateTime.Now,
+        //        MessageState = MessageState.Received,
+        //        Count = count
+        //    };
+        //}
 
         #endregion
 

@@ -9,28 +9,33 @@ using Nistec.IO;
 using System.Threading.Tasks;
 using Nistec.Channels.Http;
 using System.Net.Sockets;
-
+using Nistec.Generic;
+using Nistec.Messaging.Listeners;
+using Nistec.Logging;
+//using Nistec.Messaging.Config;
 
 namespace Nistec.Messaging.Channels
 {
+   
+
     /// <summary>
     /// Represent a queue Http server listner.
     /// </summary>
-    public class HttpServerQueue : HttpServer<QItemStream>
+    public class HttpServerQueue : HttpServer<IQueueItem>, IChannelService
     {
-        bool isQueue=false;
-        bool isDataQueue=false;
-        bool isSyncQueue=false;
-        bool isSession=false;
+
+        QueueChannel QueueChannel= QueueChannel.Consumer;
+        IControllerHandler Controller;
 
         #region override
+
         /// <summary>
         /// OnStart
         /// </summary>
         protected override void OnStart()
         {
             base.OnStart();
-            
+            Log.Info("HttpServerQueue started :{0}, QueueChannel:{1}", this.Settings.HostName, QueueChannel.ToString());
         }
         /// <summary>
         /// OnStop
@@ -38,61 +43,77 @@ namespace Nistec.Messaging.Channels
         protected override void OnStop()
         {
             base.OnStop();
-            //AgentManager.Queue.Stop();
+            Log.Info("HttpServerQueue stoped :{0}, QueueChannel:{1}", this.Settings.HostName, QueueChannel.ToString());
         }
+
         /// <summary>
         /// OnLoad
         /// </summary>
         protected override void OnLoad()
         {
             base.OnLoad();
-            //AgentManager.Queue.Start();
         }
         #endregion
 
         #region ctor
 
         /// <summary>
-        /// Constractor with extra parameters
-        /// </summary>
-        /// <param name="hostName"></param>
-        public HttpServerQueue(string hostName)
-            : base(hostName)
-        {
-
-        }
-
-        /// <summary>
         /// Constractor using <see cref="HttpSettings"/> settings.
         /// </summary>
         /// <param name="settings"></param>
-        public HttpServerQueue(HttpSettings settings)
+        /// <param name="controller"></param>
+        public HttpServerQueue(HttpSettings settings, IControllerHandler controller)
             : base(settings)
         {
-
+            Controller = controller;
         }
 
         #endregion
 
         #region abstract methods
-        /// <summary>
-        /// Execute client request and return response as stream.
-        /// </summary>
-        /// <param name="message"></param>
-        /// <returns></returns>
-        protected override NetStream ExecRequset(QItemStream message)
+
+        protected override string ExecString(IQueueItem message)
         {
-            return AgentManager.Queue.ExecRequset(message);
+            var ts=Controller.OnMessageReceived(message);
+            return (ts == null) ? null : ts.ReadJson();
         }
+
+        protected override TransStream ExecTransStream(IQueueItem message)
+        {
+            return Controller.OnMessageReceived((QueueItem)message);
+        }
+
         /// <summary>
         /// Read Request
         /// </summary>
-        /// <param name="stream"></param>
+        /// <param name="request"></param>
         /// <returns></returns>
-        protected override QItemStream ReadRequest(HttpRequestInfo request)
+        protected override IQueueItem ReadRequest(HttpRequestInfo request)
         {
-           // return QItemStream.Create(stream);
-            throw new Exception("Not implemented.");
+            //throw new Exception("Not implemented.");
+
+            MessageStream stream = null;
+            if (request.BodyStream != null)
+            {
+                stream = MessageStream.ParseStream(request.BodyStream, NetProtocol.Http);
+            }
+            else
+            {
+
+                var message = new HttpMessage();
+
+                if (request.QueryString != null)//request.BodyType == HttpBodyType.QueryString)
+                    message.EntityRead(request.QueryString, null);
+                else if (request.Body != null)
+                    message.EntityRead(request.Body, null);
+                //else if (request.Url.LocalPath != null && request.Url.LocalPath.Length > 1)
+                //    message.EntityRead(request.Url.LocalPath.TrimStart('/').TrimEnd('/'), null);
+
+                stream = message;
+            }
+
+            //return new QueueRequest(stream.GetStream());
+            return QueueItem.Create(stream.GetStream());
         }
 
         #endregion

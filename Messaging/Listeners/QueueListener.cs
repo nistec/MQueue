@@ -9,6 +9,7 @@ using Nistec.Generic;
 using System.Collections.ObjectModel;
 using Nistec.Messaging.Remote;
 using Nistec.Runtime;
+using Nistec.Threading;
 
 namespace Nistec.Messaging.Listeners
 {
@@ -24,86 +25,71 @@ namespace Nistec.Messaging.Listeners
         #region ctor
 
 
-        //public TopicListener(AdapterProperties[] queues)
-        //    : base(queues)
-        //{
-
-        //}
-
         public QueueListener(QueueAdapter adapter, int interval)
             : base(adapter, interval)
         {
             _api = new QueueApi(adapter.Source);
+            _api.ReadTimeout = adapter.ReadTimeout;
             //_Listener= new ListenerQ(this, adapter);
         }
 
-        //public TopicListener(string queueName, string serverName = ".")
-        //    : base(queueName, serverName)
-        //{
-
-        //}
-
         #endregion
 
-        #region override
-
-        //protected override Listener CreateListener(AdapterProperties lp)
+ 
+        //protected override IQueueAck Send(QueueItem message)
         //{
-        //    return new ListenerQ(this, lp);
-        //}
-
-        //public override Listener Find(string hostName)
-        //{
-        //    if (hostName == null)
-        //    {
-        //        throw new ArgumentNullException("Find.hostName");
-        //    }
-        //    return Listeners.Where(q => q.Source.HostName == hostName).FirstOrDefault<Listener>();
-        //}
-
-        //public void Abort(Ptr ptr)
-        //{
-        //    var listener = EnsureListener(_adapter.Source);
-        //    listener.Abort(ptr);
-        //}
-
-        //public void Commit(Ptr ptr)
-        //{
-        //    var listener = EnsureListener(_adapter.Source);
-        //    listener.Commit(ptr);
+        //    return _api.PublishItem(message);
         //}
 
 
-
-        #endregion
-
-
-        protected override IQueueAck Send(QueueItem message)
+        protected override void ReceiveAsync(IDynamicWait dw)
         {
-            return _api.Send(message);
-        }
+            QueueRequest request = new QueueRequest()
+            {
+                Host = _api.QueueName,
+                QCommand = QueueCmd.Dequeue,
+                DuplexType = DuplexTypes.WaitOne
+            };
 
+            //void OnNack()
+            //{
+            //    CalcDynamicWait(false);
+            //}
 
-        protected override void ReceiveAsync(AutoResetEvent resetEvent)//, Action<string> onFault, Action<QueueItem> onCompleted)
-        {
+            //void OnAck(bool ack)
+            //{
+            //    aw.DynamicWaitAck(ack);
+            //}
 
-            _api.ReceiveAsync(
-                OnFault,
-                OnCompleted,
-                 DuplexTypes.WaitOne,
-                 resetEvent
-                );
+            //if (EnableResetEvent)
+            //    _api.DequeueAsync(request, ConnectTimeout, OnCompleted, OnAck, resetEvent);
+            //else
+             _api.DequeueAsync(request, ConnectTimeout, OnCompleted, dw);
 
-            //_api.SendDuplexAsync(message, 
-            //    (err)=> OnErrorOcurred(new GenericEventArgs<string>(err)), 
-            //    (qitem)=> OnMessageReceived(qitem));
+            //_api.ReceiveAsync(
+            //    OnFault,
+            //    OnCompleted,
+            //     DuplexTypes.WaitOne,
+            //     resetEvent
+            //    );
+
+            //_api.SendDuplexAsync(message,
+            //    (err) => OnErrorOcurred(new GenericEventArgs<string>(err)),
+            //    (qitem) => OnMessageReceived(qitem));
         }
 
 
         protected override IQueueItem Receive()
         {
-            return _api.Receive(DuplexTypes.WaitOne);
+            QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
+            {
+                Host = _api.QueueName,
+                QCommand = QueueCmd.Dequeue,
+                DuplexType = DuplexTypes.WaitOne
+            };
+            return _api.Dequeue(request);
         }
+
         //protected override IQueueAck ReceiveTo()//QueueHost target, int connectTimeout, Action<QueueItem> recieveAction)
         //{
         //    return _api.ReceiveTo(TransferTo, ConnectTimeout, null);
@@ -119,7 +105,6 @@ namespace Nistec.Messaging.Listeners
             _api.Commit(ptr);
         }
 
-        //}
 
     }
 }

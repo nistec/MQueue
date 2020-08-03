@@ -81,6 +81,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Channels\HttpServerQueue.cs" />
+    <Compile Include="Channels\PipeServerQueue.cs" />
+    <Compile Include="Channels\TcpServerQueue.cs" />
     <Compile Include="Db\DbMessage.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -109,7 +112,9 @@
     <Compile Include="Listeners\SessionManager.cs" />
     <Compile Include="Listeners\Interfaces.cs" />
     <Compile Include="Listeners\QueueListener.cs" />
-    <Compile Include="Listeners\TopicListener.cs" />
+    <Compile Include="Listeners\TopicSbscriberListener.cs" />
+    <Compile Include="MQ\PriorityFsQueue.cs" />
+    <Compile Include="MQ\PriorityMemQueue.cs" />
     <Compile Include="MQ\PriorityQueue.cs" />
     <Compile Include="MQ\QLogger.cs">
       <SubType>Component</SubType>
@@ -120,6 +125,7 @@
     <Compile Include="MQ\QueueItem.cs" />
     <Compile Include="MQ\QueueAck.cs" />
     <Compile Include="MQ\QueueRequest.cs" />
+    <Compile Include="MQ\TopicItem.cs" />
     <Compile Include="Remote\ChannelSettings.cs" />
     <Compile Include="Channels\HttpClientQueue.cs" />
     <Compile Include="Remote\ManagementApi.cs" />
@@ -201,15 +207,17 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Channels\_exc\" />
+    <Folder Include="Listeners\_exc\" />
+    <Folder Include="MQ\_exc\" />
+    <Folder Include="Transactions\_exc\" />
+    <Folder Include="_exc\" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Nistec.Channels\Nistec.Channels\Nistec.Channels.csproj">
       <Project>{0839a364-a34d-4143-ad4c-aef4c7b232ac}</Project>
       <Name>Nistec.Channels</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Nistec.Data\Nistec.Data.Sqlite\Nistec.Data.Sqlite.csproj">
-      <Project>{2a6d9255-8fe8-4571-b722-027c41853bd9}</Project>
-      <Name>Nistec.Data.Sqlite</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Nistec.Data\Nistec.Data\Nistec.Data.csproj">
       <Project>{d5fd6c68-86ea-48bf-8f6d-29ce57419500}</Project>

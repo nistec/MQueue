@@ -27,11 +27,11 @@ namespace Nistec.Messaging
         //    return new QueueItem(netstream,null);
         //}
 
-        public static QueueItem ReadQStream(NetworkStream stream, int ProcessTimeout, int ReceiveBufferSize = 8192)
+        public static QueueItem ReadQStream(NetworkStream stream, int ReadTimeout, int ReceiveBufferSize = 8192)
         {
             NetStream netstream = new NetStream();
             //netstream.CopyWithTerminateCount(stream, ProcessTimeout, ReceiveBufferSize);
-            netstream.CopyFrom(stream, ReceiveBufferSize);
+            netstream.CopyFrom(stream, ReadTimeout,ReceiveBufferSize);
             return new QueueItem(netstream, null);
         }
 
@@ -42,11 +42,11 @@ namespace Nistec.Messaging
             return new QueueItem(netstream, null);
         }
 
-        public static QueueAck ReadAckStream(NetworkStream stream, int ProcessTimeout, int ReceiveBufferSize = 8192)
+        public static QueueAck ReadAckStream(NetworkStream stream, int ReadTimeout, int ReceiveBufferSize = 8192)
         {
             NetStream netstream = new NetStream();
             //netstream.CopyWithTerminateCount(stream, ProcessTimeout, ReceiveBufferSize);
-            netstream.CopyFrom(stream, ReceiveBufferSize);
+            netstream.CopyFrom(stream, ReadTimeout, ReceiveBufferSize);
             return new QueueAck(netstream);
         }
 
@@ -56,9 +56,9 @@ namespace Nistec.Messaging
             netstream.CopyFrom(stream, ReceiveBufferSize);
             return new QueueAck(netstream);
         }
-        public static object ReadBodyStream(NetworkStream stream, int ProcessTimeout, int ReceiveBufferSize = 8192)
+        public static object ReadBodyStream(NetworkStream stream, int ReadTimeout, int ReceiveBufferSize = 8192)
         {
-            QueueItem m = ReadQStream(stream, ProcessTimeout, ReceiveBufferSize);
+            QueueItem m = ReadQStream(stream, ReadTimeout, ReceiveBufferSize);
             if (m == null)
                 return null;
 

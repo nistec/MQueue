@@ -5,5 +5,13 @@ using System.Text;
 
 namespace Nistec.Messaging.Io
 {
-  
+    public enum FolderType
+    {
+        Queue,
+        Info,
+        Suspened,
+        Covered
+
+    }
+    
 }

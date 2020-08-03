@@ -25,7 +25,7 @@ namespace Nistec.Messaging
         /// <summary>
         /// Get or Set the arrived time.
         /// </summary>
-        DateTime? ArrivedTime { get; }
+        DateTime ArrivedTime { get; }
         /// <summary>
         /// Get or Set the send time.
         /// </summary>
@@ -50,7 +50,7 @@ namespace Nistec.Messaging
         //int Count { get;}
         string Print();
 
-        TransStream ToStream();
+        TransStream ToTransStream();
 
 
         #endregion

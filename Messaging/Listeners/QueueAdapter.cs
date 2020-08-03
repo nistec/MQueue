@@ -53,6 +53,10 @@ namespace Nistec.Messaging.Listeners
         /// </summary>
         public bool IsTopic { get; set; }
         /// <summary>
+        /// Get or Set TargetPath.
+        /// </summary>
+        public string TargetPath { get; set; }
+        /// <summary>
         /// Get or Set the maximum number of items to fetch for each session, default is 1.
         /// </summary>
         public int MaxItemsPerSession { get; set; }
@@ -64,7 +68,7 @@ namespace Nistec.Messaging.Listeners
         /// Get or Set the delegate of acknowledgment methods.
         /// </summary>
         public Action<IQueueAck> AckAction { get; set; }
-
+        public Action<string> FaultAction { get; set; }
         int _WorkerCount;
         /// <summary>
         /// Gets or Set the number of worker count.
@@ -113,7 +117,12 @@ namespace Nistec.Messaging.Listeners
             }
         }
 
-        
+        /// <summary>
+        /// Get or Set the read tomeout in milliseconds.
+        /// </summary>
+        public int ReadTimeout { get; set; }
+        public bool EnableResetEvent { get; set; }
+        public bool EnableDynamicWait { get; set; }
         #endregion
 
         #region ctor
@@ -129,9 +138,12 @@ namespace Nistec.Messaging.Listeners
             IsTopic = false;
             MaxItemsPerSession = 1;
             //Interval = interval<=0? DefaultInterval:interval;// 1000;
-            ConnectTimeout = 5000;
+            ConnectTimeout = Defaults.ConnectTimeout;
+            ReadTimeout = Defaults.ReadTimeout;
             WorkerCount = 1;
             IsAsync = false;
+            EnableResetEvent = false;
+            EnableDynamicWait = false;
         }
 
         /// <summary>

@@ -8,50 +8,35 @@ using System.Threading.Tasks;
 using Nistec.Generic;
 using System.Collections.ObjectModel;
 using Nistec.Messaging.Remote;
-
+using Nistec.Logging;
+using Nistec.Threading;
 
 namespace Nistec.Messaging.Listeners
 {
-    
 
     /// <summary>
     /// Represents a thread-safe queue listener (FIFO) collection.
     /// </summary>
     public abstract class SessionListener : IListener
     {
+        #region members
 
         public const int DefaultInterval = 1000;
 
-        protected QueueAdapter _adapter;
+        protected QueueAdapter Adapter;
 
-        //protected QueueApi _api;
-
-        //protected Listener _Listener;
-        //internal Listener Listener
-        //{
-        //    get
-        //    {
-        //        return _Listener;
-        //    }
-        //}
         CancellationTokenSource canceller = new CancellationTokenSource();
 
         QueueHost _Source;
         public QueueHost Source { get { return _Source; } }
-        //QueueHost _TransferTo;
-        //public QueueHost TransferTo { get { return _TransferTo; } }
 
-
-
-        //string _HostName;
-        //public string HostName { get { return _HostName; } }
-        //string _ServerName;
-        //public string ServerName { get { return _ServerName; } }
-
-        int _Interval;
-        public int Interval { get { return _Interval; } }
+        public bool EnableResetEvent { get; set; }
+        //int _Interval;
+        public int Interval { get; private set; }//{ get { return MinWait; } }
         int _ConnectTimeout;
         public int ConnectTimeout { get { return _ConnectTimeout; } }
+        int _ReadTimeout;
+        public int ReadTimeout { get { return _ReadTimeout; } }
 
         bool _isalive = false;
         public bool IsAlive { get { return _isalive; } }
@@ -61,16 +46,57 @@ namespace Nistec.Messaging.Listeners
         bool _IsAsync;
         public bool IsAsync { get { return _IsAsync; } }
 
+        ILogger _Logger;
+        /// <summary>
+        /// Get or Set Logger that implements <see cref="ILogger"/> interface.
+        /// </summary>
+        public ILogger Logger { get { return _Logger; } set { if (value != null) _Logger = value; } }
+
+        public bool EnableDynamicWait { get; set; }
+
         //AdapterOperations _AdapterOperation;
         //public AdapterOperations OperationType { get { return _AdapterOperation; } }
 
-        Action<IQueueItem> _Action;
-        public Action<IQueueItem> QueueAction { get { return _Action; } }
+        //Action<IQueueItem> _Action;
+        //public Action<IQueueItem> QueueAction { get { return _Action; } }
 
         //Action<IQueueAck> _ActionTransfer;
         //public Action<IQueueAck> TransferAction { get { return _ActionTransfer; } }
 
         //IListenerHandler _Owner;
+
+        /*
+        const int MaxWait = 1000000;
+        const int LargeWait = 5000;
+        const int MedWait = 500;
+        const int MinWait = 100;
+        int IntervalWait = 0;
+        public bool EnableDynamicWait { get; set; }
+        public int DynamicWait
+        {
+            get { return (int) (EnableDynamicWait?(IntervalWait < MinWait ? MinWait : IntervalWait): MinWait); }
+        }
+        public int CalcDynamicWait(bool ack)
+        {
+            if (ack)
+            {
+                if (IntervalWait > LargeWait)
+                    return Interlocked.Exchange(ref IntervalWait, IntervalWait - 1000);
+                else if (IntervalWait > MedWait)
+                    return Interlocked.Exchange(ref IntervalWait, IntervalWait - 100);
+                else if (IntervalWait > MinWait)
+                    return Interlocked.Exchange(ref IntervalWait, IntervalWait - 10);
+                //return (int)Interlocked.Decrement(ref IntervalWait);
+            }
+            else
+            {
+                if (IntervalWait < MaxWait)
+                    return (int)Interlocked.Increment(ref IntervalWait);
+            }
+            return (int)IntervalWait;
+        }
+        */
+        #endregion
 
         #region message events
 
@@ -98,9 +124,30 @@ namespace Nistec.Messaging.Listeners
         /// <param name="e"></param>
         protected virtual void OnMessageReceived(GenericEventArgs<IQueueItem> e)
         {
-
+            if (Adapter.QueueAction != null)
+                Adapter.QueueAction(e.Args);
             if (MessageReceived != null)
                 MessageReceived(this, e);
+        }
+
+        protected virtual void OnMessageReceived(IQueueItem message)
+        {
+            if (message != null)
+            {
+                //if (_Action != null)
+                //    Task.Factory.StartNew(() => _Action(item));
+                //else
+                //    Task.Factory.StartNew(() => DoMessageReceived(item));
+                if (EnableDynamicWait)
+                    ActionWorker.DynamicWaitAck(true);
+            }
+            else
+            {
+                if (EnableDynamicWait)
+                    ActionWorker.DynamicWaitAck(false);
+            }
+
+            OnMessageReceived(new GenericEventArgs<IQueueItem>(message));
         }
         /// <summary>
         /// Occured when operation has error.
@@ -108,6 +155,9 @@ namespace Nistec.Messaging.Listeners
         /// <param name="e"></param>
         protected virtual void OnErrorOcurred(GenericEventArgs<string> e)
         {
+            if (Adapter.FaultAction != null)
+                Adapter.FaultAction(e.Args);
+
             if (ErrorOcurred != null)
                 ErrorOcurred(this, e);
         }
@@ -123,13 +173,15 @@ namespace Nistec.Messaging.Listeners
             OnErrorOcurred(new GenericEventArgs<string>(message));
         }
 
-        protected void OnCompleted(QueueItem item)
+        protected void OnCompleted(IQueueItem item)
         {
             OnMessageReceived(item);
         }
 
 
         #endregion
+
+        #region ctor
 
         internal SessionListener(QueueAdapter adapter, int interval)
         {
@@ -141,7 +193,7 @@ namespace Nistec.Messaging.Listeners
             {
                 throw new ArgumentNullException("adapter.Source");
             }
-            _adapter = adapter;
+            Adapter = adapter;
 
             //_Owner = owner;
             _Source = adapter.Source;
@@ -149,13 +201,16 @@ namespace Nistec.Messaging.Listeners
 
             //_ServerName = channel.ServerName;
             //_QueueName = channel.Source;
-            _Interval = interval <= 0 ? DefaultInterval : interval;// 1000;
+            //IntervalWait = interval < MinWait ? MinWait : interval;// 1000;
 
-            //_Interval = adapter.Interval;
+            Interval = interval;
             _ConnectTimeout = adapter.ConnectTimeout;
+            _ReadTimeout = adapter.ReadTimeout;
             _WorkerCount = adapter.WorkerCount;
             _IsAsync = adapter.IsAsync;
-            _Action = adapter.QueueAction;
+            //_Action = adapter.QueueAction;
+            EnableResetEvent = adapter.EnableResetEvent;
+            EnableDynamicWait = adapter.EnableDynamicWait;
             //_ActionTransfer = adapter.AckAction;
             //_AdapterOperation = adapter.OperationType;
 
@@ -164,11 +219,14 @@ namespace Nistec.Messaging.Listeners
 
         }
 
-        protected abstract IQueueAck Send(QueueItem message);
+        #endregion
+
+        #region override
+
+        //protected abstract IQueueAck Send(QueueItem message);
 
         protected abstract IQueueItem Receive();
-
-        protected abstract void ReceiveAsync(AutoResetEvent resetEvent);
+        protected abstract void ReceiveAsync(IDynamicWait aw);
 
         //protected abstract IQueueItem ReceiveRound();
 
@@ -192,19 +250,81 @@ namespace Nistec.Messaging.Listeners
         //        //    Task.Factory.StartNew(() => DoMessageTransfer(item));
         //    }
         //}
-        protected virtual void OnMessageReceived(IQueueItem item)
+
+        #endregion
+
+        #region ThreadWorker
+              
+
+        DynamicWorker ActionWorker;
+        public void Start()
         {
-            if (item != null)
+            if (ActionWorker != null)
+                return;
+
+            ActionWorker = new DynamicWorker( DynamicWaitType.DynamicWait)
             {
-                if (_Action != null)
+                ActionTask = () =>
                 {
-                    Task.Factory.StartNew(() => _Action(item));
-                }
-                else
-                    Task.Factory.StartNew(() => DoMessageReceived(item));
-            }
+                    try
+                    {
+                        //in case of ResetEvent and fixed interval using
+                        //ReceiveAsync(ActionWorker);
+                        //return false;
+
+                        //in case of DynamicWait or fixed interval using
+                        var ack = Receive();
+                        OnCompleted(ack);
+                        return ack != null;
+                    }
+                    catch (Exception ex) {
+
+                        if (_Logger != null)
+                            _Logger.Exception("Session listener ActionTask error ", ex);
+                        return false;
+                    }
+                },
+                ActionLog = (LogLevel level, string message) =>
+                {
+                    if (_Logger != null)
+                        _Logger.Log((LoggerLevel)level, message);
+                },
+                Name = "SessionListener",
+                Interval = 100,
+                MaxThreads = 1
+            };
+            ActionWorker.Start();
+
+            if (_Logger != null)
+                _Logger.Info("SessionListener Started");
+        }
+        public void Stop()
+        {
+            if (ActionWorker == null)
+                return;
+            ActionWorker.Stop();
+            if (_Logger != null)
+                _Logger.Info("SessionListener Stoped");
+        }
+        public void Pause(int seconds)
+        {
+            if (ActionWorker == null)
+                return;
+            ActionWorker.Pause(seconds);
+            if (_Logger != null)
+                _Logger.Info("SessionListener Stoped");
+        }
+        public void Shutdown(bool waitForWorkers)
+        {
+            if (ActionWorker == null)
+                return;
+            ActionWorker.Shutdown(waitForWorkers);
         }
 
+        #endregion
+
+        #region start/stop
+        /*
         bool lockWasTaken = false;
         object _locker = new object();
         Thread[] _workers;
@@ -212,20 +332,29 @@ namespace Nistec.Messaging.Listeners
  
         public void Start()
         {
-            if (_isalive)
+            if (IsAlive)
             {
                 return;
             }
             _workers = new Thread[_WorkerCount];
             ThreadStart threadWorker = IsAsync ? new ThreadStart(TaskWorkerAsync) : new ThreadStart(TaskWorker);
+            //ThreadStart threadWorker = new ThreadStart(TaskWorkerAsync);
             for (int i = 0; i < _WorkerCount; i++)
             {
                 _workers[i] = new Thread(new ThreadStart(threadWorker));
                 _workers[i].IsBackground = true;
                 _workers[i].Start();
             }
-        }
 
+            if (_Logger != null)
+                _Logger.Info("SessionListener Started");
+        }
+        public void Stop()
+        {
+            Shutdown(true);
+            if (_Logger != null)
+                _Logger.Info("SessionListener Stoped");
+        }
         public void Shutdown(bool waitForWorkers)
         {
             _isalive = false;
@@ -235,227 +364,115 @@ namespace Nistec.Messaging.Listeners
                 foreach (Thread worker in _workers)
                     worker.Join();
         }
+        */
+        #endregion
 
-        public void Delay(TimeSpan time)
-        {
-            Interlocked.Exchange(ref delay, (long)time.TotalMilliseconds);
-        }
-
-        //int _Current;
-        //IQueueItem RecieveRound()
-        //{
-        //    var message = Receive();
-        //    autoResetEvent.Set();
-        //    return message;
-        //}
-
-        IQueueItem RecieveInternal()
-        {
-            var message = Receive();
-            autoResetEvent.Set();
-            return message;
-        }
-
-        //IQueueAck TrabnsferInternal()
-        //{
-        //    var message = ReceiveTo();
-        //    autoResetEvent.Set();
-        //    return message;
-        //}
-
-        static AutoResetEvent autoResetEvent = new AutoResetEvent(false);
-
-        void TaskWorker()
-        {
-            _isalive = true;
-            // Start queue listener...
-            Console.WriteLine("QListener started...");
-
-            while (_isalive)
-            {
-               
-                try
+        #region worker
+        /*
+                public void Delay(TimeSpan time)
                 {
+                    Interlocked.Exchange(ref delay, (long)time.TotalMilliseconds);
+                }
 
-                    if (Interlocked.Read(ref delay) > 0)
+                static AutoResetEvent autoResetEvent = new AutoResetEvent(false);
+
+                protected virtual void TaskWorker()
+                {
+                    _isalive = true;
+                    // Start queue listener...
+                    if (_Logger != null)
+                        _Logger.Info("QListener started...");
+
+                    while (IsAlive)
                     {
-                        Thread.Sleep((int)delay);
-                        Interlocked.Exchange(ref delay, 0);
+
+                        try
+                        {
+
+                            if (Interlocked.Read(ref delay) > 0)
+                            {
+                                Thread.Sleep((int)delay);
+                                Interlocked.Exchange(ref delay, 0);
+                            }
+
+                            Monitor.Enter(_locker);
+                            lockWasTaken = true;
+
+                            var task = Task.Factory.StartNew(() => 
+                              OnCompleted(Receive())
+
+                            );
+                            if (EnableResetEvent)
+                                autoResetEvent.WaitOne();
+
+                         }
+                        catch (Exception ex)
+                        {
+                            if (_Logger != null)
+                                _Logger.Error("QListener error: " + ex.Message);
+                            Task.Factory.StartNew(() => DoErrorOcurred(ex.Message));
+                        }
+                        finally
+                        {
+                            if (lockWasTaken) Monitor.Exit(_locker);
+                        }
+                        Thread.Sleep(DynamicWait);
                     }
 
-                    Monitor.Enter(_locker);
-                    lockWasTaken = true;
+                    if (_Logger != null)
+                        _Logger.Info("QListener stoped");
 
-                    var task = Task.Factory.StartNew(() => RecieveInternal());
-                    autoResetEvent.WaitOne();
-                    OnMessageReceived(task.Result);
-                    
-                    //switch (_AdapterOperation)
-                    //{
-                    //    case AdapterOperations.Transfer:
-                    //        {
-                    //            var task = Task.Factory.StartNew(() => TrabnsferInternal());
-                    //            autoResetEvent.WaitOne();
-                    //            OnMessageTransfer(task.Result);
-                    //        }
-                    //        break;
-                    //    //case AdapterOperations.ReceiveRound:
-                    //    //    {
-                    //    //        var task = Task.Factory.StartNew(() => RecieveInternal());
-                    //    //        autoResetEvent.WaitOne();
-                    //    //        OnMessageReceived(task.Result);
-                    //    //    }
-                    //    //    break;
-                    //    //case AdapterOperations.Sync:
-                    //    case AdapterOperations.Recieve:
-                    //        {
-                    //            //Task task = Task.Factory.StartNew(() =>
-                    //            //{
-                    //            //    Receive();
-                    //            //});
-                    //            //autoResetEvent.WaitOne();
-
-                    //            //OnMessageReceived(task.Result);
-
-                    //            var task = Task.Factory.StartNew(() => RecieveInternal());
-                    //            autoResetEvent.WaitOne();
-                    //            OnMessageReceived(task.Result);
-
-                    //            //task.Wait();
-                    //            //if (task.IsCompleted)
-                    //            //{
-                    //            //    OnMessageReceived(task.Result);
-                    //            //}
-                    //        }
-                    //        break;
-                    //    //case AdapterOperations.Sync:
-                    //    //    QueueItem item = RecieveInternal();
-                            
-                    //    //    OnMessageReceived(item);
-                    //    //    //if (item != null)
-                    //    //    //{
-                    //    //    //    if (_Action != null)
-                    //    //    //    {
-                    //    //    //        Task.Factory.StartNew(() => _Action(item));
-                    //    //    //    }
-                    //    //    //    else
-                    //    //    //        Task.Factory.StartNew(() => DoMessageReceived(item));
-                    //    //    //}
-                    //    //    break;
-                    //}
                 }
-                catch (Exception ex)
+
+                protected virtual void TaskWorkerAsync()
                 {
-                    Console.WriteLine("QListener error: " + ex.Message);
-                    Task.Factory.StartNew(() => DoErrorOcurred(ex.Message));
-                }
-                finally
-                {
-                    if (lockWasTaken) Monitor.Exit(_locker);
-                }
-                Thread.Sleep(_Interval);
-            }
+                    _isalive = true;
+                    // Start queue listener...
+                    if (_Logger != null)
+                        _Logger.Info("QListener started...");
 
-            Console.WriteLine("QListener stoped...");
-        }
-
-        void TaskWorkerAsync()
-        {
-            _isalive = true;
-            // Start queue listener...
-            Console.WriteLine("QListener started...");
-
-            while (_isalive)
-            {
-
-                try
-                {
-
-                    if (Interlocked.Read(ref delay) > 0)
+                    while (IsAlive)
                     {
-                        Thread.Sleep((int)delay);
-                        Interlocked.Exchange(ref delay, 0);
+                        try
+                        {
+
+                            if (Interlocked.Read(ref delay) > 0)
+                            {
+                                Thread.Sleep((int)delay);
+                                Interlocked.Exchange(ref delay, 0);
+                            }
+
+                            Monitor.Enter(_locker);
+                            lockWasTaken = true;
+
+                            var task = Task.Factory.StartNew(() =>
+                                //RecieveInternal()
+                                ReceiveAsync(autoResetEvent)
+                                //autoResetEvent.Set();
+                                //return message;
+                            );
+                            if(EnableResetEvent)
+                            autoResetEvent.WaitOne();
+                        }
+                        catch (Exception ex)
+                        {
+                            if (_Logger != null)
+                                _Logger.Error("QListener error: " + ex.Message);
+
+                            Task.Factory.StartNew(() => DoErrorOcurred(ex.Message));
+                        }
+                        finally
+                        {
+                            if (lockWasTaken) Monitor.Exit(_locker);
+                        }
+                        Thread.Sleep(DynamicWait);
                     }
 
-                    Monitor.Enter(_locker);
-                    lockWasTaken = true;
+                    if (_Logger != null)
+                        _Logger.Info("QListener stoped...");
 
-                    var task = Task.Factory.StartNew(() =>
-                    //RecieveInternal()
-                    ReceiveAsync(autoResetEvent)
-                    //autoResetEvent.Set();
-                    //return message;
-                    );
-                    autoResetEvent.WaitOne();
-                    //OnMessageReceived(task.Result);
-
-                    //switch (_AdapterOperation)
-                    //{
-                    //    case AdapterOperations.Transfer:
-                    //        {
-                    //            var task = Task.Factory.StartNew(() => TrabnsferInternal());
-                    //            autoResetEvent.WaitOne();
-                    //            OnMessageTransfer(task.Result);
-                    //        }
-                    //        break;
-                    //    //case AdapterOperations.ReceiveRound:
-                    //    //    {
-                    //    //        var task = Task.Factory.StartNew(() => RecieveInternal());
-                    //    //        autoResetEvent.WaitOne();
-                    //    //        OnMessageReceived(task.Result);
-                    //    //    }
-                    //    //    break;
-                    //    //case AdapterOperations.Sync:
-                    //    case AdapterOperations.Recieve:
-                    //        {
-                    //            //Task task = Task.Factory.StartNew(() =>
-                    //            //{
-                    //            //    Receive();
-                    //            //});
-                    //            //autoResetEvent.WaitOne();
-
-                    //            //OnMessageReceived(task.Result);
-
-                    //            var task = Task.Factory.StartNew(() => RecieveInternal());
-                    //            autoResetEvent.WaitOne();
-                    //            OnMessageReceived(task.Result);
-
-                    //            //task.Wait();
-                    //            //if (task.IsCompleted)
-                    //            //{
-                    //            //    OnMessageReceived(task.Result);
-                    //            //}
-                    //        }
-                    //        break;
-                    //    //case AdapterOperations.Sync:
-                    //    //    QueueItem item = RecieveInternal();
-
-                    //    //    OnMessageReceived(item);
-                    //    //    //if (item != null)
-                    //    //    //{
-                    //    //    //    if (_Action != null)
-                    //    //    //    {
-                    //    //    //        Task.Factory.StartNew(() => _Action(item));
-                    //    //    //    }
-                    //    //    //    else
-                    //    //    //        Task.Factory.StartNew(() => DoMessageReceived(item));
-                    //    //    //}
-                    //    //    break;
-                    //}
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("QListener error: " + ex.Message);
-                    Task.Factory.StartNew(() => DoErrorOcurred(ex.Message));
-                }
-                finally
-                {
-                    if (lockWasTaken) Monitor.Exit(_locker);
-                }
-                Thread.Sleep(_Interval);
-            }
-
-            Console.WriteLine("QListener stoped...");
-        }
+        */
+        #endregion
     }
 }

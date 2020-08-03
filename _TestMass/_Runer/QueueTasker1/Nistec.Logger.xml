@@ -1,0 +1,753 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Nistec.Logger</name>
+    </assembly>
+    <members>
+        <member name="M:Nistec.Logging.Cleaner.LogDirectory.GetFiles(System.String[],System.String[],System.IO.SearchOption)">
+            <summary>
+            Returns the names of files in a specified directories that match the specified patterns using LINQ
+            </summary>
+            <param name="srcDirs">The directories to seach</param>
+            <param name="searchPatterns">the list of search patterns</param>
+            <param name="searchOption"></param>
+            <returns>The list of files that match the specified pattern</returns>
+        </member>
+        <member name="M:Nistec.Logging.Strings.SplitString(System.String,System.Int32,System.Int32)">
+            <summary>
+            Split string to segements by maxLength per segement
+            </summary>
+            <param name="s"></param>
+            <param name="limt"></param>
+            <param name="maxLengthPerSigment"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Strings.SplitString(System.String,System.Int32,System.Int32,System.String)">
+            <summary>
+            Split string to segements by sperator and maxLength per segement
+            </summary>
+            <param name="s"></param>
+            <param name="limt"></param>
+            <param name="maxLengthPerSigment"></param>
+            <param name="separator"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Types.IsEmpty(System.Object)">
+            <summary>
+            IsEmpty object|string|Guid or number==0
+            </summary>
+            <param name="value"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Types.NZorEmpty(System.Object,System.String)">
+            <summary>
+            Get indicate wether the value is null or empty, if yes return the given valueIfNull argument.
+            </summary>
+            <param name="value"></param>
+            <param name="valueIfNull"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Types.FormatDate(System.String,System.String,System.DateTime)">
+            <summary>
+            Get string date and return formated string date ,on exception return defult value
+            </summary>
+            <param name="s">string dateTime</param>
+            <param name="format">format</param>
+            <param name="defaultValue">value to return if invalid cast exception</param>
+            <returns>String Date Time formated</returns>
+        </member>
+        <member name="M:Nistec.Logging.Types.FormatDate(System.String,System.String,System.String)">
+            <summary>
+            Get string date and return formated string date ,on exception return defult value
+            </summary>
+            <param name="s">string dateTime</param>
+            <param name="format">format</param>
+            <param name="defaultValue">string value to return if invalid cast exception</param>
+            <returns>String Date Time formated</returns>
+        </member>
+        <member name="M:Nistec.Logging.Types.ToEnum``1(System.Object)">
+            <summary>
+             Converts the string representation of the name or numeric value of one or
+             more enumerated constants to an equivalent enumerated object. A string parameter
+             is not case-insensitive.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <returns></returns>
+            <exception cref="T:System.ArgumentNullException"></exception>
+            <exception cref="T:System.ArgumentException"></exception>
+            <exception cref="T:System.Exception"></exception>
+        </member>
+        <member name="M:Nistec.Logging.Types.IsValidTime(System.String)">
+            <summary>
+            IsValidTime
+            </summary>
+            <param name="time">12:30</param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Types.IsValidMonthDay(System.String,System.Int32[]@)">
+            <summary>
+            IsValidMonthDay
+            </summary>
+            <param name="date">22/11</param>
+            <returns></returns>
+        </member>
+        <member name="T:Nistec.Logging.Generic.XmlTable">
+            <summary>
+            Represents simple xml serializable/deserializable name/value table.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.#ctor(System.String)">
+            <summary>
+            Default constructor.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.#ctor(System.String,System.Boolean)">
+            <summary>
+            Default constructor.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.#ctor(System.Xml.XmlNode)">
+            <summary>
+            Constructor using XmlNode.Attributes.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.#ctor(System.Xml.XmlNode,System.String)">
+            <summary>
+            Constructor using XmlNode.Attributes.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.Add(System.String,System.String)">
+            <summary>
+            Adds name/value to table.
+            </summary>
+            <param name="key">Key of the value pair.</param>
+            <param name="value">Value.</param>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.Add(System.String,System.Int32)">
+            <summary>
+            Adds name/value to table.
+            </summary>
+            <param name="key">Key of the value pair.</param>
+            <param name="value">Value.</param>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.ContainsKey(System.String)">
+            <summary>
+            Determines whether the XmlTable contains the specified key.
+            </summary>
+            <param name="key">Key of value to get.</param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.ContainsValue(System.Object)">
+            <summary>
+            Determines whether the XmlTable contains the specified value.
+            </summary>
+            <param name="value">value to get.</param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.GetValue(System.String)">
+            <summary>
+            Gets value from name/value table.
+            </summary>
+            <param name="key">Key of value to get.</param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.Get``1(System.String)">
+            <summary>
+            Gets value from name/value table.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="key"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.Get``1(System.String,``0)">
+            <summary>
+            Gets value from name/value table.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="key"></param>
+            <param name="valueIfNull"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.GetEnum``1(System.String,``0)">
+            <summary>
+            Gets value from name/value table.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="key"></param>
+            <param name="valueIfNull"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.Parse(System.Byte[],System.Boolean)">
+            <summary>
+            Parses table from byte[] xml data.
+            </summary>
+            <param name="data">Table data.</param>
+            <param name="isMulti"></param>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.ToStringData">
+            <summary>
+            Returns string representation of xml table.
+            </summary>
+            <returns>Returns string representation of xml table.</returns>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.ToByteData">
+            <summary>
+            Returns byte[] representation of xml table.
+            </summary>
+            <returns>Returns byte[] representation of xml table.</returns>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.ToXml">
+            <summary>
+            Returns XmlDocument representation of xml table.
+            </summary>
+            <returns>Returns XmlDocument representation of xml table.</returns>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.ToDataTable">
+            <summary>
+            Returns DataTable representation of xml table.
+            </summary>
+            <returns>Returns byte[] representation of xml table.</returns>
+        </member>
+        <member name="P:Nistec.Logging.Generic.XmlTable.TableName">
+            <summary>
+            Gets or sets table name.
+            </summary>
+        </member>
+        <member name="P:Nistec.Logging.Generic.XmlTable.IsMulti">
+            <summary>
+            Gets indicate wether is multi rows.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Generic.XmlTable.OnError(System.String)">
+            <summary>
+            OnErrorOccured
+            </summary>
+            <param name="e"></param>
+        </member>
+        <member name="T:Nistec.Logging.Generic.GenericException`1">
+            <summary>
+            Represents errors that occur during application execution
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Generic.GenericException`1.#ctor">
+            <summary>
+            Initializes a new instance of the Exception class.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Generic.GenericException`1.#ctor(System.Exception)">
+            <summary>
+            Initializes a new instance of the Exception class with a specified error message.
+            </summary>
+            <param name="ex">The message that describes the error.</param>
+        </member>
+        <member name="M:Nistec.Logging.Generic.GenericException`1.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the Exception class with a specified error message.
+            </summary>
+            <param name="message">The message that describes the error.</param>
+        </member>
+        <member name="M:Nistec.Logging.Generic.GenericException`1.#ctor(System.String,`0)">
+            <summary>
+            Initializes a new instance of the Exception class with a specified error message and state.
+            </summary>
+            <param name="message">The message that describes the error.</param>
+            <param name="state">The value that describes the error state.</param>
+        </member>
+        <member name="M:Nistec.Logging.Generic.GenericException`1.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
+            <summary>
+            Initializes a new instance of the Exception class with serialized data.
+            </summary>
+            <param name="info">The SerializationInfo that holds the serialized object data about the exception being thrown.</param>
+            <param name="context">The StreamingContext that contains contextual information about the source or destination.</param>
+        </member>
+        <member name="M:Nistec.Logging.Generic.GenericException`1.#ctor(System.String,`0,System.Exception)">
+            <summary>
+            Initializes a new instance of the Exception class with a specified error message and a reference to the inner exception that is the cause of this exception.
+            </summary>
+            <param name="message">The error message that explains the reason for the exception.</param>
+            <param name="state">The value that describes the error state.</param>
+            <param name="innerException">The exception that is the cause of the current exception, or a null reference if no inner exception is specified.</param>
+        </member>
+        <member name="T:Nistec.Logging.Generic.NetConfig">
+            <summary>
+            NetConfig is wrapper of ConfigurationManager
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Generic.NetConfig.GetCustomConfig(System.String,System.Boolean)">
+            <summary>
+            CacheSettings ctor
+            </summary>
+            <param name="elementName"></param>
+            <param name="isWeb"></param>
+        </member>
+        <member name="T:Nistec.Logging.Generic.NetConfigSection">
+            <summary>
+            Represent a configuration section within a configuration file.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Generic.NetConfigSection.GetConfig(System.String)">
+            <summary>
+            Get <see cref="T:Nistec.Logging.Generic.NetConfigSection"/>.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:Nistec.Logging.Generic.NetConfigItem">
+            <summary>
+            Represents a configuration element within a configuration file.
+            </summary>
+        </member>
+        <member name="T:Nistec.Logging.Generic.NetConfigItems">
+            <summary>
+            Represents a configuration element containing a collection of child elements.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Generic.EnumExtension.Parse``1(System.String)">
+            <summary>
+             Converts the string representation of the name or numeric value of one or
+             more enumerated constants to an equivalent enumerated object. A string parameter
+             is not case-insensitive.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <returns></returns>
+            <exception cref="T:System.ArgumentNullException"></exception>
+            <exception cref="T:System.ArgumentException"></exception>
+            <exception cref="T:System.Exception"></exception>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Nistec.Logging.Generic.EnumExtension.GetEnumFlags``1(System.String,``0)" -->
+        <member name="M:Nistec.Logging.Generic.UUID.CLSIDFromString(System.String,System.Guid@)">
+            <summary>
+            This function converts a string generated by the StringFromCLSID function back into the original class identifier.
+            </summary>
+            <param name="sz">String that represents the class identifier</param>
+            <param name="clsid">On return will contain the class identifier</param>
+            <returns>
+            Positive or zero if class identifier was obtained successfully
+            Negative if the call failed
+            </returns>
+        </member>
+        <member name="M:Nistec.Logging.IO.Win32Io.LockFileEx(System.IntPtr,System.UInt32,System.UInt32,System.UInt32,System.UInt32,Nistec.Logging.IO.Win32Io.OVERLAPPED@)">
+             Return Type: BOOL->int 
+            hFile: HANDLE->void* 
+            dwFlags: DWORD->unsigned int 
+            dwReserved: DWORD->unsigned int 
+            nNumberOfBytesToLockLow: DWORD->unsigned int 
+            nNumberOfBytesToLockHigh: DWORD->unsigned int 
+            lpOverlapped: LPOVERLAPPED->_OVERLAPPED* 
+        </member>
+        <member name="T:Nistec.Logging.IO.StreamLineReader">
+            <summary>
+            Stream reader.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.IO.StreamLineReader.#ctor(System.IO.Stream)">
+            <summary>
+            Initialize a new instance of <see cref="T:System.IO.StreamReader"/>.
+            </summary>
+            <param name="strmSource">Source stream from where to read data. Reading begins from stream current position.</param>
+        </member>
+        <member name="M:Nistec.Logging.IO.StreamLineReader.ReadBlock(System.Int32)">
+            <summary>
+            Reads byte[] block from stream.
+            </summary>
+            <returns>Return null if end of stream reached.</returns>
+        </member>
+        <member name="M:Nistec.Logging.IO.StreamLineReader.ReadLine">
+            <summary>
+            Reads byte[] line from stream. NOTE: Returns null if end of stream reached.
+            </summary>
+            <returns>Return null if end of stream reached.</returns>
+        </member>
+        <member name="M:Nistec.Logging.IO.StreamLineReader.ReadLineString">
+            <summary>
+            Reads string line from stream. String is converted with specified Encoding property from byte[] line. NOTE: Returns null if end of stream reached.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="P:Nistec.Logging.IO.StreamLineReader.Encoding">
+            <summary>
+            Gets or sets charset encoding to use for string based methods. Default("") encoding is system default encoding.
+            </summary>
+        </member>
+        <member name="P:Nistec.Logging.IO.StreamLineReader.CRLF_LinesOnly">
+            <summary>
+            Gets or sets if lines must be CRLF terminated or may be only LF terminated too.
+            </summary>
+        </member>
+        <member name="T:Nistec.Logging.LogMessageEventHandler">
+            <summary>
+            Log Message EventHandler
+            </summary>
+            <param name="sender"></param>
+            <param name="e"></param>
+        </member>
+        <member name="T:Nistec.Logging.LogMessageEventArgs">
+            <summary>
+            Represent log message event arguments.
+            </summary>
+        </member>
+        <member name="P:Nistec.Logging.LogMessageEventArgs.Message">
+            <summary>
+            Get message.
+            </summary>
+        </member>
+        <member name="P:Nistec.Logging.LogService.ServiceState">
+            <summary>
+            Get <see cref="T:Nistec.Logging.LogServiceState"/> State.
+            </summary>
+        </member>
+        <member name="P:Nistec.Logging.LogService.Log">
+            <summary>
+            Get or Set Logger that implements <see cref="T:Nistec.Logging.ILogger"/> interface.
+            </summary>
+        </member>
+        <member name="P:Nistec.Logging.LogService.IsReady">
+            <summary>
+            Get current <see cref="T:Nistec.Logging.LogServiceState"/> settings.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.LogService.Clear">
+            <summary>
+            Clear log.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.LogService.ReadLog">
+            <summary>
+            Read log as string array.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.LogService.#ctor(System.Boolean)">
+            <summary>
+            Constractor default
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.LogService.#ctor(Nistec.Logging.Logger,System.Boolean)">
+            <summary>
+            Constractor using settings.
+            </summary>
+            <param name="logger"></param>
+            <param name="autoStart"></param>
+        </member>
+        <member name="T:Nistec.Logging.RestApiConnector">
+            <summary>
+            Represent RestApi
+            </summary>
+        </member>
+        <member name="T:Nistec.Logging.Netlog">
+            <summary>
+            The class helps looging exceptions and traces.
+            </summary>
+            <example>
+            specific Mode
+            <netlogSettings  LogFilename="C:\\Logs" LogLevel="Debug|Info|Warn|Error|Trace" LogMode="File|Console|Trace" IsAsync="false"/>
+            All
+            <netlogSettings  LogFilename="C:\\Logs" LogLevel="All" LogMode="File|Console"  IsAsync="false"/>
+            </example>
+        </member>
+        <member name="M:Nistec.Logging.NetlogSettings.LoadSettings(System.String,System.String,System.String,System.String,System.String,System.Int64,System.Int32,System.Boolean,System.String,System.String,System.String,System.String,System.Int32)">
+            <summary>
+            
+            </summary>
+            <param name="logFilename"></param>
+            <param name="logmode"></param>
+            <param name="lvlFlags"></param>
+            <param name="asyncType"></param>
+            <param name="logRolling"></param>
+            <param name="maxFileSize"></param>
+            <param name="bufferSize"></param>
+            <param name="autoFlush"></param>
+            <param name="apiUrl"></param>
+            <param name="apiMethod"></param>
+            <param name="cleaner_Directories"></param>
+            <param name="cleaner_FileEx"></param>
+            <param name="cleaner_Days"></param>
+        </member>
+        <member name="T:Nistec.Logging.Logger">
+            <summary>
+            The class helps looging exceptions and traces.
+            </summary>
+            <example>
+            specific Mode
+            <netlogSettings  LogFilename="C:\\Logs" LogLevel="Debug|Info|Warn|Error|Trace" LogMode="File|Console|Trace" IsAsync="false"/>
+            All
+            <netlogSettings  LogFilename="C:\\Logs" LogLevel="All" LogMode="File|Console"  IsAsync="false"/>
+            </example>
+        </member>
+        <member name="M:Nistec.Logging.Logger.Dispose">
+            <summary>
+            Release all resources.
+            </summary>
+        </member>
+        <member name="P:Nistec.Logging.Logger.IsDisposed">
+            <summary>
+            Get indicate wether the current instance is Disposed.
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Logger.Dispose(System.Boolean)">
+            <summary>
+            Dispose.
+            </summary>
+            <param name="disposing"></param>
+        </member>
+        <member name="T:Nistec.Logging.Logger.LogItemCallback">
+            <summary>
+            Log Item Callback delegate
+            </summary>
+            <param name="level"></param>
+            <param name="text"></param>
+            <returns></returns>
+        </member>
+        <member name="E:Nistec.Logging.Logger.LogMessage">
+            <summary>
+            Log Completed event
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.Logger.OnLogMessage(Nistec.Logging.LogMessageEventArgs)">
+            <summary>
+            OnLogCompleted
+            </summary>
+            <param name="e"></param>
+        </member>
+        <member name="M:Nistec.Logging.Logger.LogAsync(Nistec.Logging.LoggerLevel,System.String,System.Object[])">
+            <summary>
+            AsyncLog
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Logger.BeginLog(Nistec.Logging.LoggerLevel,System.String)">
+            <summary>
+            Begin write to cache logger async.
+            </summary>
+            <param name="level"></param>
+            <param name="text"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Logger.BeginLog(System.Object,System.AsyncCallback,Nistec.Logging.LoggerLevel,System.String)">
+            <summary>
+            Begin write to cache logger async.
+            </summary>
+            <param name="state"></param>
+            <param name="callback"></param>
+            <param name="level"></param>
+            <param name="text"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Logger.EndLog(System.IAsyncResult)">
+            <summary>Completes the specified asynchronous receive operation.</summary>
+            <param name="asyncResult"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Logger.PathFix(System.String)">
+            <summary>
+            Fixes path separator, replaces / \ with platform separator char.
+            </summary>
+            <param name="path">Path to fix.</param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.Logger.Write(System.String,System.String)">
+            <summary>
+            Writes specified text to log file.
+            </summary>
+            <param name="fileName">Log file name.</param>
+            <param name="text">Log text.</param>
+        </member>
+        <member name="M:Nistec.Logging.Logger.WriteAsync(System.String,System.String)">
+            <summary>
+            Writes specified text to log file.
+            </summary>
+            <param name="fileName">Log file name.</param>
+            <param name="text">Log text.</param>
+        </member>
+        <member name="T:Nistec.Logging.GenericTypes">
+            <summary>
+            Represent a generic type converter
+            </summary>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.Convert``1(System.Object,Nistec.Logging.ConvertDescriptor)">
+            <summary>
+            Convert
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <param name="cd"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.Convert``1(System.Object,``0,Nistec.Logging.ConvertDescriptor)">
+            <summary>
+            Convert
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <param name="defaultValue"></param>
+            <param name="cd"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.Default``1">
+            <summary>
+            Get the Default value for given generic type.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.Default(System.Type)">
+            <summary>
+            Get the Default value for given object type.
+            </summary>
+            <param name="type"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.ConvertProperty(System.Object,System.Reflection.PropertyInfo)">
+            <summary>
+            Convert input to sepcified type, if input is null or unable to convert
+            Creates an instance of the specified type using that type's default constructor.
+            </summary>
+            <param name="input"></param>
+            <param name="property"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.ConvertTo``1(System.String)">
+            <summary>
+            Convert string to struct.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.ConvertTo``1(System.String,``0)">
+            <summary>
+            Convert string to struct.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <param name="defaultValue"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.ConvertObject``1(System.Object)">
+            <summary>
+            Convert string to object.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.Convert``1(System.Object)">
+            <summary>
+            Generic Converter
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.Convert``1(System.Object,``0)">
+            <summary>
+            Generic Converter with default value
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <param name="defaultValue"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.ImplicitConvert``1(System.Object,``0)">
+            <summary>
+            Generic implicit Convert an object with default value
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <param name="defaultValue"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.ImplicitConvert``1(System.Object)">
+            <summary>
+            Generic implicit Convert an object
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.NZorEmpty(System.Object,System.String)">
+            <summary>
+            Get indicate wether the value is null or empty, if yes return the given valueIfNull argument.
+            </summary>
+            <param name="value"></param>
+            <param name="valueIfNull"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.NZ(System.Object,System.String)">
+            <summary>
+            Generic converter , if the given value is null or DBNull.Value return valueIfNull argument.
+            </summary>
+            <param name="value"></param>
+            <param name="valueIfNull"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.CanConvert(System.String,System.Type)">
+            <summary>  
+            Checks the specified value to see if it can be  
+            converted into the specified type.  
+            <remarks>  
+            The method supports all the primitive types of the CLR  
+            such as int, boolean, double, guid etc. as well as other  
+            simple types like Color and Unit and custom enum types.  
+            </remarks>  
+            </summary>  
+            <param name="value">The value to check.</param>  
+            <param name="type">The type that the value will be checked against.</param>  
+            <returns>True if the value can convert to the given type, otherwise false. </returns>  
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.CanConvert``1(System.String)">
+            <summary>
+            Is ? Can ConvertFrom
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="input"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.ConvertList``1(System.Object[])">
+            <summary>
+            Convert array of object to generic list.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="array"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.ConvertList``1(System.Collections.Generic.List{System.Object})">
+            <summary>
+            Convert list of object to generic list.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="list"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.ConvertArray``1(System.Object[])">
+            <summary>
+            Convert array of object to generic array.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="array"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.Cast``1(System.Object)">
+            <summary>
+            Convert an object of the specified type and whose value is equivalent to the specified object.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="o"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Nistec.Logging.GenericTypes.ConvertEnum``1(System.String)">
+            <summary>
+             Converts the string representation of the name or numeric value of one or
+             more enumerated constants to an equivalent enumerated object. A string parameter
+             is not case-insensitive.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="value"></param>
+            <returns></returns>
+            <exception cref="T:System.ArgumentNullException"></exception>
+            <exception cref="T:System.ArgumentException"></exception>
+            <exception cref="T:System.Exception"></exception>
+        </member>
+    </members>
+</doc>

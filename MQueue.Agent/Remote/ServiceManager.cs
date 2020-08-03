@@ -1,20 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+//using System.Collections.Generic;
+//using System.Linq;
+//using System.Text;
 using System.Threading;
-using System.ServiceModel;
-using System.Runtime.Remoting;
-using System.IO;
-using Nistec.Generic;
+//using System.ServiceModel;
+//using System.Runtime.Remoting;
+//using System.IO;
+//using Nistec.Generic;
 using Nistec.Messaging.Server;
-using Nistec.Messaging.Proxies;
+//using Nistec.Messaging.Proxies;
 using System.Security;
-using System.Security.Permissions;
-using Nistec.Messaging.Server.Pipe;
-using Nistec.Messaging.Server.Tcp;
+//using System.Security.Permissions;
 using Nistec.Logging;
-using Nistec.Messaging.Server.Http;
 using Nistec.Messaging.Config;
 using Nistec.Messaging;
 
@@ -24,21 +21,24 @@ namespace Nistec.Services
     {
         private const string serviceName = "MQueue agent";
 
-        private PipeServerChannel m_PipeServerListener;
-        private TcpServerChannel m_TcpServerListener;
-        private HttpServerChannel m_HttpServerListener;
+        private PipeServerChannel m_PipeServerConsumer;
+        private TcpServerChannel m_TcpServerConsumer;
+        private HttpServerChannel m_HttpServerConsumer;
         //Channel
-        private PipeServerChannel m_PipeServerChannel;
-        private TcpServerChannel m_TcpServerChannel;
-        private HttpServerChannel m_HttpServerChannel;
+        private PipeServerChannel m_PipeServerProducer;
+        private TcpServerChannel m_TcpServerProducer;
+        private HttpServerChannel m_HttpServerProducer;
         
         //private PipeServerDequeue m_ServerDequeue;
-        private PipeManagerServer m_ServerQueueManager;
+        private PipeServerChannel m_ServerQueueManager;
 
-       
+        bool m_enableQueueController;
+        bool m_enableTopicController;
+
+
         //private FolderServerListener m_FolderServer;
         //private DbServerListener m_DbServer;
-        
+
         bool _loaded = false;
 
         public bool Loaded
@@ -76,20 +76,25 @@ namespace Nistec.Services
 
                 Netlog.Debug(serviceName + " start...");
 
-                AgentManager.Start();
+                //m_enableQueueController = AgentManager.Settings.EnableQueueController;
+                //m_enableTopicController = AgentManager.Settings.EnableTopicController;
 
-                if (AgentManager.Settings.EnablePipeChannel)
+                AgentManager.Start();// m_enableQueueController, m_enableTopicController);
+
+                if (AgentManager.Settings.EnablePipeProducer)
                 {
-                    m_PipeServerChannel = new PipeServerChannel(QueueSettings.DefaultQueueChannel,false);
-                    m_PipeServerChannel.Start();
+
+
+                    m_PipeServerProducer = new PipeServerChannel(QueueChannel.Producer, QueueSettings.DefaultQueueProducer);
+                    m_PipeServerProducer.Start();
                     //QLogger.Info("PipeServerChannel started...");
                 }
 
 
-                if (AgentManager.Settings.EnablePipeListener)
+                if (AgentManager.Settings.EnablePipeConsumer)
                 {
-                    m_PipeServerListener = new PipeServerChannel(QueueSettings.DefaultQueueListener, true);
-                    m_PipeServerListener.Start();
+                    m_PipeServerConsumer = new PipeServerChannel(QueueChannel.Consumer, QueueSettings.DefaultQueueConsumer);
+                    m_PipeServerConsumer.Start();
                     //QLogger.Info("PipeServerListener started...");
                 }
 
@@ -98,34 +103,34 @@ namespace Nistec.Services
                 //m_ServerDequeue.Start(false);
 
 
-                if (AgentManager.Settings.EnableTcpChannel)
+                if (AgentManager.Settings.EnableTcpProducer)
                 {
-                    m_TcpServerChannel = new TcpServerChannel(QueueSettings.DefaultQueueChannel, false);
-                    m_TcpServerChannel.Start();
+                    m_TcpServerProducer = new TcpServerChannel(QueueChannel.Producer, QueueSettings.DefaultQueueProducer);
+                    m_TcpServerProducer.Start();
                     //QLogger.Info("TcpServerChannel started...");
                 }
-                if (AgentManager.Settings.EnableTcpListener)
+                if (AgentManager.Settings.EnableTcpConsumer)
                 {
-                    m_TcpServerListener = new TcpServerChannel(QueueSettings.DefaultQueueListener, true);
-                    m_TcpServerListener.Start();
+                    m_TcpServerConsumer = new TcpServerChannel(QueueChannel.Consumer, QueueSettings.DefaultQueueConsumer);
+                    m_TcpServerConsumer.Start();
                     //QLogger.Info("TcpServerListener started...");
                 }
-                if (AgentManager.Settings.EnableHttpChannel)
+                if (AgentManager.Settings.EnableHttpProducer)
                 {
-                    m_HttpServerChannel = new HttpServerChannel(QueueSettings.DefaultQueueChannel, false);
-                    m_HttpServerChannel.Start();
+                    m_HttpServerProducer = new HttpServerChannel(QueueChannel.Producer, QueueSettings.DefaultQueueProducer);
+                    m_HttpServerProducer.Start();
                     //QLogger.Info("HttpServerChannel started...");
                 }
-                if (AgentManager.Settings.EnableHttpListener)
+                if (AgentManager.Settings.EnableHttpConsumer)
                 {
-                    m_HttpServerListener = new HttpServerChannel(QueueSettings.DefaultQueueListener, true);
-                    m_HttpServerListener.Start();
+                    m_HttpServerConsumer = new HttpServerChannel(QueueChannel.Consumer, QueueSettings.DefaultQueueConsumer);
+                    m_HttpServerConsumer.Start();
                     //QLogger.Info("HttpServerListener started...");
                 }
 
                 if (AgentManager.Settings.EnableQueueManager)
                 {
-                    m_ServerQueueManager = new PipeManagerServer();
+                    m_ServerQueueManager = new PipeServerChannel(QueueChannel.Manager, QueueSettings.DefaultQueueManager);
                     m_ServerQueueManager.IsAsync = false;
                     m_ServerQueueManager.Start();// (false);
                     //QLogger.Info("ServerQueueManager started...");
@@ -141,8 +146,7 @@ namespace Nistec.Services
                 //    m_DbServer = new DbServerListener();
                 //    m_DbServer.Start();
                 //}
-
-
+                
 
                 //svr.Start();//McLock.Lock.ValidateLock(), true);
                 //host_serviceStart();
@@ -161,32 +165,39 @@ namespace Nistec.Services
         {
             Netlog.Debug(serviceName + " stop...");
 
-            //if (m_ServerDequeue != null)
-            //    m_ServerDequeue.Stop();
-            if (m_PipeServerChannel != null)
-                m_PipeServerChannel.Stop();
-            if (m_TcpServerChannel != null)
-                m_TcpServerChannel.Stop();
-            if (m_HttpServerChannel != null)
-                m_HttpServerChannel.Stop();
+            try
+            {
+                //if (m_ServerDequeue != null)
+                //    m_ServerDequeue.Stop();
+                if (m_PipeServerProducer != null)
+                    m_PipeServerProducer.Stop();
+                if (m_TcpServerProducer != null)
+                    m_TcpServerProducer.Stop();
+                if (m_HttpServerProducer != null)
+                    m_HttpServerProducer.Stop();
 
-            if (m_PipeServerListener != null)
-                m_PipeServerListener.Stop();
-            if (m_TcpServerListener != null)
-                m_TcpServerListener.Stop();
-            if (m_HttpServerListener != null)
-                m_HttpServerListener.Stop();
+                if (m_PipeServerConsumer != null)
+                    m_PipeServerConsumer.Stop();
+                if (m_TcpServerConsumer != null)
+                    m_TcpServerConsumer.Stop();
+                if (m_HttpServerConsumer != null)
+                    m_HttpServerConsumer.Stop();
 
-            if (m_ServerQueueManager != null)
-                m_ServerQueueManager.Stop();
+                if (m_ServerQueueManager != null)
+                    m_ServerQueueManager.Stop();
 
 
-            //if (m_FolderServer != null)
-            //    m_FolderServer.Stop(true);
-            //if (m_DbServer != null)
-            //    m_DbServer.Stop(true);
+                //if (m_FolderServer != null)
+                //    m_FolderServer.Stop(true);
+                //if (m_DbServer != null)
+                //    m_DbServer.Stop(true);
 
-            Netlog.Debug(serviceName + " stoped.");
+                Netlog.Debug(serviceName + " stoped.");
+            }
+            catch(Exception ex)
+            {
+                Netlog.Debug(serviceName + " stop error: " + ex.Message);
+            }
         }
 
     }

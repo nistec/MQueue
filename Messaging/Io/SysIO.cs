@@ -376,10 +376,52 @@ namespace Nistec.Messaging.Io
                 Netlog.ErrorFormat("Error MoveFile: {0}, {1} ", dest, ex.Message);
             }
         }
-                          
 
-                   
+        
+        public static void RecursiveFileSearch(DirectoryInfo root, string search, Action<string> OnTake, Action<string> OnFault)
+        {
+            IEnumerable<FileInfo> files = null;
+            IEnumerable <DirectoryInfo> subDirs = null;
 
+            // First, process all the files directly under this folder
+            try
+            {
+                files = root.EnumerateFiles(search);
+            }
+            // This is thrown if even one of the files requires permissions greater
+            // than the application provides.
+            catch (UnauthorizedAccessException e)
+            {
+                // This code just writes out the message and continues to recurse.
+                // You may decide to do something different here. For example, you
+                // can try to elevate your privileges and access the file again.
+                if (OnFault != null)
+                    OnFault(e.Message);
+            }
+            catch (DirectoryNotFoundException e)
+            {
+                if (OnFault != null)
+                    OnFault(e.Message);
+
+            }
+
+            if (files != null)
+            {
+                foreach (FileInfo fi in files)
+                {
+                    OnTake(fi.FullName);
+                }
+
+                // Now find all the subdirectories under this directory.
+                subDirs = root.EnumerateDirectories();
+
+                foreach (DirectoryInfo dirInfo in subDirs)
+                {
+                    // Resursive call for each subdirectory.
+                    RecursiveFileSearch(dirInfo,search, OnTake, OnFault);
+                }
+            }
+        }
 
     }
 }

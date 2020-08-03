@@ -8,16 +8,20 @@ using Nistec.Channels;
 using Nistec.IO;
 using System.Threading.Tasks;
 using System.Net.Sockets;
-using Nistec.Messaging.Config;
-
+//using Nistec.Messaging.Config;
+using Nistec.Messaging;
+using Nistec.Messaging.Listeners;
+using Nistec.Logging;
 
 namespace Nistec.Messaging.Channels
 {
     /// <summary>
     /// Represent a queue Pipe server listner.
     /// </summary>
-    public class PipeServerQueue : PipeServer<QItemStream>
+    public class PipeServerQueue : PipeServer<IQueueItem>, IChannelService
     {
+        QueueChannel QueueChannel = QueueChannel.Consumer;
+        IControllerHandler Controller;
 
         #region override
         /// <summary>
@@ -26,7 +30,7 @@ namespace Nistec.Messaging.Channels
         protected override void OnStart()
         {
             base.OnStart();
-            AgentManager.Queue.Start();
+            Log.Info("PipeServerQueue started :{0}, QueueChannel:{1}", PipeName, QueueChannel.ToString());
         }
         /// <summary>
         /// OnStop
@@ -34,8 +38,9 @@ namespace Nistec.Messaging.Channels
         protected override void OnStop()
         {
             base.OnStop();
-            AgentManager.Queue.Stop();
+            Log.Info("PipeServerQueue stoped :{0}, QueueChannel:{1}", PipeName, QueueChannel.ToString());
         }
+
         /// <summary>
         /// OnLoad
         /// </summary>
@@ -44,30 +49,20 @@ namespace Nistec.Messaging.Channels
             base.OnLoad();
             
         }
+        
         #endregion
 
         #region ctor
 
         /// <summary>
-        /// Constractor with extra parameters
-        /// </summary>
-        /// <param name="hostName"></param>
-        public PipeServerQueue(string hostName)
-            : base(ServerQueueSettings.LoadPipeConfigServer(hostName))
-        {
-
-            
-        }
-
-        /// <summary>
         /// Constractor using <see cref="PipeSettings"/> settings.
         /// </summary>
+        /// <param name="controller"></param>
         /// <param name="settings"></param>
-        public PipeServerQueue(PipeSettings settings)
+        public PipeServerQueue(PipeSettings settings, IControllerHandler controller)
             : base(settings)
         {
-
-           
+            Controller = controller;
         }
 
         #endregion
@@ -78,23 +73,22 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override NetStream ExecRequset(QItemStream message)
+        protected override TransStream ExecRequset(IQueueItem message)
         {
-            return AgentManager.Queue.ExecRequset(message);
+            return Controller.OnMessageReceived(message);
         }
         /// <summary>
         /// ReadRequest
         /// </summary>
         /// <param name="pipeServer"></param>
         /// <returns></returns>
-         protected override QItemStream ReadRequest(NamedPipeServerStream pipeServer)
+        protected override IQueueItem ReadRequest(NamedPipeServerStream pipeServer)
         {
-            //QueueItemStream message = new QueueItemStream();
-
-            return QItemStream.Create(pipeServer);
+            return new QueueItem(pipeServer, null);
         }
        
 
         #endregion
     }
+
 }

@@ -1,19 +1,30 @@
 using System;
-using System.Collections.Generic;
-using System.Collections;
-using System.Text;
-using System.Data;
-using System.Threading;
-using System.Messaging;
-using Nistec.Runtime;
-using Nistec.Threading;
+//using System.Collections.Generic;
+//using System.Collections;
+//using System.Text;
+//using System.Data;
+//using System.Threading;
+//using System.Messaging;
+//using Nistec.Runtime;
+//using Nistec.Threading;
 using Nistec.IO;
-using System.IO;
+//using System.IO;
 using Nistec.Serialization;
+using Nistec.Channels;
 
 namespace Nistec.Messaging
 {
-    
+
+    public interface IControllerHandler
+    {
+        TransStream OnMessageReceived(IQueueItem message);
+        void OnErrorOcurred(string msg);
+
+        //void OnMessageReceived(IQueueMessage message);
+
+        //void OnErrorOcurred(string message);
+    }
+
     public interface IQueueClient
     {
         IQueueItem EndReceive(IAsyncResult asyncResult);

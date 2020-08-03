@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using Nistec.Messaging.Io;
 using Nistec.Generic;
+using Nistec.Messaging.Listeners;
 
 namespace Nistec.Messaging
 {
@@ -14,12 +15,20 @@ namespace Nistec.Messaging
         public const string FileExt = ".mcq";
         public const string FileInfoExt = ".mci";
 
+        public const string FolderQueueList = "Queues";
         public const string FolderQueue = "Queue";
         public const string FolderInfo = "Info";
         public const string FolderCovered = "Covered";
         public const string FolderSuspend = "Suspend";
         public const int MaxRetry = 3;
+        public const string EXECPATH = "EXECPATH";
         #endregion
+
+        public static bool IsStateOk(this MessageState state)
+        {
+            return ((int)state < 20);
+        }
+
 
         public static DateTime NullDate
         {
@@ -68,9 +77,8 @@ namespace Nistec.Messaging
             return Path.Combine(root, section, queueName);
         }
 
-        public static string EnsureQueueSectionPath(string root, string queueName, string section)
+        public static string EnsurePath(string path)
         {
-            string path = GetQueueSectionPath(root, queueName, section);
             DirectoryInfo di = new DirectoryInfo(path);
             if (!di.Exists)
             {
@@ -79,6 +87,18 @@ namespace Nistec.Messaging
 
             return path;
         }
+
+        //public static string EnsureQueueSectionPath(string root, string queueName, string section)
+        //{
+        //    string path = GetQueueSectionPath(root, queueName, section);
+        //    DirectoryInfo di = new DirectoryInfo(path);
+        //    if (!di.Exists)
+        //    {
+        //        di.Create();
+        //    }
+
+        //    return path;
+        //}
         
         public static TimeSpan GetDuration(this IQueueMessage item)
         {
@@ -166,6 +186,7 @@ namespace Nistec.Messaging
         //    d = Math.Min(d, int.MaxValue);
         //    item.Duration = (int)d;
         //}
+
 
         //public static string GetFilename(long UniqueId, Priority priority)
         //{
@@ -272,20 +293,63 @@ namespace Nistec.Messaging
                 return Path.Combine(root, Assists.FolderQueue, queueName);
         }
 
-        public static string[] GetFiles(string path, bool isCoverable)
+        public static string[] GetFiles(string path, bool isInfo=false)
         {
             if (!Directory.Exists(path))
             {
                 return null;
             }
-            string ext = isCoverable ? Assists.FolderInfo : Assists.FolderQueue;
+            string ext = isInfo ? Assists.FileInfoExt : Assists.FileExt;
             return Directory.GetFiles(path, "*" + ext);
         }
+        public static FileInfo[] GetFilesInfo(string path, string ext= Assists.FileExt, SearchOption searchOption= SearchOption.AllDirectories)
+        {
+            if (!Directory.Exists(path))
+            {
+                return null;
+            }
+            DirectoryInfo di = new DirectoryInfo(path);
+            //string ext = isCoverable ? Assists.FolderInfo : Assists.FolderQueue;
+            return di.GetFiles("*" + ext, searchOption);
+        }
 
-        
+
+        public static IOrderedEnumerable<FileInfo> GetOrderedFilesInfo(string path, string ext = Assists.FolderQueue, SearchOption searchOption = SearchOption.AllDirectories)
+        {
+
+            var list = GetFilesInfo(path, ext, searchOption);
+
+            return list.OrderBy(f => f.CreationTime);
+
+            //if (orderType == FileOrderTypes.ByCreation)
+            //    return list.OrderBy(f => f.CreationTime);
+            //else
+            //    return list.OrderBy(f => f.Name);
+        }
+
+        public static IEnumerable<string> EnumerateFiles(string path, bool isInfo=false, SearchOption so= SearchOption.TopDirectoryOnly)
+        {
+            if (!Directory.Exists(path))
+            {
+                return null;
+            }
+            string ext = isInfo ? Assists.FileInfoExt : Assists.FileExt;
+            return Directory.EnumerateFiles(path, "*" + ext, so);
+        }
+
+        public static IEnumerable<string> EnumerateFolders(string path)
+        {
+            if (!Directory.Exists(path))
+            {
+                return null;
+            }
+            return Directory.EnumerateDirectories(path);
+        }
+
         public static string EnsureIdentifierPath(string queuePath, string identifier)
         {
             string path = Path.Combine(queuePath, GetFolderId(identifier));
+
             DirectoryInfo di = new DirectoryInfo(path);
             if (!di.Exists)
             {
@@ -294,9 +358,15 @@ namespace Nistec.Messaging
 
             return path;
         }
-        public static string GetFilename(string root, string hostName, string identifier, bool isCoverable)
+        public static string GetIdentifierPath(string queuePath, string identifier)
         {
-            if (isCoverable)
+           return Path.Combine(queuePath, GetFolderId(identifier));
+
+        }
+
+        public static string GetFilename(string root, string hostName, string identifier, bool isInfo)
+        {
+            if (isInfo)
 
                 return GetInfoFilename(root, hostName, identifier);
             else
@@ -306,22 +376,37 @@ namespace Nistec.Messaging
         {
             return GetFolderId(Assists.GetIdentifier(itemId, priority));
         }
-        public static string GetFolderId(string identifier)
+        public static string GetFolderId(string identifier,int length=1)
         {
-            if (identifier == null)
+            if (identifier == null || identifier.Length<2)
             {
                 throw new ArgumentNullException("identifier");
             }
-            if (identifier.Length < 6)
-                return identifier.Substring(0, identifier.Length - 2);
-            return identifier.Substring(0, identifier.Length - 6);
+            return identifier.Substring(0,1);
+
+            //if (identifier.Length < 6)
+            //    return identifier.Substring(0, identifier.Length - 2);
+            //return identifier.Substring(0, identifier.Length - 6);
+        }
+
+        public static string GetRandomFolderId(int length = 1)
+        {
+            return RandomString(length);
+        }
+
+        private static Random random = new Random();
+        public static string RandomString(int length)
+        {
+            const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         //public static string GetQueueFilename(long UniqueId, Priority priority)
         //{
         //    return GetQueueFilename(Assists.GetIdentifier(UniqueId, priority));
         //}
-        public static string GetQueueFilename(string identifier)
+        public static string FormatQueueFilename(string identifier)
         {
             return string.Format("{0}{1}", identifier, Assists.FileExt);
         }
@@ -329,7 +414,7 @@ namespace Nistec.Messaging
         {
             string path = Path.Combine(root, Assists.FolderQueue, hostName, GetFolderId(identifier));
             //string path = Path.Combine(infopath, hostName);
-            return string.Format("{0}\\{1}", path, GetQueueFilename(identifier));
+            return string.Format("{0}\\{1}", path, FormatQueueFilename(identifier));
         }
         //public static string GetInfoFilename(long UniqueId, Priority priority)
         //{
@@ -345,13 +430,29 @@ namespace Nistec.Messaging
             string path = Path.Combine(infopath, hostName);
             return string.Format("{0}\\{1}", path, GetInfoFilename(identifier));
         }
-        public static string QueueToCovered(string filename)
+        public static string QueueToCovered(string filename, bool removeSplitter=true)
         {
-            return filename.Replace("\\Queue\\", string.Format("\\{0}\\", Assists.FolderCovered));
+            string dest = filename.Replace("\\Queue\\", string.Format("\\{0}\\", Assists.FolderCovered));
+            if (removeSplitter)
+            {
+                string name = Path.GetFileName(filename);
+                string dir = Path.GetDirectoryName(dest);
+                dir = Path.GetDirectoryName(dir);
+                dest = Path.Combine(dir, name);
+            }
+            return dest;
         }
-        public static string QueueToSuspend(string filename)
+        public static string QueueToSuspend(string filename, bool removeSplitter = true)
         {
-            return filename.Replace("\\Queue\\", string.Format("\\{0}\\", Assists.FolderSuspend));
+            string dest = filename.Replace("\\Queue\\", string.Format("\\{0}\\", Assists.FolderSuspend));
+            if (removeSplitter)
+            {
+                string name = Path.GetFileName(filename);
+                string dir = Path.GetDirectoryName(dest);
+                dir = Path.GetDirectoryName(dir);
+                dest = Path.Combine(dir, name);
+            }
+            return dest;
         }
         public static string QueueToInfo(string filename)
         {

@@ -20,12 +20,7 @@ using System.Xml.Serialization;
 namespace Nistec.Messaging
 {
 
-    
-    //public class Message: QueueItem
-    //{
-
-    //}
-    public class QueueItem : MessageStream, IQueueItem, /*IQueueAck, IPersistItem,*/ ICloneable, IDisposable//, ISerialEntity
+    public class QueueItem : MessageStream, IQueueItem, ICloneable, IDisposable, IQueueAck//, ISerialEntity
     {
         #region static
         public static QueueItem Create(Stream stream)
@@ -144,38 +139,12 @@ namespace Nistec.Messaging
         }
 
 
-        ///// <summary>
-        ///// Create a new instance of QueueItem.
-        ///// </summary>
-        ///// <param name="stream"></param>
-        ///// <returns></returns>
-        //public static QueueItem Create(Stream stream)
-        //{
-        //    if (stream == null)
-        //    {
-        //        throw new ArgumentNullException("Message.Load.stream");
-        //    }
-
-        //    if (stream is NetStream)
-        //    {
-        //        stream.Position = 0;
-        //        return new QueueItem((NetStream)stream, null);
-        //    }
-        //    else
-        //    {
-        //        return new QueueItem(NetStream.CopyStream(stream), null);
-        //    }
-        //}
-
         #endregion
 
         #region Load
 
         void ClearData()
         {
-      
-            //m_BodyStream = null;
-            //_TypeName = null;
 
             BodyStream = null;
             TypeName = null;
@@ -447,6 +416,7 @@ namespace Nistec.Messaging
             Modified = DateTime.Now;
             ArrivedTime = Assists.NullDate;
             Version = QueueDefaults.CurrentVersion;
+            IsDuplex = true;
         }
 
         //public QueueItem(QueueCmd command, TransformTypes transformType, Priority priority, string destination, string json)
@@ -516,7 +486,7 @@ namespace Nistec.Messaging
             //m_BodyStream = null;
             BodyStream = null;
         }
-
+               
         //public QueueItem(Message message)
         //{
         //    MessageType = MQTypes.Message;
@@ -945,7 +915,7 @@ namespace Nistec.Messaging
             streamer.WriteValue((byte)QCommand);
             streamer.WriteValue((byte)Priority);
             streamer.WriteString(Identifier);//.WriteValue(ItemId);
-            streamer.WriteValue(Retry);
+            streamer.WriteValue((byte)Retry);
             streamer.WriteValue(ArrivedTime);
             streamer.WriteValue(Creation);
             streamer.WriteValue(Modified);
@@ -1601,7 +1571,7 @@ namespace Nistec.Messaging
                 throw new MessageException(Messaging.MessageState.StreamReadWriteError, "QueueItemStream SetArrived error: " + ex.Message);
             }
         }
-        internal void DoRetryInternal()
+        internal void SetRetryInternal()
         {
             Retry++;
             this.Modified = DateTime.Now;
@@ -1687,22 +1657,24 @@ namespace Nistec.Messaging
         public string Print()
         {
 
-            return string.Format("MessageState:{0},MessageType:{1},Command:{2},Priority:{3},Identifier:{4},Retry:{5},ArrivedTime:{6},Creation:{7},Modified:{8},TransformType:{9},Host:{10},TypeName:{11}",
-            MessageState,
-            MessageType,
-            Command,
-            Priority,
-            Identifier,
-            Retry,
-            ArrivedTime,
-            Creation,
-            Modified,
-            //Expiration,
-            TransformType,
+            return string.Format("Host:{0},Command:{1},MessageState:{2},Retry:{3},Creation:{4},Identifier:{5}",
             Host,
+            Command,
+            MessageState,
+            Retry,
+            Creation,
+            Identifier
+
+            //MessageType,
+            //Priority,
+            //ArrivedTime,
+            //Modified
+            //Expiration,
+            //TransformType,
             //Label,
             //Sender,
-            TypeName);
+            //TypeName
+            );
 
             //return string.Format("MessageState:{0},MessageType:{1},Command:{2},Priority:{3},Identifier:{4},Retry:{5},ArrivedTime:{6},Creation:{7},Modified:{8},Expiration:{9},TransformType:{10},Host:{11},Label:{12},Sender:{13},TypeName:{14}", 
             //MessageState,
@@ -1770,6 +1742,9 @@ namespace Nistec.Messaging
 
         //    return new Guid(b);
         //}
+        #endregion
+
+        #region File
 
         /// <summary>
         /// Get an instance of <see cref="QueueItemStream"/> from file.
@@ -1883,8 +1858,7 @@ namespace Nistec.Messaging
 
         #endregion
 
-
-
+     
     }
 
 

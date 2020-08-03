@@ -205,19 +205,19 @@ namespace Nistec.Messaging.Listeners
             }
             return listener;
         }
-        
+
         /// <summary>
-        /// Delay the queue for given time using host name and <see cref="TimeSpan"/> time.
+        /// Pause the queue for given time using host name and <see cref="TimeSpan"/> time.
         /// </summary>
         /// <param name="queueName"></param>
-        /// <param name="time"></param>
+        /// <param name="seconds"></param>
         /// <returns></returns>
-        public bool DelayQueue(string queueName, TimeSpan time)
+        public bool PauseQueue(string queueName, int seconds)
         {
             IListener li = Find(queueName);
             if (li == null)
                 return false;
-            li.Delay(time);
+            li.Pause(seconds);
             return true;
         }
 

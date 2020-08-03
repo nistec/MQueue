@@ -15,10 +15,1748 @@ using Nistec.Logging;
 
 namespace Nistec.Messaging.Io
 {
+
+    public class FileMessage : IDisposable
+    {
+        #region members
+
+        public const int DefaultConnectTimeout = 5000;
+
+        //QueueItem CurrentItem = null;
+
+        List<QueueItem> m_Items;
+        List<QueueItem> Items
+        {
+            get
+            {
+                if (m_Items == null)
+                {
+                    m_Items = new List<QueueItem>();
+                }
+                return m_Items;
+            }
+        }
+
+        public QueueItem[] ItemsArray
+        {
+            get
+            {
+                if (m_Items != null)
+                {
+                    lock (((ICollection)m_Items).SyncRoot)
+                    {
+                        return m_Items.ToArray();
+                    }
+                }
+                return new List<QueueItem>().ToArray();
+            }
+        }
+
+
+        QueueHost m_host;
+
+        public QueueHost Host
+        {
+            get { return m_host; }
+        }
+
+        /// <summary>
+        /// Get or Set HostName
+        /// </summary>
+        public string HostName { get; private set; }
+
+
+        //internal string GetQueuePath()
+        //{
+        //    return Path.Combine(RootPath, Assists.FolderQueue, HostName);
+        //}
+        //internal string GetInfoPath()
+        //{
+        //    return Path.Combine(RootPath, Assists.FolderInfo, HostName);
+        //}
+
+        //internal string GetQueueOrInfoPath()
+        //{
+        //    return Assists.GetQueuePath(RootPath, HostName, IsCoverable);// m_host.HostAddress;
+        //}
+
+
+
+        #endregion
+
+        #region ctor
+
+        FileMessage()
+        {
+
+            //OperationType = AdapterOperations.Sync;
+            //FileOrderType = FileOrderTypes.ByName;
+            IsCoverable = false;
+            //MaxItemsPerSession = 1;
+            ConnectTimeout = DefaultConnectTimeout;
+        }
+
+        /// <summary>
+        /// Initialize a new instance of folder queue.
+        /// </summary>
+        /// <param name="host"></param>
+        public FileMessage(QueueHost host) : this()
+        {
+            if (host == null)
+            {
+                throw new ArgumentNullException("host");
+            }
+            m_host = host;
+            m_host.EnsureHost();
+            HostName = host.HostName;
+            RootPath = host.ServerName;
+            InitFolders();
+        }
+
+        /// <summary>
+        /// Initialize a new instance of folder queue.
+        /// </summary>
+        /// <param name="hostName"></param>
+        /// <param name="hostAddress"></param>
+        public FileMessage(string hostName, string rootPath)
+            : this()
+        {
+            if (hostName == null || rootPath == null)
+            {
+                throw new ArgumentNullException("host or hostAddress");
+            }
+            m_host = new QueueHost(QueueHost.GetRawAddress(HostProtocol.file, ".", rootPath, hostName));
+            //m_host = new QueueHost(hostName, ".", rootPath, HostProtocol.file);
+            m_host.EnsureHost();
+            HostName = hostName;
+            RootPath = rootPath;
+            InitFolders();
+        }
+        /// <summary>
+        /// Initialize a new instance of folder queue for async operation.
+        /// </summary>
+        /// <param name="host"></param>
+        /// <param name="action"></param>
+        public FileMessage(QueueHost host, Action<IQueueItem> action)
+            : this()
+        {
+            if (host == null)
+            {
+                throw new ArgumentNullException("host");
+            }
+            m_host = host;
+            m_host.EnsureHost();
+            HostName = host.HostName;
+            RootPath = host.ServerName;
+            QueueAction = action;
+            InitFolders();
+            EnsureRecieve();
+        }
+        /// <summary>
+        /// Initialize a new instance of folder queue for Transfer operation.
+        /// </summary>
+        /// <param name="host"></param>
+        /// <param name="destination"></param>
+        /// <param name="action"></param>
+        public FileMessage(QueueHost host, QueueHost destination, Action<IQueueAck> action)
+            : this()
+        {
+            if (host == null)
+            {
+                throw new ArgumentNullException("host");
+            }
+            m_host = host;
+            m_host.EnsureHost();
+            HostName = host.HostName;
+            RootPath = host.ServerName;
+            Destination = destination;
+            TransferAction = action;
+            InitFolders();
+            EnsureTransfer();
+        }
+        #endregion
+
+        #region Dispose
+
+        /// <summary>
+        /// Release all resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        bool disposed = false;
+        /// <summary>
+        /// Get indicate wether the current instance is Disposed.
+        /// </summary>
+        protected bool IsDisposed
+        {
+            get { return disposed; }
+        }
+        /// <summary>
+        /// Dispose.
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                this.m_Items = null;
+                this.HostName = null;
+                this.QueueAction = null;
+                this.TransferAction = null;
+                if (Destination != null)
+                {
+                    Destination.Dispose();
+                    Destination = null;
+                }
+                if (m_host != null)
+                {
+                    m_host.Dispose();
+                    m_host = null;
+                }
+            }
+            disposed = true;
+        }
+        #endregion
+
+        #region properties
+
+        /// <summary>
+        /// Get or Set Logger that implements <see cref="ILogger"/> interface.
+        /// </summary>
+        public ILogger Logger { get; set; }
+
+        /// <summary>
+        /// Get or Set the destination <see cref="QueueHost"/> host properties.
+        /// </summary>
+        public QueueHost Destination { get; set; }
+        ///// <summary>
+        ///// Get or Set the <see cref="AdapterOperations"/> property.
+        ///// </summary>
+        //public AdapterOperations OperationType { get; set; }
+        ///// <summary>
+        ///// Get or Set the <see cref="FileOrderTypes"/> property.
+        ///// </summary>
+        //public FileOrderTypes FileOrderType { get; set; }
+
+        /// <summary>
+        /// Get or Set indicating whether the adapter use transactional operation.
+        /// </summary>
+        public bool IsCoverable { get; set; }
+        ///// <summary>
+        ///// Get or Set the maximum number of items to fetch for each session, default is 1.
+        ///// </summary>
+        //public int MaxItemsPerSession { get; set; }
+        ///// <summary>
+        ///// Get or Set the delegate of target methods.
+        ///// </summary>
+        //public Action<Message> TargetAction { get; set; }
+        ///// <summary>
+        ///// Get or Set the delegate of acknowledgment methods.
+        ///// </summary>
+        //public Action<IQueueAck> AckAction { get; set; }
+
+        public Action<IQueueItem> QueueAction { get; set; }
+
+        public Action<IQueueAck> TransferAction { get; set; }
+
+        int _ConnectTimeout;
+        /// <summary>
+        /// Gets or Set the connect tomeout in milliseconds.
+        /// </summary>
+        public int ConnectTimeout
+        {
+            get { return _ConnectTimeout; }
+            set
+            {
+                if (value >= 0)
+                {
+                    _ConnectTimeout = value;
+                }
+            }
+        }
+        #endregion
+
+        #region InitFolders
+
+        /// <summary>
+        /// Get or Set RootPath
+        /// </summary>
+        public string RootPath { get; private set; }
+        /// <summary>
+        /// Get or Set RootPath
+        /// </summary>
+        public string QueuePath { get; private set; }
+        public string QueueInfoPath { get; private set; }
+        public string QueueCoveredPath { get; private set; }
+        public string QueueSuspendPath { get; private set; }
+
+        void InitFolders()
+        {
+            QueuePath = Path.Combine(RootPath, Assists.FolderQueueList, HostName, Assists.FolderQueue);
+            QueueInfoPath = Path.Combine(RootPath, Assists.FolderQueueList, HostName, Assists.FolderInfo);
+            QueueCoveredPath = Path.Combine(RootPath, Assists.FolderQueueList, HostName, Assists.FolderCovered);
+            QueueSuspendPath = Path.Combine(RootPath, Assists.FolderQueueList, HostName, Assists.FolderSuspend);
+
+            //QueuePath = Path.Combine(RootPath, Assists.FolderQueue, HostName);
+            //QueueInfoPath = Path.Combine(RootPath, Assists.FolderInfo, HostName);
+            //QueueCoveredPath = Path.Combine(RootPath, Assists.FolderCovered, HostName);
+            //QueueSuspendPath = Path.Combine(RootPath, Assists.FolderSuspend, HostName);
+
+            Assists.EnsurePath(QueuePath);
+            Assists.EnsurePath(QueueInfoPath);
+            Assists.EnsurePath(QueueCoveredPath);
+            Assists.EnsurePath(QueueSuspendPath);
+        }
+
+        #endregion
+
+        #region Paths
+
+        public string FormatQueueItemFilename(IQueueItem item)
+        {
+            return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", RootPath, HostName, Assists.FolderQueue, Assists.GetFolderId(item.Identifier), item.Identifier, Assists.FileExt);
+        }
+        public string GetQueueFilename(string identifier)
+        {
+            string path = Assists.GetIdentifierPath(QueuePath, identifier);
+            return Path.Combine(path, Assists.FormatQueueFilename(identifier));
+        }
+        public string GetQueueFilenameExt(string identifier)
+        {
+            return GetQueueFilename(identifier.Replace(Assists.FileExt, ""));
+        }
+        public string EnsureQueueFilename(string identifier)
+        {
+            string path = Assists.EnsureIdentifierPath(QueuePath, identifier);
+            return Path.Combine(path, Assists.FormatQueueFilename(identifier));
+        }
+        public string EnsureQueueFilenameExt(string identifier)
+        {
+            return EnsureQueueFilename(identifier.Replace(Assists.FileExt, ""));
+        }
+
+        public string EnsureInfoFilename(string identifier)
+        {
+            string path = Assists.EnsureIdentifierPath(QueueInfoPath, identifier);
+            return Path.Combine(path, Assists.FormatQueueFilename(identifier));
+        }
+
+        #endregion
+
+        #region Ensure
+
+        //private int m_IntervalDequeue = 30000;
+        private int InProcess = 0;
+        //private int IsActive = 0;
+        private int m_DeleteIntervalSeconds = 1000;
+
+
+        public string GetFolderPath(FolderType folder)
+        {
+            switch (folder)
+            {
+                case FolderType.Covered:
+                    return QueueCoveredPath;
+                case FolderType.Info:
+                    return QueueInfoPath;
+                case FolderType.Suspened:
+                    return QueueSuspendPath;
+                case FolderType.Queue:
+                    default:
+                    return QueuePath;
+            }
+        }
+
+        /// <summary>
+        /// Return the host name of current adapter.
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return string.Format("Host: {0}", m_host == null ? "" : m_host.HostName);
+        }
+
+        public virtual bool CanQueue()
+        {
+            if (Thread.VolatileRead(ref InProcess) == 1)
+            {
+                return false;
+            }
+            Items.Clear();
+
+            return true;
+        }
+
+        ///// <summary>
+        ///// Ensure that adapter use sync method.
+        ///// </summary>
+        //public void EnsureSync()
+        //{
+        //    MaxItemsPerSession = 1;
+        //    OperationType = AdapterOperations.Sync;
+        //}
+        /// <summary>
+        /// Ensure that adapter use recieve method and the target action is defined.
+        /// </summary>
+        /// <exception cref="ArgumentException"></exception>
+        public void EnsureRecieve()
+        {
+            //if (OperationType != AdapterOperations.Async)
+            //{
+            //    throw new ArgumentException("Incorrect OperationType, it is not an async type");
+            //}
+            if (QueueAction == null)
+            {
+                throw new ArgumentException("Invalid TargetAction Adapter");
+            }
+            //if (MaxItemsPerSession <= 0)
+            //{
+            //    MaxItemsPerSession = 1;
+            //}
+        }
+
+
+        /// <summary>
+        /// Ensure that adapter use transfer method and the destination host and target action is defined.
+        /// </summary>
+        /// <exception cref="ArgumentException"></exception>
+        public void EnsureTransfer()
+        {
+            //if (OperationType != AdapterOperations.Transfer)
+            //{
+            //    throw new ArgumentException("Incorrect OperationType, it is not an transfer type");
+            //}
+            if (TransferAction == null)
+            {
+                throw new ArgumentException("Invalid AckAction Adapter");
+            }
+            if (Destination == null)
+            {
+                throw new ArgumentException("Invalid Destination Adapter");
+            }
+
+            //if (MaxItemsPerSession <= 0)
+            //{
+            //    MaxItemsPerSession = 1;
+            //}
+        }
+
+        #endregion
+
+        #region write/read file
+
+        public void WriteToFile(IQueueItem message)
+        {
+            string filename = EnsureQueueFilename(message.Identifier);
+
+            var stream = message.ToStream();
+            if (stream == null)
+            {
+                throw new Exception("Invalid BodyStream , Can't save body stream to file,");
+            }
+            stream.Copy().SaveToFile(filename);
+        }
+
+        public Ptr ReadInfoFile(string filename, bool checkRetry)
+        {
+
+            Ptr ptr = Ptr.Empty;
+
+            ptr = Ptr.ReadFile(filename);
+            if (ptr.IsEmpty)
+            {
+                throw new MessageException(MessageState.RetryExceeds, "item info not found in Ptr.ReadFile " + filename);
+            }
+
+            if (checkRetry && ptr.Retry >= Assists.MaxRetry)
+            {
+                Task.Factory.StartNew(() => AbortRery(ptr, filename));
+                throw new Exception("item info retry exceeds " + filename);
+            }
+            else
+            {
+                ptr.DoRetry();
+                return ptr;
+            }
+        }
+
+        public QueueItem ReadItemExt(string identifier, bool checkRetry)
+        {
+            string filename = GetQueueFilenameExt(identifier);
+            return ReadFile(filename, checkRetry);
+        }
+
+        public QueueItem ReadItem(string identifier, bool checkRetry)
+        {
+            string filename = GetQueueFilename(identifier);
+            return ReadFile(filename, checkRetry);
+        }
+
+        public QueueItem ReadFile(string filename, bool checkRetry)
+        {
+
+            QueueItem item = null;
+
+            item = QueueItem.ReadFile(filename);
+            if (item == null)
+            {
+                throw new MessageException(MessageState.PathNotFound, "item not found in QueueItem.ReadFile " + filename);
+            }
+
+            if (checkRetry && item.Retry >= Assists.MaxRetry)
+            {
+                Task.Factory.StartNew(() => AbortRery(item, filename));
+                throw new Exception("item retry exceeds " + filename);
+            }
+            else
+            {
+                item.SetRetryInternal();
+                return item;
+            }
+        }
+
+        public bool ReadFile(string filename, bool checkRetry, Action<IQueueItem> onTake)
+        {
+
+            QueueItem item = null;
+
+            item = QueueItem.ReadFile(filename);
+            if (item == null)
+            {
+                throw new MessageException(MessageState.PathNotFound, "item not found in QueueItem.ReadFile " + filename);
+            }
+
+            if (checkRetry && item.Retry >= Assists.MaxRetry)
+            {
+                Task.Factory.StartNew(() => AbortRery(item, filename));
+                throw new Exception("item retry exceeds " + filename);
+            }
+            else
+            {
+                item.SetRetryInternal();
+                onTake(item);
+                return true;
+            }
+        }
+
+        public static ReadFileState DequeueFile(Ptr ptr, string rootPath, bool isCoverable, out IQueueItem item)
+        {
+            string filename = Assists.GetFilename(rootPath, ptr.Host, ptr.Identifier, isCoverable); //string.Format("{0}\\{1}", rootPath, ptr.Location);
+            return DequeueFile(filename, isCoverable, out item);
+        }
+
+
+        public static ReadFileState DequeueFile(string filename, bool isCoverable, out IQueueItem item)
+        {
+            if (!File.Exists(filename))
+            {
+                item = null;
+                return ReadFileState.NotExists;
+            }
+
+            try
+            {
+
+                NetStream memoryStream = new NetStream();
+                using (Stream input = File.OpenRead(filename))
+                {
+                    input.CopyTo(memoryStream);
+                }
+                memoryStream.Position = 0;
+                QueueItem qitem = new QueueItem(memoryStream, null);// QueueItem.Create(memoryStream);
+
+                if (isCoverable)
+                {
+                    //TODO: SET TARNS
+                }
+                else
+                {
+                    Task.Factory.StartNew(() => File.Delete(filename));
+                }
+
+                item = qitem as IQueueItem;
+                return ReadFileState.Completed;
+            }
+            catch (IOException ioex)
+            {
+                Netlog.Exception("ReadFile IOException ", ioex);
+                item = null;
+                return ReadFileState.IOException;
+            }
+            catch (System.Transactions.TransactionException tex)
+            {
+                Netlog.Exception("ReadFile TransactionException ", tex);
+                item = null;
+                return ReadFileState.TransactionException;
+            }
+            catch (Exception ex)
+            {
+                Netlog.Exception("ReadFile Exception ", ex);
+                item = null;
+                return ReadFileState.Exception;
+            }
+
+            //FileStream fStream = File.OpenRead(filename);
+            //return new QueueItem(fStream, null);
+
+            //return Deserialize(File.ReadAllBytes(filename));
+
+        }
+        #endregion
+
+        #region delete
+
+        public bool DeleteInfoAndItem(string infofilename)
+        {
+            try
+            {
+                string itemfile = Assists.InfoToQueue(infofilename);
+                string coverdinfofile = Assists.InfoToCovered(infofilename);
+                File.Delete(infofilename);
+                File.Delete(coverdinfofile);
+                File.Delete(itemfile);
+                if (Logger != null)Logger.Debug("info deleted:{0}, item deleted:{1}", infofilename, itemfile);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("Error delete item: " + ex.Message);
+                return false;
+            }
+        }
+
+        public bool DeleteItem(string filename)
+        {
+            try
+            {
+                File.Delete(filename);
+                if (Logger != null)Logger.Debug("item deleted: " + filename);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("Error delete item: " + ex.Message);
+                return false;
+            }
+        }
+
+        public bool DeleteItem(IQueueItem item)
+        {
+            try
+            {
+                string filename = GetQueueFilename(item.Identifier);
+                File.Delete(filename);
+                //if (Logger != null)Logger.Debug("item deleted: " + filename);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("Error delete item: " + ex.Message);
+                return false;
+            }
+        }
+
+        public void DeleteFolder(string path, bool checkInterval)
+        {
+            try
+            {
+                DirectoryInfo di = new DirectoryInfo(path);
+                if (di.Exists)
+                {
+                    if (checkInterval && DateTime.Now.Subtract(di.CreationTime).TotalSeconds > m_DeleteIntervalSeconds)
+                    {
+                        di.Delete();
+                        if (Logger != null)Logger.Debug("current batch folder deleted :{0}", path);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("error DeleteFolder: " + ex.Message);
+            }
+        }
+
+        #endregion
+
+        #region Enqueue
+
+        /// <summary>
+        /// Send message to queue.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        public IQueueAck Enqueue(IQueueItem message)
+        {
+            Ptr ptr = ((QueueItem)message).SetArrivedPtr(HostName);
+            //string qfile = GetQueueFilename(message.Identifier);
+            //message.SaveToFile(qfile);
+            WriteToFile(message);
+
+            if (IsCoverable)
+            {
+                string ifile = EnsureInfoFilename(message.Identifier);
+                //Ptr ptr = message.GetPtr(HostName);
+                ptr.SaveToFile(RootPath);
+            }
+            //message.SetState(MessageState.Received);
+            //return message.GetMessage();
+
+            //var item= QueueItem.ReadFile(qfile);
+            //Console.WriteLine(item.Print());
+
+            return new QueueAck(MessageState.Received, message.Label, message.Identifier, message.Host);
+
+        }
+
+        #endregion
+
+        #region Dequeue
+
+        public QueueItem DequeueItem(string identifier)
+        {
+            string filename = GetQueueFilename(identifier);
+            return DequeueFile(filename);
+        }
+
+        public bool DequeueItem(string identifier, Action<IQueueItem> onTake)
+        {
+            try
+            {
+                string filename = GetQueueFilename(identifier);
+
+                if (ReadFile(filename, true, onTake))
+                {
+                    File.Delete(filename);
+                    return true;
+                }
+
+                if (Logger != null)Logger.Debug("item deleted: " + filename);
+            }
+            catch (IOException iox)
+            {
+                if (Logger != null)Logger.Error("error IO DequeueFile item: " + iox.Message);
+            }
+            catch (MessageException mex)
+            {
+                if (Logger != null)Logger.Error("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("Unexpected error DequeueFile item: {0}", ex.Message);
+            }
+            return false;
+        }
+
+
+        internal void DequeueInfo(string filename, ref QueueItem item)
+        {
+            Ptr ptr = ReadInfoFile(filename, false);
+            //string coverPath = Assists.EnsureQueueSectionPath(RootPath, Assists.FolderCovered, HostName);
+            string infocoverfile = Assists.InfoToCovered(filename);
+            ptr.SaveToFile(infocoverfile);
+            File.Delete(filename);
+            string queuefile = Assists.InfoToQueue(filename);
+            item = ReadFile(queuefile, false);
+            if (item == null)
+            {
+                Task.Factory.StartNew(() => SuspendInfo(ptr, filename, infocoverfile));
+            }
+        }
+
+        public QueueItem DequeueFile(string filename)
+        {
+            QueueItem item = null;
+            try
+            {
+
+                if (IsCoverable)
+                {
+                    DequeueInfo(filename, ref item);
+                }
+                else
+                {
+                    item = ReadFile(filename, true);
+                    File.Delete(filename);
+                }
+
+                if (Logger != null)Logger.Debug("item deleted: " + filename);
+            }
+            catch (IOException iox)
+            {
+                if (Logger != null)Logger.Error("error IO DequeueFile item: " + iox.Message);
+            }
+            catch (MessageException mex)
+            {
+                if (Logger != null)Logger.Error("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("Unexpected error DequeueFile item: {0}", ex.Message);
+            }
+
+            return item;
+        }
+
+
+        int DequeueFileSync(string filename)
+        {
+            int count = 0;
+
+            QueueItem item = null;
+
+            //if (IsCoverable)
+            //{
+            //    DequeueInfo(filename, ref item);
+            //}
+            //else
+            //{
+            //    item = ReadFile(filename);
+            //}
+            //if (item == null)
+            //    return count;
+
+            item = DequeueFile(filename);
+            if (item == null)
+                return count;
+            lock (((ICollection)Items).SyncRoot)
+            {
+                Items.Add(item);
+            }
+            count++;
+            return count;
+        }
+
+        public int DequeueFileAsync(string filename)
+        {
+            int count = 0;
+            QueueItem item = null;
+            try
+            {
+                item = DequeueFile(filename);
+                if (item == null)
+                    return count;
+
+                if (QueueAction == null)
+                {
+                    throw new MessageException(MessageState.InvalidMessageAction, "TargetAction not defined in " + m_host.HostName);
+                }
+
+                QueueAction(item);//.GetMessage());
+
+                //if (IsTrans)
+                //{
+                //    Directory.CreateDirectory(m_host.CoveredPath);
+                //    item.SaveToFile(m_host.CoveredPath);
+                //}
+
+                //File.Delete(filename);
+                count++;
+                if (Logger != null)Logger.Debug("item deleted: " + filename);
+            }
+            catch (IOException iox)
+            {
+                if (Logger != null)Logger.Error("error IO DequeueFile item: " + iox.Message);
+            }
+            catch (MessageException mex)
+            {
+                if (Logger != null)Logger.Error("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("Unexpected error DequeueFile item: {0}", ex.Message);
+            }
+
+            return count;
+        }
+
+        public int DequeueFileTransfer(string filename)
+        {
+            int count = 0;
+            QueueItem item = null;
+            try
+            {
+                item = DequeueFile(filename);
+                if (item == null)
+                    return count;
+
+                if (TransferAction == null)
+                {
+                    throw new MessageException(MessageState.InvalidMessageAction, "AckAction not defined in " + m_host.HostName);
+                }
+                if (Destination == null)
+                {
+                    throw new MessageException(MessageState.InvalidMessageHost, "Destination host not defined in " + m_host.HostName);
+                }
+                //TODO
+                //RemoteClient client = new RemoteClient(Destination);
+                //client.SendAsync(item.GetMessage(), ConnectTimeout, AckAction);
+                //end todo
+
+
+
+                //CurrentItem = item;
+
+                //if (IsTrans)
+                //{
+                //    Directory.CreateDirectory(m_host.CoveredPath);
+                //    item.SaveToFile(m_host.CoveredPath);
+                //}
+
+                //File.Delete(filename);
+
+                count++;
+                if (Logger != null)Logger.Debug("item deleted: " + filename);
+            }
+            catch (IOException iox)
+            {
+                if (Logger != null)Logger.Error("error IO DequeueFile item: " + iox.Message);
+            }
+            catch (MessageException mex)
+            {
+                if (Logger != null)Logger.Error("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("Unexpected error DequeueFile item: {0}", ex.Message);
+            }
+
+            return count;
+        }
+      
+        public int DequeueFirstItem(Action<IQueueItem> onTake)
+        {
+            return DequeueFolder(1, onTake);
+        }
+
+        /// <summary>
+        /// Get an instance of <see cref="QueueItem"/> from file.
+        /// </summary>
+        /// <param name="filename"></param>
+        /// <returns></returns>
+        public static ReadFileState DequeueFileWithScop(QueueItem itemstream, string filename, bool isTrans, out IQueueItem item)
+        {
+            if (!File.Exists(filename))
+            {
+                item = null;
+                return ReadFileState.NotExists;
+            }
+
+            try
+            {
+
+                var scopeOptions = new TransactionOptions();
+                scopeOptions.IsolationLevel = IsolationLevel.ReadCommitted;
+                scopeOptions.Timeout = TimeSpan.FromSeconds(60);
+
+                //Create the transaction scope
+                using (TransactionScope scope = new TransactionScope(TransactionScopeOption.Required, scopeOptions))
+                {
+                    //Transaction.Current.TransactionCompleted += new TransactionCompletedEventHandler(Current_TransactionCompleted);
+
+                    NetStream memoryStream = new NetStream();
+                    using (Stream input = File.OpenRead(filename))
+                    {
+                        input.CopyTo(memoryStream);
+                    }
+                    memoryStream.Position = 0;
+                    QueueItem qitem = new QueueItem(memoryStream, null);// QueueItem.Create(memoryStream);
+
+                    if (isTrans)
+                    {
+                        //TODO: SET TARNS
+                    }
+                    else
+                    {
+                        Task.Factory.StartNew(() => File.Delete(filename));
+                    }
+
+                    item = qitem as IQueueItem;
+                    scope.Complete();
+                }
+                return ReadFileState.Completed;
+            }
+            catch (IOException ioex)
+            {
+                Netlog.Exception("ReadFile IOException ", ioex);
+                item = null;
+                return ReadFileState.IOException;
+            }
+            catch (System.Transactions.TransactionException tex)
+            {
+                Netlog.Exception("ReadFile TransactionException ", tex);
+                item = null;
+                return ReadFileState.TransactionException;
+            }
+            catch (Exception ex)
+            {
+                Netlog.Exception("ReadFile Exception ", ex);
+                item = null;
+                return ReadFileState.Exception;
+            }
+
+            //FileStream fStream = File.OpenRead(filename);
+            //return new QueueItem(fStream, null);
+
+            //return Deserialize(File.ReadAllBytes(filename));
+
+        }
+
+        #endregion
+
+        #region DequeueFolder
+
+        public int DequeueFolder(int maxItemsPerSession, Action<QueueItem> onTake)
+        {
+            int count = 0;
+            bool completed = false;
+            try
+            {
+
+                if (!CanQueue())
+                {
+                    return count;
+                }
+
+                Interlocked.Exchange(ref InProcess, 1);
+
+                var messages = Assists.GetOrderedFilesInfo(QueuePath);
+                if (messages == null)// || messages.Count()==0)
+                {
+                    return count;
+                }
+                if (!messages.Any())
+                {
+                    //DeleteFolder(path, true);
+                    Interlocked.Exchange(ref InProcess, 0);
+                    return count;
+                }
+
+                foreach (FileInfo message in messages)
+                {
+                    var item = DequeueFile(message.FullName);
+                    if (item == null)
+                        return count;
+
+                    count++;
+                    onTake(item);
+
+                    if (count > maxItemsPerSession && maxItemsPerSession > 0)
+                    {
+                        completed = true;
+                        break;
+                    }
+                    else
+                    {
+                        Thread.Sleep(100);
+                    }
+                }//end for
+
+                if (Logger != null)Logger.Debug("DequeueFolder items: {0}, completed:{1} path: {2}", count, completed, m_host.RawHostAddress);
+
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("DequeueFolder error: {0}", ex.Message);
+
+            }
+            finally
+            {
+                Interlocked.Exchange(ref InProcess, 0);
+
+            }
+
+            return count;
+        }
+        
+        public IQueueItem[] DequeueFolder(int maxItemsPerSession)
+        {
+            int count = 0;
+            bool completed = false;
+            List<IQueueItem> list = new List<IQueueItem>();
+            try
+            {
+
+                if (!CanQueue())
+                {
+                    return null;
+                }
+
+                Interlocked.Exchange(ref InProcess, 1);
+
+                var messages = Assists.GetOrderedFilesInfo(QueuePath);
+                if (messages == null)// || messages.Count()==0)
+                {
+                    return null;
+                }
+                if (!messages.Any())
+                {
+                    //DeleteFolder(path, true);
+                    Interlocked.Exchange(ref InProcess, 0);
+                    return null;
+                }
+
+                foreach (FileInfo message in messages)
+                {
+                    var item = DequeueFile(message.FullName);
+                    if (item == null)
+                        return null;
+
+                    count++;
+                    list.Add(item);
+
+                    if (count > maxItemsPerSession && maxItemsPerSession > 0)
+                    {
+                        completed = true;
+                        break;
+                    }
+                    else
+                    {
+                        Thread.Sleep(100);
+                    }
+                }//end for
+
+                if (Logger != null)Logger.Debug("DequeueFolder items: {0}, completed:{1} path: {2}", count, completed, m_host.RawHostAddress);
+
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("DequeueFolder error: {0}", ex.Message);
+
+            }
+            finally
+            {
+                Interlocked.Exchange(ref InProcess, 0);
+
+            }
+
+            return list.ToArray();
+        }
+        public int DequeueFolder(int maxItemsPerSession, bool transfer)
+        {
+            int count = 0;
+            bool completed = false;
+            try
+            {
+
+                if (!CanQueue())
+                {
+                    return count;
+                }
+
+                Interlocked.Exchange(ref InProcess, 1);
+
+                var messages = Assists.GetOrderedFilesInfo(QueuePath);
+                if (messages == null)// || messages.Count()==0)
+                {
+                    return count;
+                }
+                if (!messages.Any())
+                {
+                    //DeleteFolder(path, true);
+                    Interlocked.Exchange(ref InProcess, 0);
+                    return count;
+                }
+                
+                foreach (FileInfo message in messages)
+                {
+                    if(transfer)
+                        count += DequeueFileTransfer(message.FullName);
+                    else
+                        count += DequeueFileAsync(message.FullName);
+
+                    if (count > maxItemsPerSession && maxItemsPerSession > 0)
+                    {
+                        completed = true;
+                        break;
+                    }
+                    else
+                    {
+                        Thread.Sleep(100);
+                    }
+                }//end for
+
+                if (Logger != null)Logger.Debug("DequeueFolder items: {0}, completed:{1} path: {2}", count, completed, m_host.RawHostAddress);
+
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("DequeueFolder error: {0}", ex.Message);
+
+            }
+            finally
+            {
+                Interlocked.Exchange(ref InProcess, 0);
+
+            }
+
+            return count;
+        }
+
+        #endregion
+
+        #region Dequeue list items
+
+        public IQueueItem[] DequeueItems(int maxItemsPerSession)
+        {
+
+            bool completed = false;
+            bool isEmpty = false;
+            int count = 0;
+            List<IQueueItem> list = new List<IQueueItem>();
+            try
+            {
+                if (!CanQueue())
+                {
+                    return null;
+                }
+
+                Interlocked.Exchange(ref InProcess, 1);
+
+                IEnumerable<string> messages = Assists.EnumerateFiles(QueuePath, IsCoverable, SearchOption.AllDirectories);
+                if (messages == null)
+                {
+                    return null;
+                }
+                if (!messages.Any())
+                {
+                    //DeleteFolder(path, true);
+                    Interlocked.Exchange(ref InProcess, 0);
+                    return null;
+                }
+
+                foreach (string message in messages)
+                {
+                    var item = DequeueFile(message);
+                    if (item != null)
+                    {
+                        list.Add(item);
+                    }
+                    else
+                    {
+                        isEmpty = true;
+                        break;
+                    }
+
+                    if (count > maxItemsPerSession && maxItemsPerSession > 0)
+                    {
+                        completed = true;
+                        break;
+                    }
+                    else
+                    {
+                        Thread.Sleep(100);
+                    }
+                }//end for
+
+                if (Logger != null)
+                    Logger.Debug("DequeueItems count: {0}, state:{1} path: {2}", list.Count, completed ? "completed" : isEmpty ? "isEmpty" : "NA", m_host.RawHostAddress);
+
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)
+                    Logger.Error("DequeueItems error: {0}", ex.Message);
+
+            }
+            finally
+            {
+                Interlocked.Exchange(ref InProcess, 0);
+
+            }
+
+            return list.ToArray();
+        }
+
+        public int DequeueItems(int maxItemsPerSession, Action<IQueueItem> onTake)
+        {
+
+            bool completed = false;
+            bool isEmpty = false;
+            int count = 0;
+            try
+            {
+                if (!CanQueue())
+                {
+                    return 0;
+                }
+
+                Interlocked.Exchange(ref InProcess, 1);
+
+                IEnumerable<string> messages = Assists.EnumerateFiles(QueuePath, IsCoverable, SearchOption.AllDirectories);
+                if (messages == null)
+                {
+                    return count;
+                }
+                if (!messages.Any())
+                {
+                    //DeleteFolder(path, true);
+                    Interlocked.Exchange(ref InProcess, 0);
+                    return count;
+                }
+
+                foreach (string message in messages)
+                {
+                    var item = DequeueFile(message);
+                    if (item != null)
+                    {
+                        onTake(item);
+                        count++;
+                    }
+                    else
+                    {
+                        isEmpty = true;
+                        break;
+                    }
+
+                    if (count > maxItemsPerSession && maxItemsPerSession>0)
+                    {
+                        completed = true;
+                        break;
+                    }
+                    else
+                    {
+                        Thread.Sleep(100);
+                    }
+                }//end for
+
+                if (Logger != null)Logger.Debug("DequeueItems count: {0}, state:{1} path: {2}", count, completed ? "completed": isEmpty? "isEmpty" : "NA",  m_host.RawHostAddress);
+
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("DequeueItems error: {0}", ex.Message);
+
+            }
+            finally
+            {
+                Interlocked.Exchange(ref InProcess, 0);
+
+            }
+
+            return count;
+        }
+
+        #endregion
+
+        #region reload items
+
+        public QueueItem[] ReloadItems(int maxItemsPerSession)
+        {
+
+            bool completed = false;
+            List<QueueItem> list = new List<QueueItem>();
+
+            try
+            {
+                if (!CanQueue())
+                {
+                    return null;
+                }
+
+                Interlocked.Exchange(ref InProcess, 1);
+
+                IEnumerable<string> messages = Assists.EnumerateFiles(QueuePath, IsCoverable, SearchOption.AllDirectories);
+                if (messages == null)
+                {
+                    return null;
+                }
+                if (!messages.Any())
+                {
+                    //DeleteFolder(path, true);
+                    Interlocked.Exchange(ref InProcess, 0);
+                    return null;
+                }
+
+                foreach (string message in messages)
+                {
+                    var item = ReadItemExt(message, true);
+                    if (item != null)
+                    {
+                        list.Add(item);
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    if (list.Count > maxItemsPerSession && maxItemsPerSession > 0)
+                    {
+                        completed = true;
+                        break;
+                    }
+                    else
+                    {
+                        Thread.Sleep(10);
+                    }
+                }//end for
+                if(Logger!=null)
+                    Logger.Debug("ReloadItems count: {0}, state{1} path: {2}", list.Count, completed ? "completed" : "NA", m_host.RawHostAddress);
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)
+                    Logger.Error("ReloadItems error: {0}", ex.Message);
+
+            }
+            finally
+            {
+                Interlocked.Exchange(ref InProcess, 0);
+
+            }
+            return list.ToArray();
+        }
+
+        public int ReloadItems(string path,int maxItemsPerSession, Action<IQueueItem> onTake)
+        {
+
+            bool completed = false;
+            int count = 0;
+            int countError = 0;
+            int countNoload = 0;
+            try
+            {
+                if (!CanQueue())
+                {
+                    return count;
+                }
+
+                Interlocked.Exchange(ref InProcess, 1);
+
+                IEnumerable<string> messages = Assists.EnumerateFiles(path, IsCoverable, SearchOption.AllDirectories);
+                if (messages == null || !messages.Any())
+                {
+                    //DeleteFolder(path, true);
+                    Interlocked.Exchange(ref InProcess, 0);
+                    if (Logger != null)
+                        Logger.Debug("ReloadItems ended nothing found, host: {0}", m_host.RawHostAddress);
+                    return count;
+                }
+
+                if (Logger != null)
+                    Logger.Debug("ReloadItems started, please wait...  host: {0}", m_host.RawHostAddress);
+
+                foreach (string message in messages)
+                {
+                    string filename = null;
+                    try
+                    {
+                        filename = GetQueueFilenameExt(message);
+                        var item = QueueItem.ReadFile(filename);
+
+                        //var item = ReadItemExt(message, true);
+                        if (item != null)
+                        {
+                            onTake(item);
+                            count++;
+                        }
+                        else
+                        {
+                            countNoload++;
+                            //break;
+                        }
+
+                        if (count > maxItemsPerSession && maxItemsPerSession > 0)
+                        {
+                            completed = true;
+                            break;
+                        }
+                        else
+                        {
+                            Thread.Sleep(10);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        countError++;
+
+                        MoveQueueFileToSuspend(filename);
+                        
+                        if (Logger != null)
+                            Logger.Error("ReloadItems host:{0} item-count:{1}, filename:{2} error: {3}", m_host.RawHostAddress, count, filename, ex.Message);
+                    }
+                }//end for
+
+                if (Logger != null)
+                    Logger.Debug("ReloadItems host:{0}, count: {1}, Errors: {2}, Noloaded: {3} completed{4}", HostName, count, countError, countNoload, completed);
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)
+                    Logger.Error("ReloadItems error: {0}", ex.Message);
+
+            }
+            finally
+            {
+                Interlocked.Exchange(ref InProcess, 0);
+
+            }
+            return count;
+        }
+
+        public int ReloadItemsAsync(FolderType folder,int maxItemsPerSession, Action<IQueueItem> onTake)
+        {
+            string path = GetFolderPath(folder);
+            Task<int> task = Task<int>.Factory.StartNew(() => ReloadItems(path,maxItemsPerSession, onTake));
+            task.Wait();
+
+            return task.Result;
+        }
+
+        public int ReloadItemsCovered(int maxItemsPerSession, Action<IQueueItem> onTake)
+        {
+            MoveQueueItemsToCovered();
+            Task<int> task = Task<int>.Factory.StartNew(() => ReloadItems(Assists.FolderCovered, maxItemsPerSession, onTake));
+            task.Wait();
+
+            return task.Result;
+        }
+
+        public void MoveQueueItemsToCovered() {
+
+            DirectoryInfo[] dirs = GetQueueSubFolder();
+            if (dirs == null)
+                return;
+
+            foreach (var d in dirs) {
+                string dest = Assists.QueueToCovered(d.FullName);
+                Directory.Move(d.FullName, dest);
+
+            }
+        }
+
+        public void MoveQueueFileToCovered(string filename)
+        {
+            try
+            {
+                string dest = Assists.QueueToCovered(filename,true);
+                Directory.Move(filename, dest);
+
+                if (Logger != null)
+                    Logger.Debug("MoveQueueFileToCovered host:{0} from: {1}, to: {2}", HostName, filename, dest);
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)
+                    Logger.Error("MoveQueueFileToCovered filename: {0}, error: {1} ", filename, ex.Message);
+            }
+        }
+
+        public void MoveQueueFileToSuspend(string filename)
+        {
+            try
+            {
+                string dest = Assists.QueueToSuspend(filename,true);
+                Directory.Move(filename, dest);
+
+                if (Logger != null)
+                    Logger.Debug("MoveQueueFileToSuspend host:{0} from: {1}, to: {2}", HostName, filename, dest);
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)
+                    Logger.Error("MoveQueueItemToSuspend filename: {0}, error: {1} ", filename, ex.Message);
+            }
+        }
+
+        public DirectoryInfo[] GetQueueSubFolder(FolderType folder= FolderType.Queue)
+        {
+            try
+            {
+                string path = GetFolderPath(folder);
+                DirectoryInfo di = new DirectoryInfo(path);
+                if (di.Exists)
+                {
+                    return di.GetDirectories();
+                }
+            }
+            catch (IOException iox)
+            {
+                if (Logger != null)
+                    Logger.Error("error GetFirstBatchFolder : " + iox.Message);
+            }
+            return null;
+        }
+
+       
+        #endregion
+        
+        #region commit\abort
+
+        internal void Commit(Ptr ptr)
+        {
+
+            if (IsCoverable)
+            {
+                string infofilename = Assists.GetInfoFilename(RootPath, HostName, ptr.Identifier);
+                DeleteInfoAndItem(infofilename);
+            }
+            else
+            {
+                string itemfilename = Assists.GetQueueFilename(RootPath, HostName, ptr.Identifier);
+                string itemcovered = Assists.QueueToCovered(itemfilename);
+                DeleteItem(itemfilename);
+                DeleteItem(itemcovered);
+            }
+        }
+
+        internal void Abort(Ptr ptr)
+        {
+            if (IsCoverable)
+            {
+                string infofilename = Assists.GetInfoFilename(RootPath, HostName, ptr.Identifier);
+                string infocovered = Assists.InfoToCovered(infofilename);
+                Ptr p = ReadInfoFile(infocovered, false);
+                if (p.Retry > Assists.MaxRetry)
+                {
+                    AbortRery(p, infofilename);
+                }
+                else if (!p.IsEmpty)
+                {
+                    DoRery(p, infofilename);
+                }
+            }
+            else
+            {
+                string itemfilename = Assists.GetQueueFilename(RootPath, HostName, ptr.Identifier);
+                string covered = Assists.QueueToCovered(itemfilename);
+                var item = ReadFile(covered, false);
+                if (item == null)
+                {
+                    return;
+                }
+                if (item.Retry > Assists.MaxRetry)
+                {
+                    AbortRery(item, itemfilename);
+                }
+                else
+                {
+                    DoRery(item, itemfilename);
+                }
+            }
+        }
+
+
+        internal void DoRery(Ptr ptr, string filename)
+        {
+            string infocovered = Assists.InfoToCovered(filename);
+            ptr.DoRetry();
+            ptr.SaveToFile(filename);
+            File.Delete(infocovered);
+        }
+
+        internal void DoRery(QueueItem item, string filename)
+        {
+            string covered = Assists.QueueToCovered(filename);
+            item.SetRetryInternal();
+            item.SaveToFile(filename);
+            File.Delete(covered);
+        }
+        internal void AbortRery(Ptr ptr, string filename)
+        {
+            //string suspendPath = Assists.EnsureQueueSectionPath(RootPath, Assists.FolderSuspend, HostName);
+            string infocovered = Assists.InfoToCovered(filename);
+
+            ptr.SaveToFile(Assists.InfoToSuspend(filename));
+            File.Delete(filename);
+            File.Delete(infocovered);
+
+            string itemfile = Assists.InfoToQueue(filename);
+            var itemq = ReadFile(itemfile, false);
+            if (itemq != null)
+            {
+                AbortRery(itemq, itemfile);
+            }
+        }
+
+        internal void AbortRery(QueueItem item, string filename)
+        {
+            //string suspendPath = Assists.EnsureQueueSectionPath(RootPath, Assists.FolderSuspend, HostName);
+            string suspendfile = Assists.QueueToSuspend(filename);
+            string coveredfile = Assists.QueueToCovered(filename);
+            item.SaveToFile(suspendfile);
+            File.Delete(filename);
+            File.Delete(coveredfile);
+        }
+
+        internal void SuspendInfo(Ptr ptr, string filename, string infocoverfile)
+        {
+            //string suspendPath = Assists.EnsureQueueSectionPath(RootPath, Assists.FolderSuspend, HostName);
+            string infosuspendfile = Assists.InfoToSuspend(filename);
+            ptr.SaveToFile(Assists.InfoToCovered(infosuspendfile));
+            File.Delete(infocoverfile);
+        }
+
+        #endregion
+
+        #region operation
+
+        public int ClearItems(FolderType folder= FolderType.Queue, bool deleteFolder=false)
+        {
+            int fileCount = 0;
+            try
+            {
+                DirectoryInfo[]  dirs=GetQueueSubFolder(folder);
+                foreach (DirectoryInfo dir in dirs)
+                {
+                    foreach (FileInfo file in dir.EnumerateFiles())
+                    {
+                        file.Delete();
+                        fileCount++;
+                    }
+                    if (deleteFolder)
+                        dir.Delete(true);
+                }
+
+                //string path = GetFolderPath(folder);
+                //DirectoryInfo di = new DirectoryInfo(path);
+                //foreach (FileInfo file in di.EnumerateFiles())
+                //{
+                //    file.Delete();
+                //    fileCount++;
+                //}
+                //foreach (DirectoryInfo dir in di.EnumerateDirectories())
+                //{
+                //    dir.Delete(true);
+                //}
+            }
+            catch (Exception ex)
+            {
+
+                Console.WriteLine("ClearItems error: " + ex.Message);
+            }
+
+            return fileCount;
+        }
+
+        public int Count()
+        {
+            int fileCount = 0;
+            try
+            {
+                fileCount = (from file in Directory.EnumerateFiles(QueuePath, "*.*", SearchOption.AllDirectories) select file).Count();
+            }
+            catch (Exception ex)
+            {
+
+                Console.WriteLine("Count error: " + ex.Message);
+            }
+
+            return fileCount;
+        }
+
+        #endregion
+
+    }
+
+
+#if(false)
     /// <summary>
     /// Represent an db adapter for client\server file queue.
     /// </summary>
-    public class FileMessage:IDisposable
+    public class b_FileMessage:IDisposable
     {
         #region members
  
@@ -72,6 +1810,11 @@ namespace Nistec.Messaging.Io
         /// </summary>
         public string RootPath { get; private set; }
 
+        public string FormatQueueItemFilename(IQueueItem item)
+        {
+            return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", RootPath, HostName, Assists.FolderQueue, item.Identifier[0], item.Identifier, Assists.FileExt);
+        }
+
         internal string GetQueuePath()
         {
             return Path.Combine(RootPath, Assists.FolderQueue,HostName);
@@ -108,10 +1851,15 @@ namespace Nistec.Messaging.Io
 
         void InitFolders()
         {
-            QueuePath = Path.Combine(RootPath, Assists.FolderQueue, HostName);
-            QueueInfoPath = Path.Combine(RootPath, Assists.FolderInfo, HostName);
-            QueueCoveredPath = Path.Combine(RootPath, Assists.FolderCovered, HostName);
-            QueueSuspendPath = Path.Combine(RootPath, Assists.FolderSuspend, HostName);
+            QueuePath = Path.Combine(RootPath, Assists.FolderQueueList, HostName, Assists.FolderQueue);
+            QueueInfoPath = Path.Combine(RootPath, Assists.FolderQueueList, HostName, Assists.FolderInfo);
+            QueueCoveredPath = Path.Combine(RootPath, Assists.FolderQueueList, HostName, Assists.FolderCovered);
+            QueueSuspendPath = Path.Combine(RootPath, Assists.FolderQueueList, HostName, Assists.FolderSuspend);
+
+            //QueuePath = Path.Combine(RootPath, Assists.FolderQueue, HostName);
+            //QueueInfoPath = Path.Combine(RootPath, Assists.FolderInfo, HostName);
+            //QueueCoveredPath = Path.Combine(RootPath, Assists.FolderCovered, HostName);
+            //QueueSuspendPath = Path.Combine(RootPath, Assists.FolderSuspend, HostName);
 
         }
 
@@ -278,7 +2026,7 @@ namespace Nistec.Messaging.Io
             m_host = host;
             m_host.EnsureHost();
             HostName = host.HostName;
-            RootPath = host.HostAddress;
+            RootPath = host.ServerName;
             InitFolders();
        }
 
@@ -316,7 +2064,7 @@ namespace Nistec.Messaging.Io
             m_host = host;
             m_host.EnsureHost();
             HostName = host.HostName;
-            RootPath = host.HostAddress;
+            RootPath = host.ServerName;
             QueueAction = action;
             InitFolders();
             EnsureRecieve();
@@ -337,7 +2085,7 @@ namespace Nistec.Messaging.Io
             m_host = host;
             m_host.EnsureHost();
             HostName = host.HostName;
-            RootPath = host.HostAddress;
+            RootPath = host.ServerName;
             Destination = destination;
             TransferAction = action;
             InitFolders();
@@ -472,17 +2220,36 @@ namespace Nistec.Messaging.Io
         //    }
         //}
 
+        public void SaveToFile(IQueueItem message)
+        {
+            string filename = GetQueueFilename(message.Identifier);
+
+            var stream = message.ToStream();
+            if (stream == null)
+            {
+                throw new Exception("Invalid BodyStream , Can't save body stream to file,");
+            }
+            //string filename = GetPtrLocation(location);
+
+            //stream.GetStream().Copy().SaveToFile(filename);
+            stream.Copy().SaveToFile(filename);
+
+            //BodyStream.Position = 0;
+            //return filename;
+        }
+
         /// <summary>
         /// Send message to queue.
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        public IQueueAck Enqueue(QueueItem message)
+        public IQueueAck Enqueue(IQueueItem message)
         {
-            Ptr ptr = message.SetArrivedPtr(HostName);
-            string qfile = GetQueueFilename(message.Identifier);
-            message.SaveToFile(qfile);
-            
+            Ptr ptr = ((QueueItem)message).SetArrivedPtr(HostName);
+            //string qfile = GetQueueFilename(message.Identifier);
+            //message.SaveToFile(qfile);
+            SaveToFile(message);
+
             if (IsCoverable)
             {
                 string ifile = GetInfoFilename(message.Identifier);
@@ -530,7 +2297,7 @@ namespace Nistec.Messaging.Io
             }
             catch (IOException iox)
             {
-                Netlog.ErrorFormat("error GetFirstBatchFolder : " + iox.Message);
+                if (Logger != null)Logger.Error("error GetFirstBatchFolder : " + iox.Message);
             }
             return folder;
         }
@@ -729,19 +2496,19 @@ namespace Nistec.Messaging.Io
                     File.Delete(filename);
                 }
 
-                Netlog.DebugFormat("item deleted: " + filename);
+                if (Logger != null)Logger.Debug("item deleted: " + filename);
             }
             catch (IOException iox)
             {
-                Netlog.ErrorFormat("error IO DequeueFile item: " + iox.Message);
+                if (Logger != null)Logger.Error("error IO DequeueFile item: " + iox.Message);
             }
             catch (MessageException mex)
             {
-                Netlog.ErrorFormat("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
+                if (Logger != null)Logger.Error("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
             }
             catch (Exception ex)
             {
-                Netlog.ErrorFormat("Unexpected error DequeueFile item: {0}", ex.Message);
+                if (Logger != null)Logger.Error("Unexpected error DequeueFile item: {0}", ex.Message);
             }
 
             return item;
@@ -801,19 +2568,19 @@ namespace Nistec.Messaging.Io
 
                 //File.Delete(filename);
                 count++;
-                Netlog.DebugFormat("item deleted: " + filename);
+                if (Logger != null)Logger.Debug("item deleted: " + filename);
             }
             catch (IOException iox)
             {
-                Netlog.ErrorFormat("error IO DequeueFile item: " + iox.Message);
+                if (Logger != null)Logger.Error("error IO DequeueFile item: " + iox.Message);
             }
             catch (MessageException mex)
             {
-                Netlog.ErrorFormat("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
+                if (Logger != null)Logger.Error("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
             }
             catch (Exception ex)
             {
-                Netlog.ErrorFormat("Unexpected error DequeueFile item: {0}", ex.Message);
+                if (Logger != null)Logger.Error("Unexpected error DequeueFile item: {0}", ex.Message);
             }
 
             return count;
@@ -855,19 +2622,19 @@ namespace Nistec.Messaging.Io
                 //File.Delete(filename);
 
                 count++;
-                Netlog.DebugFormat("item deleted: " + filename);
+                if (Logger != null)Logger.Debug("item deleted: " + filename);
             }
             catch (IOException iox)
             {
-                Netlog.ErrorFormat("error IO DequeueFile item: " + iox.Message);
+                if (Logger != null)Logger.Error("error IO DequeueFile item: " + iox.Message);
             }
             catch (MessageException mex)
             {
-                Netlog.ErrorFormat("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
+                if (Logger != null)Logger.Error("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
             }
             catch (Exception ex)
             {
-                Netlog.ErrorFormat("Unexpected error DequeueFile item: {0}", ex.Message);
+                if (Logger != null)Logger.Error("Unexpected error DequeueFile item: {0}", ex.Message);
             }
 
             return count;
@@ -877,7 +2644,7 @@ namespace Nistec.Messaging.Io
         {
             int count = 0;
             bool completed = false;
-            int maxItems = 0;
+            //int maxItems = 0;
 
             if(!CanQueue())
             {
@@ -889,20 +2656,26 @@ namespace Nistec.Messaging.Io
                         
             Interlocked.Exchange(ref InProcess, 1);
 
-            string[] messages = Assists.GetFiles(path,IsCoverable);
+            IEnumerable<string> messages = Assists.EnumerateFiles(path,IsCoverable);
             if (messages == null)
             {
                 return count;
             }
-            maxItems = messages == null ? 0 : messages.Length;
-            if (maxItems == 0)
-            {
+            if (!messages.Any()) {
+
                 DeleteFolder(path, true);
                 Interlocked.Exchange(ref InProcess, 0);
                 return count;
             }
+            //maxItems = messages == null ? 0 : messages.Length;
+            //if (maxItems == 0)
+            //{
+            //    DeleteFolder(path, true);
+            //    Interlocked.Exchange(ref InProcess, 0);
+            //    return count;
+            //}
 
-            Netlog.DebugFormat("current batch items {0}, path: {1}", maxItems, m_host.RawHostAddress);
+            //if (Logger != null)Logger.Debug("current batch items {0}, path: {1}", maxItems, m_host.RawHostAddress);
 
             //bool isDeleted = false;
             //int state = 0;//
@@ -931,14 +2704,21 @@ namespace Nistec.Messaging.Io
                 }
             }//end for
 
-            Netlog.DebugFormat("current batch sent items: {0}, path: {1}", count, m_host.RawHostAddress);
+            if (Logger != null)Logger.Debug("current batch sent items: {0}, path: {1}", count, m_host.RawHostAddress);
 
-            if (completed || count >= maxItems)
+            if (!messages.Any())
             {
                 if (count < maxItemsPerSession)
-                    DeleteFolder(path, maxItems == 0);
+                    DeleteFolder(path, true);
                 Thread.Sleep(1000);
             }
+
+            //if (completed || count >= maxItems)
+            //{
+            //    if (count < maxItemsPerSession)
+            //        DeleteFolder(path, maxItems == 0);
+            //    Thread.Sleep(1000);
+            //}
 
             Interlocked.Exchange(ref InProcess, 0);
 
@@ -949,7 +2729,7 @@ namespace Nistec.Messaging.Io
         {
             int count = 0;
             bool completed = false;
-            int maxItems = 0;
+            //int maxItems = 0;
 
             if (!CanQueue())
             {
@@ -961,20 +2741,28 @@ namespace Nistec.Messaging.Io
 
             Interlocked.Exchange(ref InProcess, 1);
 
-            string[] messages = Assists.GetFiles(path, IsCoverable);
+            IEnumerable<string> messages  = Assists.EnumerateFiles(path, IsCoverable);
             if (messages == null)
             {
                 return count;
             }
-            maxItems = messages == null ? 0 : messages.Length;
-            if (maxItems == 0)
+            if (!messages.Any())
             {
+
                 DeleteFolder(path, true);
                 Interlocked.Exchange(ref InProcess, 0);
                 return count;
             }
 
-            Netlog.DebugFormat("current batch items {0}, path: {1}", maxItems, m_host.RawHostAddress);
+            //maxItems = messages == null ? 0 : messages.Length;
+            //if (maxItems == 0)
+            //{
+            //    DeleteFolder(path, true);
+            //    Interlocked.Exchange(ref InProcess, 0);
+            //    return count;
+            //}
+
+            //if (Logger != null)Logger.Debug("current batch items {0}, path: {1}", maxItems, m_host.RawHostAddress);
 
             //bool isDeleted = false;
             //int state = 0;//
@@ -1003,14 +2791,21 @@ namespace Nistec.Messaging.Io
                 }
             }//end for
 
-            Netlog.DebugFormat("current batch sent items: {0}, path: {1}", count, m_host.RawHostAddress);
+            if (Logger != null)Logger.Debug("current batch sent items: {0}, path: {1}", count, m_host.RawHostAddress);
 
-            if (completed || count >= maxItems)
+            if (!messages.Any())
             {
                 if (count < maxItemsPerSession)
-                    DeleteFolder(path, maxItems == 0);
+                    DeleteFolder(path, true);
                 Thread.Sleep(1000);
             }
+
+            //if (completed || count >= maxItems)
+            //{
+            //    if (count < maxItemsPerSession)
+            //        DeleteFolder(path, maxItems == 0);
+            //    Thread.Sleep(1000);
+            //}
 
             Interlocked.Exchange(ref InProcess, 0);
 
@@ -1020,9 +2815,18 @@ namespace Nistec.Messaging.Io
         public QueueItem[] DequeueItems(FileOrderTypes fileOrderType, int maxItemsPerSession)
         {
 
+            string path = GetFirstBatchFolder(fileOrderType);
+
+            return LoadAllItems(path, maxItemsPerSession);
+
+        }
+
+        public QueueItem[] LoadAllItems(string path, int maxItemsPerSession)
+        {
+
             bool completed = false;
-            int maxItems = 0;
-            
+            //int maxItems = 0;
+
 
             if (!CanQueue())
             {
@@ -1031,27 +2835,33 @@ namespace Nistec.Messaging.Io
             if (maxItemsPerSession <= 0)
                 maxItemsPerSession = 1;
 
-            string path = GetFirstBatchFolder(fileOrderType);
+            //string path = GetFirstBatchFolder(fileOrderType);
 
             Interlocked.Exchange(ref InProcess, 1);
 
-            string[] messages = Assists.GetFiles(path, IsCoverable);
+            IEnumerable<string> messages = Assists.EnumerateFiles(path, IsCoverable);
             if (messages == null)
             {
                 return null;
             }
-
-            List<QueueItem> list = new List<QueueItem>();
-
-            maxItems = messages == null ? 0 : messages.Length;
-            if (maxItems == 0)
+            if (!messages.Any())
             {
+
                 DeleteFolder(path, true);
                 Interlocked.Exchange(ref InProcess, 0);
                 return null;
             }
+            List<QueueItem> list = new List<QueueItem>();
 
-            Netlog.DebugFormat("current batch items {0}, path: {1}", maxItems, m_host.RawHostAddress);
+            //maxItems = messages == null ? 0 : messages.Length;
+            //if (maxItems == 0)
+            //{
+            //    DeleteFolder(path, true);
+            //    Interlocked.Exchange(ref InProcess, 0);
+            //    return null;
+            //}
+
+            //if (Logger != null)Logger.Debug("current batch items {0}, path: {1}", maxItems, m_host.RawHostAddress);
 
 
             foreach (string message in messages)
@@ -1077,25 +2887,135 @@ namespace Nistec.Messaging.Io
                 }
             }//end for
 
-            Netlog.DebugFormat("current batch sent items: {0}, path: {1}", list.Count, m_host.RawHostAddress);
+            if (Logger != null)Logger.Debug("current batch sent items: {0}, path: {1}", list.Count, m_host.RawHostAddress);
 
-            if (completed || list.Count >= maxItems)
+
+            if (!messages.Any())
             {
                 if (list.Count < maxItemsPerSession)
-                    DeleteFolder(path, maxItems == 0);
+                    DeleteFolder(path, true);
                 Thread.Sleep(1000);
             }
+
+            //if (completed || list.Count >= maxItems)
+            //{
+            //    if (list.Count < maxItemsPerSession)
+            //        DeleteFolder(path, maxItems == 0);
+            //    Thread.Sleep(1000);
+            //}
 
             Interlocked.Exchange(ref InProcess, 0);
 
             return list.ToArray();
         }
 
+        public int ReloadItemsTo(int maxItemsPerSession, Action<IQueueItem> onTake)
+        {
+
+            bool completed = false;
+            //int maxItems = 0;
+            int count = 0;
+
+            if (!CanQueue())
+            {
+                return 0;
+            }
+            if (maxItemsPerSession <= 0)
+                maxItemsPerSession = 1;
+
+            string path = GetQueuePath();
+
+            //string path = GetFirstBatchFolder(fileOrderType);
+
+            Interlocked.Exchange(ref InProcess, 1);
+
+            IEnumerable<string> messages = Assists.EnumerateFiles(path, IsCoverable);
+            if (messages == null)
+            {
+                return count;
+            }
+            if (!messages.Any())
+            {
+
+                DeleteFolder(path, true);
+                Interlocked.Exchange(ref InProcess, 0);
+                return count;
+            }
+
+            //List<QueueItem> list = new List<QueueItem>();
+
+
+            //maxItems = messages == null ? 0 : messages.Length;
+            //if (maxItems == 0)
+            //{
+            //    DeleteFolder(path, true);
+            //    Interlocked.Exchange(ref InProcess, 0);
+            //    return 0;
+            //}
+
+            //if (Logger != null)Logger.Debug("current batch items {0}, path: {1}", maxItems, m_host.RawHostAddress);
+
+            bool isEmpty = false;
+            foreach (string message in messages)
+            {
+                var item = DequeueFile(message);
+                if (item != null)
+                {
+                    onTake(item);
+                    count++;
+                }
+                else
+                {
+                    isEmpty = true;
+                    break;
+                }
+
+                if (count > maxItemsPerSession)
+                {
+                    completed = true;
+                    break;
+                }
+                else
+                {
+                    Thread.Sleep(100);
+                }
+            }//end for
+
+            if (Logger != null)Logger.Debug("current batch sent items: {0}, path: {1}", count, m_host.RawHostAddress);
+
+            if(!messages.Any() && (completed || isEmpty))
+            {
+                if (count < maxItemsPerSession)
+                    DeleteFolder(path, true);
+                Thread.Sleep(1000);
+            }
+
+            //if (completed || count >= maxItems)
+            //{
+            //    if (count < maxItemsPerSession)
+            //        DeleteFolder(path, maxItems == 0);
+            //    Thread.Sleep(1000);
+            //}
+
+            Interlocked.Exchange(ref InProcess, 0);
+
+            return count;
+        }
+
+        public int ReloadItemsAsync(int maxItemsPerSession, Action<IQueueItem> onLoad)
+        {
+
+            Task<int> task = Task<int>.Factory.StartNew(() => ReloadItemsTo(maxItemsPerSession, onLoad));
+            task.Wait();
+
+            return task.Result;
+        }
+
         public QueueItem DequeueFirstItem(FileOrderTypes fileOrderType)
         {
 
             bool completed = false;
-            int maxItems = 0;
+            //int maxItems = 0;
 
 
             if (!CanQueue())
@@ -1107,23 +3027,36 @@ namespace Nistec.Messaging.Io
 
             Interlocked.Exchange(ref InProcess, 1);
 
-            string[] messages = Assists.GetFiles(path, IsCoverable);
+            IEnumerable<string> messages = Assists.EnumerateFiles(path, IsCoverable);
             if (messages == null)
             {
                 return null;
             }
-
-            QueueItem item = null;
-
-            maxItems = messages == null ? 0 : messages.Length;
-            if (maxItems == 0)
+            if (!messages.Any())
             {
+
                 DeleteFolder(path, true);
                 Interlocked.Exchange(ref InProcess, 0);
                 return null;
             }
 
-            Netlog.DebugFormat("current batch items {0}, path: {1}", maxItems, m_host.RawHostAddress);
+            //string[] messages = Assists.GetFiles(path, IsCoverable);
+            //if (messages == null)
+            //{
+            //    return null;
+            //}
+
+            QueueItem item = null;
+
+            //maxItems = messages == null ? 0 : messages.Length;
+            //if (maxItems == 0)
+            //{
+            //    DeleteFolder(path, true);
+            //    Interlocked.Exchange(ref InProcess, 0);
+            //    return null;
+            //}
+
+            //if (Logger != null)Logger.Debug("current batch items {0}, path: {1}", maxItems, m_host.RawHostAddress);
 
 
             foreach (string message in messages)
@@ -1136,13 +3069,20 @@ namespace Nistec.Messaging.Io
                 }
              }//end for
 
-            Netlog.DebugFormat("current batch sent items: {0}, path: {1}", 1, m_host.RawHostAddress);
-
-            if (completed || 1 >= maxItems)
+            if (!messages.Any())
             {
-                DeleteFolder(path, maxItems == 0);
+
+                DeleteFolder(path, true);
                 Thread.Sleep(1000);
             }
+
+            if (Logger != null)Logger.Debug("current batch sent items: {0}, path: {1}", 1, m_host.RawHostAddress);
+
+            //if (completed || 1 >= maxItems)
+            //{
+            //    DeleteFolder(path, maxItems == 0);
+            //    Thread.Sleep(1000);
+            //}
 
             Interlocked.Exchange(ref InProcess, 0);
 
@@ -1164,11 +3104,11 @@ namespace Nistec.Messaging.Io
             {
                 if (Thread.VolatileRead(ref InProcess) == 0)
                 {
-                    Netlog.DebugFormat("current batch not InProcess, path: {0}", m_host.HostAddress);
+                    if (Logger != null)Logger.Debug("current batch not InProcess, path: {0}", m_host.HostAddress);
                     return count;
                 }
                 state = 1;
-                //Netlog.DebugFormat("current message: {0}", message);
+                //if (Logger != null)Logger.Debug("current message: {0}", message);
                
                 item = QueueItem.ReadFile(filename);
                 if (item == null)
@@ -1226,7 +3166,7 @@ namespace Nistec.Messaging.Io
 
                         count++;
                         isDeleted = true;
-                        Netlog.DebugFormat("item deleted: " + filename);
+                        if (Logger != null)Logger.Debug("item deleted: " + filename);
                     }
 
                     //if (count > m_adapter.MaxItemsPerSession)
@@ -1242,7 +3182,7 @@ namespace Nistec.Messaging.Io
                 if (!isDeleted)
                 {
                     state = 2;
-                    Netlog.DebugFormat("save retry DequeueFolder item: " + filename);
+                    if (Logger != null)Logger.Debug("save retry DequeueFolder item: " + filename);
 
                     File.Delete(filename);
                     item.SaveToFile(m_host.QueuePath);//retry again
@@ -1251,16 +3191,16 @@ namespace Nistec.Messaging.Io
             }
             catch (IOException iox)
             {
-                Netlog.ErrorFormat("error IO DequeueFolder item: " + iox.Message);
+                if (Logger != null)Logger.Error("error IO DequeueFolder item: " + iox.Message);
             }
             catch (Exception ex)
             {
                 if (state <= 1)
-                    Netlog.ErrorFormat("error DequeueFolder item: {0} trace:{1}", ex.Message, ex.StackTrace);
+                    if (Logger != null)Logger.Error("error DequeueFolder item: {0} trace:{1}", ex.Message, ex.StackTrace);
                 else if (state == 2)
-                    Netlog.ErrorFormat("save retry error DequeueFolder item: " + ex.Message);
+                    if (Logger != null)Logger.Error("save retry error DequeueFolder item: " + ex.Message);
                 else
-                    Netlog.ErrorFormat("Unexpected error DequeueFolder item: " + ex.Message);
+                    if (Logger != null)Logger.Error("Unexpected error DequeueFolder item: " + ex.Message);
             }
 
             return count;
@@ -1281,7 +3221,7 @@ namespace Nistec.Messaging.Io
             {
                 Interlocked.Exchange(ref InProcess, 1);
 
-                //Netlog.DebugFormat("current batch folder:{0}", path);
+                //if (Logger != null)Logger.Debug("current batch folder:{0}", path);
                 string[] messages = Directory.GetFiles(path, "*" + FileExt);
                 maxItems = messages == null ? 0 : messages.Length;
                 if (maxItems == 0)
@@ -1293,7 +3233,7 @@ namespace Nistec.Messaging.Io
 
                 //ResetSender();
 
-                Netlog.DebugFormat("current batch items {0}, path: {1}", maxItems, m_host.HostAddress);
+                if (Logger != null)Logger.Debug("current batch items {0}, path: {1}", maxItems, m_host.HostAddress);
 
                 //bool isDeleted = false;
                 //int state = 0;//
@@ -1311,7 +3251,7 @@ namespace Nistec.Messaging.Io
                         Thread.Sleep(100);
                 }//end for
 
-                Netlog.DebugFormat("current batch sent items: {0}, path: {1}", count, m_host.HostAddress);
+                if (Logger != null)Logger.Debug("current batch sent items: {0}, path: {1}", count, m_host.HostAddress);
 
                 if (completed || count >= maxItems)
                 {
@@ -1335,12 +3275,12 @@ namespace Nistec.Messaging.Io
                 File.Delete(infofilename);
                 File.Delete(coverdinfofile);
                 File.Delete(itemfile);
-                Netlog.DebugFormat("info deleted:{0}, item deleted:{1}", infofilename, itemfile);
+                if (Logger != null)Logger.Debug("info deleted:{0}, item deleted:{1}", infofilename, itemfile);
                 return true;
             }
             catch (Exception ex)
             {
-                Netlog.ErrorFormat("Error delete item: " + ex.Message);
+                if (Logger != null)Logger.Error("Error delete item: " + ex.Message);
                 return false;
             }
         }
@@ -1350,12 +3290,28 @@ namespace Nistec.Messaging.Io
             try
             {
                 File.Delete(filename);
-                Netlog.DebugFormat("item deleted: " + filename);
+                if (Logger != null)Logger.Debug("item deleted: " + filename);
                 return true;
             }
             catch (Exception ex)
             {
-                Netlog.ErrorFormat("Error delete item: " + ex.Message);
+                if (Logger != null)Logger.Error("Error delete item: " + ex.Message);
+                return false;
+            }
+        }
+
+        public bool DeleteItem(IQueueItem item)
+        {
+            try
+            {
+                string filename = GetQueueFilename(item.Identifier);
+                File.Delete(filename);
+                if (Logger != null)Logger.Debug("item deleted: " + filename);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (Logger != null)Logger.Error("Error delete item: " + ex.Message);
                 return false;
             }
         }
@@ -1370,28 +3326,57 @@ namespace Nistec.Messaging.Io
                     if (checkInterval && DateTime.Now.Subtract(di.CreationTime).TotalSeconds > m_DeleteIntervalSeconds)
                     {
                         di.Delete();
-                        Netlog.DebugFormat("current batch folder deleted :{0}", path);
+                        if (Logger != null)Logger.Debug("current batch folder deleted :{0}", path);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Netlog.ErrorFormat("error DeleteFolder: " + ex.Message);
+                if (Logger != null)Logger.Error("error DeleteFolder: " + ex.Message);
             }
         }
         #endregion
 
         #region operation
 
-        public void ClearItems()
+        public int ClearItems()
         {
+            int fileCount = 0;
+            try {
 
-            throw new NotImplementedException();
+                DirectoryInfo di = new DirectoryInfo(QueuePath);
+                foreach (FileInfo file in di.EnumerateFiles())
+                {
+                    file.Delete();
+                    fileCount++;
+                }
+                foreach (DirectoryInfo dir in di.EnumerateDirectories())
+                {
+                    dir.Delete(true);
+                }
+            }
+            catch (Exception ex)
+            {
+
+                Console.WriteLine("ClearItems error: " + ex.Message);
+            }
+
+            return fileCount;
         }
 
         public int Count()
         {
-            throw new NotImplementedException();
+            int fileCount = 0;
+            try
+            {
+                fileCount = (from file in Directory.EnumerateFiles(QueuePath, "*.*", SearchOption.AllDirectories) select file).Count();
+            }
+            catch (Exception ex) {
+
+                Console.WriteLine("Count error: " + ex.Message);
+            }
+
+            return fileCount;
         }
 
         #endregion
@@ -1425,11 +3410,13 @@ namespace Nistec.Messaging.Io
             }
             catch (IOException iox)
             {
-                Netlog.ErrorFormat("error GetFirstBatchFolder : " + iox.Message);
+                if (Logger != null)Logger.Error("error GetFirstBatchFolder : " + iox.Message);
             }
             return folder;
 
         }
+
+        #region Dequeue file
 
         //public static QueueItem DequeueFile(string filename)
         //{
@@ -1463,7 +3450,7 @@ namespace Nistec.Messaging.Io
 
         //            File.Delete(filename);
 
-        //            Netlog.DebugFormat("item deleted: " + filename);
+        //            if (Logger != null)Logger.Debug("item deleted: " + filename);
 
         //            return item;
 
@@ -1471,15 +3458,15 @@ namespace Nistec.Messaging.Io
         //    }
         //    catch (IOException iox)
         //    {
-        //        Netlog.ErrorFormat("error IO DequeueFile item: " + iox.Message);
+        //        if (Logger != null)Logger.Error("error IO DequeueFile item: " + iox.Message);
         //    }
         //    catch (MessageException mex)
         //    {
-        //        Netlog.ErrorFormat("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
+        //        if (Logger != null)Logger.Error("error DequeueFile MessageState:{0}, message:{1} ", mex.MessageState, mex.Message);
         //    }
         //    catch (Exception ex)
         //    {
-        //        Netlog.ErrorFormat("Unexpected error DequeueFile item: {0}", ex.Message);
+        //        if (Logger != null)Logger.Error("Unexpected error DequeueFile item: {0}", ex.Message);
         //    }
 
         //    return item;
@@ -1497,7 +3484,7 @@ namespace Nistec.Messaging.Io
         //    }
 
         //    List<QueueItem> list = new List<QueueItem>();
-            
+
         //    string[] messages = Directory.GetFiles(path, "*" + FileExt);
 
         //    maxItems = messages == null ? 0 : messages.Length;
@@ -1506,8 +3493,8 @@ namespace Nistec.Messaging.Io
         //        return null;
         //    }
 
-        //    Netlog.DebugFormat("current batch items {0}, path: {1}", maxItems, m_host.HostAddress);
-            
+        //    if (Logger != null)Logger.Debug("current batch items {0}, path: {1}", maxItems, m_host.HostAddress);
+
         //    foreach (string message in messages)
         //    {
         //        var item= DequeueFile(message);
@@ -1527,7 +3514,7 @@ namespace Nistec.Messaging.Io
         //        }
         //    }//end for
 
-        //    Netlog.DebugFormat("current batch sent items: {0}, path: {1}", count, m_host.HostAddress);
+        //    if (Logger != null)Logger.Debug("current batch sent items: {0}, path: {1}", count, m_host.HostAddress);
 
         //    if (completed || count >= maxItems)
         //    {
@@ -1536,7 +3523,7 @@ namespace Nistec.Messaging.Io
         //        Thread.Sleep(1000);
         //    }
 
-            
+
         //    return count;
         //}
 
@@ -1566,13 +3553,13 @@ namespace Nistec.Messaging.Io
         //    }
         //    catch (Exception ex)
         //    {
-        //        Netlog.ErrorFormat("error FolderQueue.Dequeue :{0}, Trace:{1} ", ex.Message, ex.StackTrace);
+        //        if (Logger != null)Logger.Error("error FolderQueue.Dequeue :{0}, Trace:{1} ", ex.Message, ex.StackTrace);
         //    }
         //    return null;
         //}
 
 
-        
+
         public static ReadFileState DequeueFile(Ptr ptr, string rootPath, bool isCoverable, out IQueueItem item)
         {
             string filename = Assists.GetFilename(rootPath, ptr.Host, ptr.Identifier, isCoverable); //string.Format("{0}\\{1}", rootPath, ptr.Location);
@@ -1735,6 +3722,32 @@ namespace Nistec.Messaging.Io
 
         }
 
+        #endregion
+
+        #region format
+
+     
+        //public static string FormatQueueItemFilename(string Identifier, string rootPath, string hostName)
+        //{
+        //    return string.Format(@"{0}\{1}\{2}\{3}\{4}.{5}", rootPath, hostName, Assists.FolderQueue, Identifier[0], Identifier, Assists.FileExt);
+        //}
+        public static string FormatQueueItemFilename(IQueueItem item, string rootPath, string hostName)
+        {
+            return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", rootPath, hostName, Assists.FolderQueue, item.Identifier[0], item.Identifier,Assists.FileExt);
+        }
+        public static string FormatInfoItemFilename(Ptr item, string rootPath, string hostName)
+        {
+            return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", rootPath, hostName, Assists.FolderInfo, item.Identifier[0], item.Identifier, Assists.FileInfoExt);
+        }
+        public static string FormatSuspendItemFilename(IQueueItem item, string rootPath, string hostName)
+        {
+            return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", rootPath, hostName, Assists.FolderSuspend, item.Identifier[0], item.Identifier, Assists.FileExt);
+        }
+        public static string FormatCoveredItemFilename(IQueueItem item, string rootPath, string hostName)
+        {
+            return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", rootPath, hostName, Assists.FolderCovered, item.Identifier[0], item.Identifier, Assists.FileExt);
+        }
+
         public static string FormatQueueFilename(string rootPath, string ptrLocation)
         {
             return string.Format("{0}\\{1}", rootPath, ptrLocation);
@@ -1751,5 +3764,9 @@ namespace Nistec.Messaging.Io
         {
             return string.Format("{0}\\{1}", Path.Combine(rootPath, hostName), FormatFilename(identifier));
         }
+
+        #endregion
     }
+
+#endif
 }

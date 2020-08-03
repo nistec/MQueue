@@ -91,39 +91,36 @@
     <Compile Include="Config\QueueServerConfigItems.cs" />
     <Compile Include="Config\QueueServerSettings.cs" />
     <Compile Include="MQ\MQprop.cs" />
-    <Compile Include="MQ\PersistQueueItem.cs" />
     <Compile Include="MQ\MessageAckServer.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="MQ\ErrorHandler.cs" />
     <Compile Include="MQ\MQueue.cs" />
-    <Compile Include="MQ\PriorityMemQueue.cs" />
+    <Compile Include="MQ\PersistQueueItem.cs" />
     <Compile Include="MQ\PriorityPersistQueue.cs" />
+    <Compile Include="MQ\PriorityComplexQueue.cs" />
     <Compile Include="MQ\QServerExtension.cs" />
     <Compile Include="MQ\QueuePerformance.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Server\AgentManager.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Channels\Http\HttpBundleServer.cs" />
-    <Compile Include="Channels\Pipe\PipeBundleServer.cs" />
-    <Compile Include="Channels\Pipe\PipeManagerServer.cs" />
-    <Compile Include="Channels\Pipe\PipeServerBase.cs">
+    <Compile Include="Channels\HttpServerChannel.cs" />
+    <Compile Include="Channels\PipeServerChannel.cs" />
+    <Compile Include="Channels\PipeServerBase.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Channels\Tcp\TcpBundleServer.cs" />
-    <Compile Include="Channels\Tcp\TcpManagerServer.cs" />
+    <Compile Include="Channels\TcpServerChannel.cs" />
     <Compile Include="Server\QueueController.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Config\QueueSettings.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SysUtil.cs" />
-    <Compile Include="Topic\TopicController.cs" />
-    <Compile Include="Topic\TopicItem.cs" />
-    <Compile Include="Topic\Topics.cs" />
-    <Compile Include="Transactions\TransactionDispatcher.cs" />
+    <Compile Include="MQ\SysUtil.cs" />
+    <Compile Include="Server\TopicController.cs" />
+    <Compile Include="Server\Topics.cs" />
+    <Compile Include="Server\TransactionDispatcher.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="_Docs\Dequeue.txt" />
@@ -132,7 +129,13 @@
     <Content Include="_Docs\QueueManager.txt" />
     <None Include="MControl.pfx" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Channels\_exc\" />
+    <Folder Include="Config\_exc\" />
+    <Folder Include="MQ\_exc\" />
+    <Folder Include="Server\_exc\Topic\" />
+    <Folder Include="Server\_exc\Transactions\" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Nistec.Channels\Nistec.Channels\Nistec.Channels.csproj">
       <Project>{0839a364-a34d-4143-ad4c-aef4c7b232ac}</Project>

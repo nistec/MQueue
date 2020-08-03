@@ -26,7 +26,13 @@ namespace Nistec.Messaging
     public class QueueHost : ISerialEntity,IDisposable
     {
 
-        public QueueHost() { }
+        
+
+        public QueueHost() {
+            CommitMode = PersistCommitMode.None;
+            CoverMode = CoverMode.Memory;
+            ReloadOnStart = false;
+        }
 
         //public QueueHost(string hostName, string serverName, string hostAddress, HostProtocol addressType)
         //{
@@ -45,7 +51,7 @@ namespace Nistec.Messaging
         //    ParseHostAddress(hostAddress, ref _HostAddress, ref _HostProtocol, ref _Port);
         //}
 
-        public QueueHost(string hostName, string serverName = ".")
+        public QueueHost(string hostName, string serverName = "."):this()
         {
             CreateLocalAddress(hostName);
         }
@@ -102,6 +108,8 @@ namespace Nistec.Messaging
                         this.ServerName = server;
                         break;
                     case "file"://file:root:folder?queuName
+                        if (server == Assists.EXECPATH)
+                            server = GetExecutingLocation();
                         this._HostProtocol = HostProtocol.file;
                         this._Port = port;
                         this._HostAddress = string.Format("{0}\\{1}\\{2}", server, args[2], args[3]); ;
@@ -186,6 +194,19 @@ namespace Nistec.Messaging
             }
         }
 
+        /// <summary>
+        /// Cover Mode
+        /// </summary>
+        public CoverMode CoverMode { get; set; }
+        /// <summary>
+        /// Commit Mode
+        /// </summary>
+        public PersistCommitMode CommitMode { get; set; }
+        /// <summary>
+        /// Reload On Start
+        /// </summary>
+        public bool ReloadOnStart { get; set; }
+        
         ///// <summary>
         ///// Get or Set QueueName
         ///// </summary>
@@ -299,6 +320,8 @@ namespace Nistec.Messaging
                 case "ipc"://ipc:./nistec_enqueue/queuName
                     return GetRawAddress(HostProtocol.ipc, args[1], args[2], args[3]);
                 case "file"://file:root/folder/queuName
+                    if (args[1] == Assists.EXECPATH)
+                        args[1] = GetExecutingLocation();
                     return GetRawAddress(HostProtocol.file, args[1], args[2], args[3]);
                 case "tcp"://tcp:127.0.0.1:9015/queuName
                     return GetRawAddress(HostProtocol.tcp, args[1], args[2], args[3]);
@@ -322,6 +345,8 @@ namespace Nistec.Messaging
                 case HostProtocol.ipc://ipc:.:nistec_enqueue/queuName
                     return string.Format("ipc:{0}/{1}/{2}", serverName, hostPort, hostName);
                 case HostProtocol.file://file:root/folder/queuName
+                    if (serverName == Assists.EXECPATH)
+                        serverName = GetExecutingLocation();
                     return string.Format("file:{0}/{1}/{2}", serverName, hostPort, hostName);
                 case HostProtocol.tcp://tcp:127.0.0.1:9015/queuName
                     return string.Format("tcp:{0}:{1}/{2}", serverName, hostPort, hostName);
@@ -333,6 +358,7 @@ namespace Nistec.Messaging
                     throw new Exception("Incorrecr address or HostProtocol not supported");
             }
         }
+
 
         public static QueueHost Get(HostProtocol protocol, string serverName, int hostPort, string hostName)
         {
@@ -616,15 +642,20 @@ namespace Nistec.Messaging
 
         #region assists
 
-        public string GetQueueSectionPath(string section)
+        public static string GetExecutingLocation()
         {
-            return Assists.GetQueueSectionPath(HostAddress, HostName, section);
+            return SysNet.GetExecutingAssemblyPath();
         }
 
-        public string EnsureQueueSectionPath(string queueName, string section)
-        {
-            return Assists.EnsureQueueSectionPath(HostAddress, HostName, section);
-        }
+        //public string GetQueueSectionPath(string section)
+        //{
+        //    return Assists.GetQueueSectionPath(HostAddress, HostName, section);
+        //}
+
+        //public string EnsureQueueSectionPath(string queueName, string section)
+        //{
+        //    return Assists.EnsureQueueSectionPath(HostAddress, HostName, section);
+        //}
 
         public void EnsureHost()
         {
@@ -639,16 +670,18 @@ namespace Nistec.Messaging
             //Assists.GetQueuePath(OriginalHostAddress, HostName);
         }
 
-        public string GetFullFilename(string identifier) 
-        {
-            EnsureHost();
-            return Path.Combine(QueuePath, string.Format("{0}{1}", identifier, Assists.FileExt));
-        }
+        //public string GetFullFilename(string identifier) 
+        //{
+        //    EnsureHost();
+        //    return Path.Combine(QueuePath, string.Format("{0}{1}", identifier, Assists.FileExt));
+        //}
 
-        public string QueuePath { get { return Assists.GetQueuePath(HostAddress, HostName); } }
-        public string QueueInfoPath { get { return Assists.GetQueuePath(HostAddress, "Info\\" + HostName); } }
-        public string SuspendPath { get { return GetQueueSectionPath("Suspend"); } }
-        public string CoveredPath { get { return GetQueueSectionPath("Covered"); } }
+        public string RootPath { get { return HostAddress; } }
+        //public string QueuePath { get { return Assists.GetQueuePath(HostAddress, Assists.FolderQueue); } }
+
+        //public string QueueInfoPath { get { return Assists.GetQueuePath(HostAddress, Assists.FolderInfo); } }// "Info\\" + HostName); } }
+        //public string SuspendPath { get { return GetQueueSectionPath(Assists.FolderSuspend); } }
+        //public string CoveredPath { get { return GetQueueSectionPath(Assists.FolderCovered); } }
 
         #endregion
     }

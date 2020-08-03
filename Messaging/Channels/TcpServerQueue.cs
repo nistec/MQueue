@@ -9,7 +9,9 @@ using Nistec.IO;
 using System.Threading.Tasks;
 using Nistec.Channels.Tcp;
 using System.Net.Sockets;
-using Nistec.Messaging.Config;
+using Nistec.Messaging.Listeners;
+using Nistec.Logging;
+//using Nistec.Messaging.Config;
 
 
 namespace Nistec.Messaging.Channels
@@ -17,9 +19,11 @@ namespace Nistec.Messaging.Channels
     /// <summary>
     /// Represent a queue tcp server listner.
     /// </summary>
-    public class TcpServerQueue : TcpServer<QItemStream>
+    public class TcpServerQueue : TcpServer<IQueueItem>, IChannelService
     {
-        
+        QueueChannel QueueChannel = QueueChannel.Consumer;
+        IControllerHandler Controller;
+
         #region override
         /// <summary>
         /// OnStart
@@ -27,7 +31,7 @@ namespace Nistec.Messaging.Channels
         protected override void OnStart()
         {
             base.OnStart();
-                AgentManager.Queue.Start();
+            Log.Info("TcpServerQueue started :{0}, QueueChannel:{1}", this.Settings.HostName, QueueChannel.ToString());
         }
         /// <summary>
         /// OnStop
@@ -35,8 +39,7 @@ namespace Nistec.Messaging.Channels
         protected override void OnStop()
         {
             base.OnStop();
-
-                AgentManager.Queue.Stop();
+            Log.Info("TcpServerQueue stoped :{0}, QueueChannel:{1}", this.Settings.HostName, QueueChannel.ToString());
         }
         /// <summary>
         /// OnLoad
@@ -44,31 +47,20 @@ namespace Nistec.Messaging.Channels
         protected override void OnLoad()
         {
             base.OnLoad();
-            
         }
         #endregion
 
         #region ctor
 
         /// <summary>
-        /// Constractor with extra parameters
-        /// </summary>
-        /// <param name="hostName"></param>
-        public TcpServerQueue(string hostName)
-         {
-             Settings = ServerQueueSettings.LoadTcpConfigServer(hostName);
-
-        }
-
-        /// <summary>
         /// Constractor using <see cref="TcpSettings"/> settings.
         /// </summary>
         /// <param name="settings"></param>
-        public TcpServerQueue(TcpSettings settings)
-        //: base()
+        /// <param name="controller"></param>
+        public TcpServerQueue(TcpSettings settings, IControllerHandler controller)
         {
             Settings = settings;
-
+            Controller = controller;
         }
 
         #endregion
@@ -79,20 +71,31 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override NetStream ExecRequset(QItemStream message)
+        protected override TransStream ExecRequset(IQueueItem message)
         {
-            return AgentManager.Queue.ExecRequset(message);
+            return Controller.OnMessageReceived(message);
         }
         /// <summary>
         /// Read Request
         /// </summary>
         /// <param name="stream"></param>
+        /// <param name="readTimeout"></param>
         /// <returns></returns>
-        protected override QItemStream ReadRequest(NetworkStream stream)
+        protected override IQueueItem ReadRequest(NetworkStream stream, int readTimeout,int ReceiveBufferSize = TcpSettings.DefaultReceiveBufferSize)
         {
-            return QItemStream.Create(stream);
+            //IQueueItem item = null;
+            //using (var ntStream = new NetStream())
+            //{
+            //    ntStream.CopyFrom(stream, readTimeout, ReceiveBufferSize);
+
+            //    item =new QueueItem(stream, null);
+            //}
+            //return item;
+
+            return new QueueItem(stream, null);
         }
        
         #endregion
     }
+
 }

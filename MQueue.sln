@@ -21,7 +21,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Client", "Client", "{FBD9E8
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nistec.Service.Controller", "MQueueServiceController\Nistec.Service.Controller.csproj", "{0FD2097A-D345-45A9-9592-162516FDD974}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QueueListener", "_Test\QueueListener\QueueListener.csproj", "{EAA96DC7-941C-4FEA-B7FE-96DA1B33D981}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QueueConsumer", "_Test\QueueListener\QueueConsumer.csproj", "{EAA96DC7-941C-4FEA-B7FE-96DA1B33D981}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QueueTasker", "_Test\QueueTasker\QueueTasker.csproj", "{7677B859-5613-4984-AD2D-62F1FE2524D1}"
 EndProject

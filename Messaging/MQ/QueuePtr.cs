@@ -312,6 +312,7 @@ namespace Nistec.Messaging
             return identifier == Identifier;
         }
 
+
         //internal static string GetPtrLocation(string host, string priority, string folderId, long uniqueId)
         //{
         //    string hostPath = host;// Path.Combine(rootPath, host);

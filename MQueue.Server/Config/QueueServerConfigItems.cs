@@ -83,7 +83,7 @@ namespace Nistec.Messaging.Config
     {
 
         /// <summary>
-        /// Get queue name.
+        /// Get  Server Path.
         /// </summary>
         [ConfigurationProperty("ServerPath", IsRequired = false)]
         public string ServerPath
@@ -91,6 +91,17 @@ namespace Nistec.Messaging.Config
             get
             {
                 return this["ServerPath"] as string;
+            }
+        }
+        /// <summary>
+        /// Get  IsTopic.
+        /// </summary>
+        [ConfigurationProperty("IsTopic", IsRequired = false)]
+        public bool IsTopic
+        {
+            get
+            {
+                return Types.ToBool(this["IsTopic"], false);
             }
         }
 
@@ -149,6 +160,8 @@ namespace Nistec.Messaging.Config
         //        return Types.ToInt(this["QueueProvider"], 0);
         //    }
         //}
+
+
         /// <summary>
         /// Get queue provider.
         /// </summary>
@@ -174,12 +187,12 @@ namespace Nistec.Messaging.Config
         /// <summary>
         /// Get queue name.
         /// </summary>
-        [ConfigurationProperty("CoverPath", IsRequired = false)]
-        public string CoverPath
+        [ConfigurationProperty("TargetPath", IsRequired = false)]
+        public string TargetPath
         {
             get
             {
-                return this["CoverPath"] as string;
+                return this["TargetPath"] as string;
             }
         }
 
@@ -188,11 +201,11 @@ namespace Nistec.Messaging.Config
 
             if (Mode == CoverMode.Rout)
             {
-                if (CoverPath == null || CoverPath == "")
+                if (TargetPath == null || TargetPath == "")
                 {
                     return null;
                 }
-                return QueueHost.Parse(CoverPath);
+                return QueueHost.Parse(TargetPath);
             }
             return null;
         }
@@ -203,8 +216,8 @@ namespace Nistec.Messaging.Config
         }
         public string Print()
         {
-            return string.Format("QueueName: {0}, ServerPath: {1}, IsTrans: {2}, CoverMode: {3}, ConnectTimeout: {4}, CoverPath:{5}",
-                QueueName, ServerPath, IsTrans, Mode, ConnectTimeout, CoverPath
+            return string.Format("QueueName: {0}, ServerPath: {1}, IsTrans: {2}, CoverMode: {3}, ConnectTimeout: {4}, TargetPath:{5}",
+                QueueName, ServerPath, IsTrans, Mode, ConnectTimeout, TargetPath
                 );
         }
         public bool IsPersistent
@@ -225,7 +238,7 @@ namespace Nistec.Messaging.Config
         {
             get
             {
-                return Mode == CoverMode.File;
+                return Mode == CoverMode.FileStream;
             }
         }
     }

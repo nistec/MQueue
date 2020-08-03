@@ -102,7 +102,7 @@ namespace Nistec.Messaging.Remote
                 Host = _QueueName
             };
 
-            var result = SendDuplexStream(request, Timeout);
+            var result = ExecDuplexStream(request, ConnectTimeout);
             
             return result;
 
@@ -151,21 +151,21 @@ namespace Nistec.Messaging.Remote
                 QCommand = (QueueCmd)(int)cmd
                 //Command = (QueueCmd)(int)cmd
             };
-            var response = base.SendDuplexStream(request,Timeout);
+            var response = ExecDuplexStream(request, ConnectTimeout);
             return response;
         }
 
-        public void ReportAsync(QueueCmdReport cmd, Action<string> onFault, Action<TransStream> onCompleted, DuplexTypes DuplexType, AutoResetEvent resetEvent)
-        {
-            QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
-            {
-                Host = _QueueName,
-                QCommand = (QueueCmd)(int)cmd,
-                DuplexType = DuplexType
-            };
+        //public void ReportAsync(QueueCmdReport cmd, Action<string> onFault, Action<TransStream> onCompleted, DuplexTypes DuplexType, AutoResetEvent resetEvent)
+        //{
+        //    QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
+        //    {
+        //        Host = _QueueName,
+        //        QCommand = (QueueCmd)(int)cmd,
+        //        DuplexType = DuplexType
+        //    };
 
-            base.SendDuplexStreamAsync(request, onFault, onCompleted, resetEvent);
-        }
+        //    base.SendDuplexStreamAsync(request, onFault, onCompleted, resetEvent);
+        //}
 
         public T Report<T>(QueueCmdReport cmd)
         {
@@ -183,7 +183,7 @@ namespace Nistec.Messaging.Remote
                 QCommand = (QueueCmd)(int)cmd,
                 //Command = (QueueCmd)(int)cmd
             };
-            var response=base.SendDuplex(message, OnFault);
+            var response=ConsumItem(message,ConnectTimeout);
             return response;//==null? null: response.ToMessage();
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
             //return (Message)client.Exec(message, (QueueCmd)(int)cmd);
@@ -198,7 +198,7 @@ namespace Nistec.Messaging.Remote
             };
 
             message.SetBody(qp.GetEntityStream(false), qp.GetType().FullName);
-            var response = base.SendDuplex(message, OnFault);
+            var response = ConsumItem(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
         }
 
@@ -215,8 +215,9 @@ namespace Nistec.Messaging.Remote
                 MaxRetry = QueueDefaults.DefaultMaxRetry,
                 ReloadOnStart = false,
                 ConnectTimeout = 0,
-                CoverPath = ""
-            } ;
+                TargetPath = "",
+                IsTopic=false
+            };
             return AddQueue(qp);
             //var message = new QueueItem()
             //{
@@ -251,7 +252,7 @@ namespace Nistec.Messaging.Remote
                 Host = _QueueName,
                 QCommand = QueueCmd.RemoveQueue,
             };
-            var response=base.SendDuplex(message, OnFault);
+            var response= ConsumItem(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
 
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
@@ -265,7 +266,7 @@ namespace Nistec.Messaging.Remote
                 Host = _QueueName,
                 QCommand = QueueCmd.Exists,
             };
-            var response=base.SendDuplex(message, OnFault);
+            var response= ConsumItem(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
             //return (Message)client.Exec(message, QueueCmd.RemoveQueue);

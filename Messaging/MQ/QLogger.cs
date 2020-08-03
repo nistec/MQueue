@@ -134,7 +134,7 @@ namespace Nistec.Messaging
         /// <summary>
         /// Get <see cref="CacheLogger"/> instance.
         /// </summary>
-        static QLogger Logger
+        public static QLogger Logger
         {
             get
             {
@@ -362,54 +362,54 @@ namespace Nistec.Messaging
 
         #region write level
 
-        /// <summary>
-        /// Write new line to cache logger as info.
-        /// </summary>
-        /// <param name="message"></param>
-        public static void Info(string message)
-        {
-            Logger.WriteLog(LoggerLevel.Info, message);
-        }
+        ///// <summary>
+        ///// Write new line to cache logger as info.
+        ///// </summary>
+        ///// <param name="message"></param>
+        //public static void Info(string message)
+        //{
+        //    Logger.WriteLog(LoggerLevel.Info, message);
+        //}
         /// <summary>
         /// Write new line to cache logger as info.
         /// </summary>
         /// <param name="message"></param>
         /// <param name="args"></param>
-        public static void InfoFormat(string message, params object[] args)
+        public static void Info(string message, params object[] args)
         {
             Logger.WriteLog(LoggerLevel.Info, message, args);
         }
-        /// <summary>
-        /// Write new line to cache logger as debug.
-        /// </summary>
-        /// <param name="message"></param>
-        public static void Debug(string message)
-        {
-            Logger.WriteLog(LoggerLevel.Debug, message);
-        }
+        ///// <summary>
+        ///// Write new line to cache logger as debug.
+        ///// </summary>
+        ///// <param name="message"></param>
+        //public static void Debug(string message)
+        //{
+        //    Logger.WriteLog(LoggerLevel.Debug, message);
+        //}
         /// <summary>
         ///  Write new line to cache logger as debug.
         /// </summary>
         /// <param name="message"></param>
         /// <param name="args"></param>
-        public static void DebugFormat(string message, params object[] args)
+        public static void Debug(string message, params object[] args)
         {
             Logger.WriteLog(LoggerLevel.Debug, message, args);
         }
-        /// <summary>
-        ///  Write new line to cache logger as error.
-        /// </summary>
-        /// <param name="message"></param>
-        public static void Error(string message)
-        {
-            Logger.WriteLog(LoggerLevel.Error, message);
-        }
+        ///// <summary>
+        /////  Write new line to cache logger as error.
+        ///// </summary>
+        ///// <param name="message"></param>
+        //public static void Error(string message)
+        //{
+        //    Logger.WriteLog(LoggerLevel.Error, message);
+        //}
         /// <summary>
         ///  Write new line to cache logger as error.
         /// </summary>
         /// <param name="message"></param>
         /// <param name="args"></param>
-        public static void ErrorFormat(string message, params object[] args)
+        public static void Error(string message, params object[] args)
         {
             Logger.WriteLog(LoggerLevel.Error, message, args);
         }

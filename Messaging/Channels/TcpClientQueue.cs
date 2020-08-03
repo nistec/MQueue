@@ -61,7 +61,7 @@ namespace Nistec.Messaging.Channels
         }
 
         #endregion
- 
+
         #region ctor
 
         /// <summary>
@@ -69,9 +69,9 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="hostAddress"></param>
         /// <param name="port"></param>
-        /// <param name="ProcessTimeout"></param>
-        public TcpClientQueue(string hostAddress, int port, int ProcessTimeout)
-            : base(hostAddress, port,ProcessTimeout, false)
+        /// <param name="connectTimeout"></param>
+        public TcpClientQueue(string hostAddress, int port, int connectTimeout)
+            : base(hostAddress, port, connectTimeout, false)
         {
 
         }
@@ -81,10 +81,10 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="hostAddress"></param>
         /// <param name="port"></param>
-        /// <param name="ProcessTimeout"></param>
+        /// <param name="connectTimeout"></param>
         /// <param name="isAsync"></param>
-        public TcpClientQueue(string hostAddress, int port, int ProcessTimeout, bool isAsync)
-            : base(hostAddress, port, ProcessTimeout, isAsync)
+        public TcpClientQueue(string hostAddress, int port, int connectTimeout, bool isAsync)
+            : base(hostAddress, port, connectTimeout, isAsync)
         {
 
         }
@@ -94,12 +94,12 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="hostAddress"></param>
         /// <param name="port"></param>
-        /// <param name="ProcessTimeout"></param>
+        /// <param name="connectTimeout"></param>
         /// <param name="ReceiveBufferSize"></param>
         /// <param name="SendBufferSize"></param>
         /// <param name="isAsync"></param>
-        public TcpClientQueue(string hostAddress, int port, int ProcessTimeout, int ReceiveBufferSize, int SendBufferSize,bool isAsync)
-            : base(hostAddress, port, ProcessTimeout,ReceiveBufferSize, SendBufferSize, isAsync)
+        public TcpClientQueue(string hostAddress, int port, int connectTimeout, int ReceiveBufferSize, int SendBufferSize,bool isAsync)
+            : base(hostAddress, port, connectTimeout, ReceiveBufferSize, SendBufferSize, isAsync)
         {
 
         }
@@ -143,8 +143,7 @@ namespace Nistec.Messaging.Channels
             }
 
             // Receive a response from server.
-
-            MessageReader.ReadQStream(stream, Settings.ProcessTimeout, Settings.ReceiveBufferSize);
+            MessageReader.ReadQStream(stream, Settings.ReadTimeout, Settings.ReceiveBufferSize);
             //message.ReadAck(stream, Settings.ProcessTimeout, Settings.ReceiveBufferSize);
         }
 
@@ -170,7 +169,7 @@ namespace Nistec.Messaging.Channels
 
             // Receive a response from server.
             //response = message.ReadAck(stream, type, Settings.ProcessTimeout, Settings.ReceiveBufferSize);
-            response = MessageReader.ReadQStream(stream, Settings.ProcessTimeout, Settings.ReceiveBufferSize);
+            response = MessageReader.ReadQStream(stream, Settings.ReadTimeout, Settings.ReceiveBufferSize);
             
             return response;
         }
@@ -199,12 +198,12 @@ namespace Nistec.Messaging.Channels
             //if (message.Command== QueueCmd.Enqueue)
            if (typeof(IQueueAck).IsAssignableFrom(typeof(TResponse)))
            {
-                var ack = MessageReader.ReadAckStream(stream, Settings.ProcessTimeout, Settings.ReceiveBufferSize);
+                var ack = MessageReader.ReadAckStream(stream, Settings.ReadTimeout, Settings.ReceiveBufferSize);
 
                 return GenericTypes.Cast<TResponse>(ack);
             }
 
-            var msg = MessageReader.ReadQStream(stream, Settings.ProcessTimeout, Settings.ReceiveBufferSize);
+            var msg = MessageReader.ReadQStream(stream, Settings.ReadTimeout, Settings.ReceiveBufferSize);
             return GenericTypes.Cast<TResponse>(msg);
 
             //response = Serialization.BinarySerializer.DeserializeFromStream<TResponse>(msg.BodyStream);

@@ -49,6 +49,41 @@ namespace Nistec.Messaging
             this.Creation = DateTime.Now;
             this.Host = item.Host;
         }
+        public QueueAck(MessageState state, IQueueMessage item, string label)
+        {
+            this.Identifier = item.Identifier;
+            this.Label = label;
+            this.MessageState = state;
+            this.Creation = DateTime.Now;
+            this.Host = item.Host;
+        }
+        public QueueAck(IQueueAck[] acks)
+        {
+
+            for (int i = 0; i < acks.Count(); i++)
+            {
+                var ack = acks[i];
+                if (i == 0)
+                {
+                    this.Identifier = ack.Identifier;
+                    this.Label = ack.Label;
+                    this.MessageState = ack.MessageState;
+                    this.Creation = DateTime.Now;
+                    this.Host = ack.Host;
+                }
+                else
+                {
+
+                    this.Identifier +="|"+ ack.Identifier;
+                    this.Label += "|" + ack.Label;
+                    //this.MessageState += "|" + ack.MessageState;
+                    this.Host += "|" + ack.Host;
+                }
+            }
+
+            this.Count = acks.Count();
+        }
+
         public QueueAck(NetStream stream)
         { 
             EntityRead(stream, null);
@@ -60,7 +95,7 @@ namespace Nistec.Messaging
         //    EntityWrite(stream, null);
         //    return stream;
         //}
-        public TransStream ToStream()
+        public TransStream ToTransStream()
         {
             TransStream stream = new TransStream(this, TransType.Object);
             return stream;
@@ -79,7 +114,7 @@ namespace Nistec.Messaging
         /// <summary>
         /// Get or Set the arrived time.
         /// </summary>
-        public DateTime? ArrivedTime { get; internal set; }
+        public DateTime ArrivedTime { get; internal set; }
         /// <summary>
         /// Get or Set the send time.
         /// </summary>
@@ -140,8 +175,9 @@ namespace Nistec.Messaging
             streamer.WriteString(Label);
             streamer.WriteValue(Duration);
             streamer.WriteValue(Count);
-            string arrived = ArrivedTime == null || ArrivedTime.HasValue == false ? null : ArrivedTime.ToString();
-            streamer.WriteString(arrived);
+            streamer.WriteValue(ArrivedTime);
+            //string arrived = ArrivedTime == null || ArrivedTime.HasValue == false ? null : ArrivedTime.ToString();
+            //streamer.WriteString(arrived);
 
             streamer.Flush();
         }
@@ -163,8 +199,9 @@ namespace Nistec.Messaging
             Label = streamer.ReadString();
             Duration = streamer.ReadValue<int>();
             Count = streamer.ReadValue<int>();
-            string arrived = streamer.ReadString();
-            ArrivedTime= Types.ToNullableDate(arrived);
+            //string arrived = streamer.ReadString();
+            //ArrivedTime= Types.ToNullableDate(arrived);
+            ArrivedTime = streamer.ReadValue<DateTime>();
         }
 
         #endregion

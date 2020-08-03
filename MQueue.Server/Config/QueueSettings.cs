@@ -8,7 +8,8 @@ using System.Xml;
 using Nistec.Generic;
 using Nistec.Runtime;
 using System.IO;
-
+using Nistec.Channels;
+using System.IO.Pipes;
 
 namespace Nistec.Messaging.Config
 {
@@ -22,8 +23,8 @@ namespace Nistec.Messaging.Config
         /// <summary>MQueueQueueRootPath.</summary>
         public const string DefaultRootPath = @"C:\Nistec\MQueue\";
 
-        public const string DefaultQueueListener = "nistec_queue_listener";
-        public const string DefaultQueueChannel = "nistec_queue_channel";
+        public const string DefaultQueueConsumer = "nistec_queue_consumer";
+        public const string DefaultQueueProducer = "nistec_queue_producer";
         public const string DefaultQueueManager = "nistec_queue_manager";
         
         /// <summary>QueuesPath.</summary>
@@ -64,18 +65,18 @@ namespace Nistec.Messaging.Config
         //public readonly int LogMonitorCapacityLines = 1000;
 
         /// <summary>EnablePipeChannel.</summary>
-        public readonly bool EnablePipeChannel = false;
+        public readonly bool EnablePipeProducer = false;
         /// <summary>EnableTcpChannel.</summary>
-        public readonly bool EnableTcpChannel = false;
+        public readonly bool EnableTcpProducer = false;
         /// <summary>EnableHttpChannel.</summary>
-        public readonly bool EnableHttpChannel = false;
+        public readonly bool EnableHttpProducer = false;
 
         /// <summary>EnableTcpListener.</summary>
-        public readonly bool EnablePipeListener = false;
+        public readonly bool EnablePipeConsumer = false;
         /// <summary>EnableTcpListener.</summary>
-        public readonly bool EnableTcpListener = false;
+        public readonly bool EnableTcpConsumer = false;
         /// <summary>EnableTcpListener.</summary>
-        public readonly bool EnableHttpListener = false;
+        public readonly bool EnableHttpConsumer = false;
 
 
         /// <summary>EnableMailerQueue.</summary>
@@ -87,6 +88,14 @@ namespace Nistec.Messaging.Config
         public readonly bool EnableDbListener = false;
         /// <summary>EnableFolderListener.</summary>
         public readonly bool EnableFolderListener = false;
+
+        /// <summary>EnableQueue.</summary>
+        //public readonly bool EnableQueueController = true;
+        ///// <summary>EnableTopic.</summary>
+        //public readonly bool EnableTopicController = false;
+
+        /// <summary>EnableJournalQueue.</summary>
+        public readonly bool EnableJournalQueue = false;
 
 
         /// <summary>EnableSizeHandler.</summary>
@@ -142,16 +151,21 @@ namespace Nistec.Messaging.Config
             EnableMailerQueue = table.Get<bool>("EnableMailerQueue", false);
             EnableQueueManager = table.Get<bool>("EnableQueueManager", false);
 
+            //EnableQueueController = table.Get<bool>("EnableQueueController", false);
+            //EnableTopicController = table.Get<bool>("EnableTopicController", false);
+
+            EnableJournalQueue = table.Get<bool>("EnableJournalQueue", false);
+
             EnableDebugLog = table.Get<bool>("EnableDebugLog", false);
             //LogMonitorCapacityLines = table.Get<int>("LogMonitorCapacityLines", 1000);
 
-            EnablePipeListener = table.Get<bool>("EnablePipeListener", false);
-            EnableTcpListener = table.Get<bool>("EnableTcpListener", false);
-            EnableHttpListener = table.Get<bool>("EnableHttpListener", false);
+            EnablePipeConsumer = table.Get<bool>("EnablePipeConsumer", false);
+            EnableTcpConsumer = table.Get<bool>("EnableTcpConsumer", false);
+            EnableHttpConsumer = table.Get<bool>("EnableHttpConsumer", false);
 
-            EnablePipeChannel = table.Get<bool>("EnablePipeChannel", false);
-            EnableTcpChannel = table.Get<bool>("EnableTcpChannel", false);
-            EnableHttpChannel = table.Get<bool>("EnableHttpChannel", false);
+            EnablePipeProducer = table.Get<bool>("EnablePipeProducer", false);
+            EnableTcpProducer = table.Get<bool>("EnableTcpProducer", false);
+            EnableHttpProducer = table.Get<bool>("EnableHttpProducer", false);
 
             EnableFolderListener = table.Get<bool>("EnableFolderListener", false);
             EnableDbListener = table.Get<bool>("EnableDbListener", false);
@@ -324,9 +338,28 @@ namespace Nistec.Messaging.Config
             get { return Types.ToBool(this["EnablePerformanceCounter"], false); }
         }
 
+        ///// <summary>Get if Enable EnableQueueController</summary>
+        //[ConfigurationProperty("EnableQueueController", DefaultValue = true, IsRequired = false)]
+        //public bool EnableQueueController
+        //{
+        //    get { return Types.ToBool(this["EnableQueueController"], true); }
+        //}
+        ///// <summary>Get if Enable EnableTopicController</summary>
+        //[ConfigurationProperty("EnableTopicController", DefaultValue = false, IsRequired = false)]
+        //public bool EnableTopicController
+        //{
+        //    get { return Types.ToBool(this["EnableTopicController"], false); }
+        //}
+
+        /// <summary>Get if Enable EnableJournalQueue</summary>
+        [ConfigurationProperty("EnableJournalQueue", DefaultValue = false, IsRequired = false)]
+        public bool EnableJournalQueue
+        {
+            get { return Types.ToBool(this["EnableJournalQueue"], false); }
+        }
         //====================================================================
 
-        
+
         /// <summary>Get mailer queue path</summary>
         [ConfigurationProperty("MailerDefaultHost", DefaultValue = "", IsRequired = false)]
         public string MailerDefaultHost
@@ -386,5 +419,25 @@ namespace Nistec.Messaging.Config
 
     }
 
-   
+ 
+    public static class ServerDefaults {
+
+        public static PipeSettings ManagerSettings()
+        {
+            return new PipeSettings()
+            {
+                HostName = "nistec_queue_manager",
+                ConnectTimeout = 5000,
+                ReceiveBufferSize = 8192,
+                MaxAllowedServerInstances = 255,
+                MaxServerConnections = 1,
+                SendBufferSize = 8192,
+                PipeDirection = PipeDirection.InOut,
+                PipeName = "nistec_queue_manager",
+                PipeOptions = PipeOptions.None,
+                VerifyPipe = "nistec_queue_manager"
+
+            };
+        }
+    }
 }
