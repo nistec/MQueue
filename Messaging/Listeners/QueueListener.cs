@@ -25,8 +25,8 @@ namespace Nistec.Messaging.Listeners
         #region ctor
 
 
-        public QueueListener(QueueAdapter adapter, int interval)
-            : base(adapter, interval)
+        public QueueListener(QueueAdapter adapter)//, int interval)
+            : base(adapter)//, interval)
         {
             _api = new QueueApi(adapter.Source);
             _api.ReadTimeout = adapter.ReadTimeout;

@@ -116,6 +116,19 @@ namespace Nistec.Messaging
         //    return stream;
         //}
 
+        /// <summary>
+        /// Deserialize body stream to object.
+        /// </summary>
+        /// <returns></returns>
+        public object GetBody()
+        {
+            if (BodyStream == null)
+                return null;
+            BodyStream.Position = 0;
+            var ser = new BinarySerializer();
+            return ser.Deserialize(BodyStream, true);
+        }
+
         public string Print()
         {
             return string.Format("MessageType:{0},Command:{1},Priority:{2},Identifier:{3},Creation:{4},TransformType:{5},Host:{6}",
@@ -177,6 +190,7 @@ namespace Nistec.Messaging
             Creation = DateTime.Now;
             Version = QueueDefaults.CurrentVersion;
             TransformType = TransformType.Object;
+            Identifier = Ptr.NewIdentifier();
             //DuplexType = DuplexTypes.None;
             //EnsureDuplex();
         }

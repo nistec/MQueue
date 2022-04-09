@@ -56,6 +56,7 @@ namespace Nistec.Messaging
     public enum QueueCmd : byte //: byte
     {
         None=0,
+        Reply=1,
 
         Enqueue = 10,
         Dequeue = 11,
@@ -74,12 +75,13 @@ namespace Nistec.Messaging
         AddQueue = 30,
         RemoveQueue = 31,
         HoldEnqueue = 32,
-        NoneHoldEnqueue = 33,
+        ReleaseHoldEnqueue = 33,
         HoldDequeue = 34,
-        NoneHoldDequeue = 35,
+        ReleaseHoldDequeue = 35,
         EnableQueue = 36,
         DisableQueue = 37,
         ClearQueue = 38,
+
         //publish\subscribe
         TopicAdd = 40,
         TopicRemove = 41,
@@ -88,14 +90,22 @@ namespace Nistec.Messaging
         TopicRemoveItem = 44,
         TopicCommit = 45,
         TopicAbort = 46,
+
+        TopicHold = 47,
+        TopicHoldRelease = 48,
+        TopicSubscribeHold=49,
+        TopicSubscribeRelease=50,
+        TopicSubscribeAdd = 51,
+        TopicSubscribeRemove = 52,
+
         //reports
-        Exists = 50,
-        QueueProperty = 51,
-        ReportQueueList = 52,
-        ReportQueueItems = 53,
-        ReportQueueStatistic = 54,
-        PerformanceCounter = 55,
-        QueueCount = 56,
+        Exists = 60,
+        QueueProperty = 61,
+        ReportQueueList = 62,
+        ReportQueueItems = 63,
+        ReportQueueStatistic = 64,
+        PerformanceCounter = 65,
+        QueueCount = 66,
 
         /// <summary>
         /// A normal Message Queuing message.
@@ -131,22 +141,35 @@ namespace Nistec.Messaging
     public enum QueueCmdOperation : byte //: byte
     {
         HoldEnqueue = 32,
-        NoneHoldEnqueue = 33,
+        ReleaseHoldEnqueue = 33,
         HoldDequeue = 34,
-        NoneHoldDequeue = 35,
+        ReleaseHoldDequeue = 35,
         EnableQueue = 36,
         DisableQueue = 37,
+
+        TopicAdd = 40,
+        TopicRemove = 41,
+        TopicPublish = 42,
+        TopicSubscribe = 43,
+        TopicRemoveItem = 44,
+        TopicHold = 47,
+        TopicHoldRelease = 48,
+        TopicSubscribeHold = 49,
+        TopicSubscribeRelease = 50,
+        TopicSubscribeAdd = 51,
+        TopicSubscribeRemove = 52,
+
     };
 
     public enum QueueCmdReport : byte //: byte
     {
-        Exists = 50,
-        QueueProperty = 51,
-        ReportQueueList = 52,
-        ReportQueueItems = 53,
-        ReportQueueStatistic = 54,
-        PerformanceCounter = 55,
-        QueueCount = 56,
+        Exists = 60,
+        QueueProperty = 61,
+        ReportQueueList = 62,
+        ReportQueueItems = 63,
+        ReportQueueStatistic = 64,
+        PerformanceCounter = 65,
+        QueueCount = 66,
     };
 
     //public enum QueueManagerCmd : byte

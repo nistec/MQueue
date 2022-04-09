@@ -7,6 +7,7 @@ using Nistec.Runtime;
 using Nistec.Messaging.Io;
 using Nistec.Serialization;
 using Nistec.Channels;
+using Nistec.Generic;
 
 namespace Nistec.Messaging
 {
@@ -56,6 +57,28 @@ namespace Nistec.Messaging
             CreateLocalAddress(hostName);
         }
 
+        public QueueHost(HostProtocol protocol, string serverName, int hostPort, string hostName)
+        {
+            string address = GetRawAddress(protocol, serverName, hostPort.ToString(), hostName);
+            _Port = hostPort;
+            _HostAddress = address;
+            _HostProtocol = protocol;
+            HostName = hostName;
+        }
+
+        public QueueHost(HostProtocol protocol, string serverName, string hostPort, string hostName)
+        {
+            string address = GetRawAddress(protocol, serverName, hostPort, hostName);
+
+            if (protocol == HostProtocol.tcp)
+                _Port = Types.ToInt(hostPort);
+
+            _HostAddress = address;
+            _HostProtocol = protocol;
+            HostName = hostName;
+        }
+
+
         void CreateLocalAddress(string hostName, string serverName = ".")
         {
             if (string.IsNullOrEmpty(serverName) || serverName == ".")
@@ -71,6 +94,7 @@ namespace Nistec.Messaging
 
         private void Create(string address)
         {
+            //protocol:server/address:port/hostName
 
             if (address == null)
             {
@@ -221,6 +245,9 @@ namespace Nistec.Messaging
         /// </summary>
         public string ServerName { get; private set; }
 
+        public string[] HostNames { get { return HostName==null? new string[] {""}: HostName.SplitTrim (";"); } }
+
+
         /// <summary>
         /// Get or Set Endpoint Address
         /// </summary>
@@ -360,11 +387,12 @@ namespace Nistec.Messaging
         }
 
 
-        public static QueueHost Get(HostProtocol protocol, string serverName, int hostPort, string hostName)
-        {
-            string address=GetRawAddress(protocol, serverName, hostPort.ToString(), hostName);
-            return new QueueHost() { _HostAddress = address, _HostProtocol = protocol, _Port = hostPort, HostName = hostName };
-        }
+        //public static QueueHost Get(HostProtocol protocol, string serverName, string hostPort, string hostName)
+        //{
+        //    string address=GetRawAddress(protocol, serverName, hostPort, hostName);
+
+        //    return new QueueHost() { _HostAddress = address, _HostProtocol = protocol, _Port = hostPort, HostName = hostName };
+        //}
 
         //public static void ParseHostAddress(string address)
         //{

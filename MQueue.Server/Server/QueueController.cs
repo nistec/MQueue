@@ -86,7 +86,13 @@ namespace Nistec.Messaging.Server
 
         public bool IsStarted { get; protected set; }
 
-
+        MQueue GetValidQ(string qname)
+        {
+            MQueue mq = AgentManager.Queue.Get(qname);
+            if (mq == null)
+                throw new Exception("Queue not exists: " + qname);
+            return mq;
+        }
         #region queue request
 
         internal TransStream ExecRequset(IQueueMessage request)
@@ -103,11 +109,15 @@ namespace Nistec.Messaging.Server
 
                 switch (request.QCommand)
                 {
+                    case QueueCmd.Reply:
+                        return TransStream.Write("Reply: " + request.Identifier, TransType.Object);
                     case QueueCmd.Enqueue:
-                        responseAck = true;
-                        //MQueue Q = Get(request.Host);
-                        var ack = ExecSet((QueueItem)request);
-                        return MessageAckServer.DoResponse(ack);
+                        {
+                            responseAck = true;
+                            //MQueue Q = Get(request.Host);
+                            var ack = ExecSet((QueueItem)request);
+                            return MessageAckServer.DoResponse(ack);
+                        }
                     case QueueCmd.Dequeue:
                     case QueueCmd.DequeuePriority:
                     case QueueCmd.DequeueItem:
@@ -122,19 +132,21 @@ namespace Nistec.Messaging.Server
 
                     //operation
                     case QueueCmd.AddQueue:
-                        responseAck = true;
-                        MQueue mq = null;
-                        return MessageAckServer.DoResponse(AddQueue(new QProperties(request.BodyStream), out mq));
+                        {
+                            responseAck = true;
+                            MQueue mq = null;
+                            return MessageAckServer.DoResponse(AddQueue(new QProperties(request.BodyStream), out mq));
+                        }
                     case QueueCmd.RemoveQueue:
                         responseAck = true;
                         return MessageAckServer.DoResponse(RemoveQueue(request.Host));
                     case QueueCmd.HoldEnqueue:
                         throw new Exception("Operation not supported");
-                    case QueueCmd.NoneHoldEnqueue:
+                    case QueueCmd.ReleaseHoldEnqueue:
                         throw new Exception("Operation not supported");
                     case QueueCmd.HoldDequeue:
                         throw new Exception("Operation not supported");
-                    case QueueCmd.NoneHoldDequeue:
+                    case QueueCmd.ReleaseHoldDequeue:
                         throw new Exception("Operation not supported");
                     case QueueCmd.EnableQueue:
                         throw new Exception("Operation not supported");
@@ -142,6 +154,62 @@ namespace Nistec.Messaging.Server
                         throw new Exception("Operation not supported");
                     case QueueCmd.ClearQueue:
                         throw new Exception("Operation not supported");
+
+
+                    //publish\subscribe
+                    case QueueCmd.TopicAdd:
+                        throw new Exception("Operation not supported");
+                    case QueueCmd.TopicRemove:
+                        throw new Exception("Operation not supported");
+                    case QueueCmd.TopicPublish:
+                        throw new Exception("Operation not supported");
+                    case QueueCmd.TopicSubscribe:
+                        throw new Exception("Operation not supported");
+                    case QueueCmd.TopicRemoveItem:
+                        throw new Exception("Operation not supported");
+                    case QueueCmd.TopicCommit:
+                        throw new Exception("Operation not supported");
+                    case QueueCmd.TopicAbort:
+                        throw new Exception("Operation not supported");
+                    case QueueCmd.TopicHold:
+                        {
+                            MQueue mq = GetValidQ(request.Host);
+                            mq.Topic.HoldTopic();
+                            return TransStream.Write(MessageState.Ok, TransType.State);
+                        }
+                    case QueueCmd.TopicHoldRelease:
+                        {
+                            MQueue mq = GetValidQ(request.Host);
+                            mq.Topic.ReleaseHoldTopic();
+                            return TransStream.Write(MessageState.Ok, TransType.State);
+                        }
+                    case QueueCmd.TopicSubscribeHold:
+                        {
+                            MQueue mq = GetValidQ(request.Host);
+
+                            mq.Topic.HoldSubscriber(request.Label);
+                            return TransStream.Write(MessageState.Ok, TransType.State);
+                        }
+                    case QueueCmd.TopicSubscribeRelease:
+                        {
+                            MQueue mq = GetValidQ(request.Host);
+                            mq.Topic.ReleaseHoldSubscriber(request.Label);
+                            return TransStream.Write(MessageState.Ok, TransType.State);
+                        }
+                    case QueueCmd.TopicSubscribeAdd:
+                        {
+                            MQueue mq = GetValidQ(request.Host);
+                            TopicController tc = new TopicController(mq);
+                            tc.AddSubscriber(TopicSubscriber.Parse(request.Label));
+                            return TransStream.Write(MessageState.Ok, TransType.State);
+                        }
+                    case QueueCmd.TopicSubscribeRemove:
+                        {
+                            MQueue mq = GetValidQ(request.Host);
+                            TopicController tc = new TopicController(mq);
+                            tc.RemoveSubscriber(request.Label);
+                            return TransStream.Write(MessageState.Ok, TransType.State);
+                        }
                     //reports
                     case QueueCmd.Exists:
                         responseAck = true;
@@ -164,22 +232,22 @@ namespace Nistec.Messaging.Server
             }
             catch (MessageException mex)
             {
-                Logger.Exception("ExecGet MessageException: ", mex, true);
+                Logger.Exception("ExecRequset MessageException: ", mex, true);
                 return MessageAckServer.DoError(mex.MessageState, request, responseAck, mex);
             }
             catch (ArgumentException ase)
             {
-                Logger.Exception("ExecGet ArgumentException: ", ase, true, true);
+                Logger.Exception("ExecRequset ArgumentException: ", ase, true, true);
                 return MessageAckServer.DoError(MessageState.ArgumentsError, request, responseAck, ase);
             }
             catch (SerializationException se)
             {
-                Logger.Exception("ExecGet SerializationException: ", se, true);
+                Logger.Exception("ExecRequset SerializationException: ", se, true);
                 return MessageAckServer.DoError(MessageState.SerializeError, request, responseAck, se);
             }
             catch (Exception ex)
             {
-                Logger.Exception("ExecGet Exception: ", ex, true, true);
+                Logger.Exception("ExecRequset Exception: ", ex, true, true);
                 return MessageAckServer.DoError(MessageState.UnExpectedError, request, responseAck, ex);
             }
             return null;
@@ -231,16 +299,15 @@ namespace Nistec.Messaging.Server
 
             if (MQ.TryGetValue(item.Host, out Q))
             {
-
+                if (Q.Mode == CoverMode.Rout)
+                {
+                    return ExecRout(item, Q.RoutHost);
+                }
                 if (Q.IsTopic)
                 {
                     return Q.EnqueueTopicItem(item);
                 }
                 //var item = new QueueItem(request, QueueCmd.Enqueue);
-                if (Q.Mode == CoverMode.Rout)
-                {
-                    return ExecRout(item, Q.RoutHost);
-                }
                 var ack = Q.Enqueue(item);
                 return ack;// ptr.MessageState;
             }
@@ -305,11 +372,15 @@ namespace Nistec.Messaging.Server
                 {
                     throw new MessageException(MessageState.InvalidMessageHost, "message.RoutHostName not found " + item.Host);
                 }
+                if (Q.IsTopic)
+                {
+                    return Q.EnqueueTopicItem(item);
+                }
                 ack = Q.Enqueue(item);
                 return ack;// ptr.MessageState;
             }
 
-            var api = new QueueApi(qh.NetProtocol);
+            var api = new QueueApi(qh);
             ack = api.SendAsync(item, 0);
             return ack;
         }

@@ -25,35 +25,80 @@ namespace Nistec.Messaging.Remote
     {
         CancellationTokenSource canceller = new CancellationTokenSource();
 
-        const string HostAddress = "nistec_queue_manager";
+        public const string HostName = "nistec_queue_manager";
 
         /// <summary>
         /// Get queue api.
         /// </summary>
         /// <param name="protocol"></param>
         /// <returns></returns>
-        public static ManagementApi Get(NetProtocol protocol= NetProtocol.Pipe)
+        public static ManagementApi Get()
         {
-            if (protocol == NetProtocol.NA)
-            {
-                protocol = ChannelSettings.DefaultProtocol;
-            }
-            return new ManagementApi() {Protocol=protocol, RemoteHostAddress = HostAddress };
+             return new ManagementApi() { Protocol = NetProtocol.Pipe, RemoteHostAddress = HostName };
         }
 
-        public static ManagementApi Get(string queueName,NetProtocol protocol = NetProtocol.Pipe)
+        /// <summary>
+        /// Get queue api.
+        /// </summary>
+        /// <param name="protocol"></param>
+        /// <returns></returns>
+        public static ManagementApi Get(string hostAddress,NetProtocol protocol)
+        {
+           
+            if (protocol == NetProtocol.NA)
+            {
+                protocol = ChannelSettings.DefaultProtocol;
+            }
+            if (protocol == NetProtocol.Pipe)
+            {
+                if (hostAddress == null)
+                    throw new ArgumentException("hostAddress is required");
+                hostAddress = HostName;
+                return new ManagementApi() { Protocol = protocol, RemoteHostAddress = hostAddress };
+
+            }
+            else
+            {
+                string[] args = hostAddress.SplitTrim(':');
+                hostAddress = args[0];
+                if (args.Length < 2)
+                    throw new ArgumentException("hostAddress and port is required");
+
+                int port = Types.ToInt(args[1]);
+                return new ManagementApi() { Protocol = protocol, RemoteHostAddress = hostAddress, RemoteHostPort = port };
+            }
+        }
+
+        public static ManagementApi Get(string hostAddress, string queueName,NetProtocol protocol)
         {
             if (protocol == NetProtocol.NA)
             {
                 protocol = ChannelSettings.DefaultProtocol;
             }
-            return new ManagementApi() { Protocol = protocol, _QueueName=queueName, RemoteHostAddress= HostAddress };
+            if (protocol == NetProtocol.Pipe)
+            {
+                if (hostAddress == null)
+                    throw new ArgumentException("hostAddress is required");
+                hostAddress = HostName;
+                return new ManagementApi() { Protocol = protocol, QueueName = queueName, RemoteHostAddress = hostAddress };
+
+            }
+            else
+            {
+                string[] args = hostAddress.SplitTrim(':');
+                hostAddress = args[0];
+                if (args.Length < 2)
+                    throw new ArgumentException("hostAddress and port is required");
+
+                int port = Types.ToInt(args[1]);
+                return new ManagementApi() { Protocol = protocol, QueueName = queueName, RemoteHostAddress = hostAddress, RemoteHostPort = port };
+            }
         }
 
         private ManagementApi()
         {
             //RemoteHostName = ChannelSettings.RemoteQueueHostName;
-            EnableRemoteException = ChannelSettings.EnableRemoteException;
+            EnableRemoteException = ChannelSettings.DefaultEnableRemoteException;
         }
 
         protected void OnFault(string message)
@@ -64,7 +109,17 @@ namespace Nistec.Messaging.Remote
         {
             Console.WriteLine("QueueApi Completed: " + message.Identifier);
         }
-        
+
+        public TransStream Reply()
+        {
+            QueueRequest message = new QueueRequest()
+            {
+                Host = QueueName,
+                QCommand = QueueCmd.Reply,
+            };
+            var response = ConsumItemStream(message, ConnectTimeout);
+            return response;
+        }
 
         #region ctor
 
@@ -74,7 +129,7 @@ namespace Nistec.Messaging.Remote
             var qh = QueueHost.Parse(hostAddress);
 
             //_QueueName = queueName;
-            _HostProtocol = qh.Protocol;
+            HostProtocol = qh.Protocol;
             RemoteHostAddress = qh.Endpoint;
             RemoteHostPort = qh.Port;
             Protocol = qh.Protocol.GetProtocol();
@@ -83,8 +138,8 @@ namespace Nistec.Messaging.Remote
         public ManagementApi(QueueHost host) 
             : this()
         {
-            _QueueName = host.HostName;
-            _HostProtocol = host.Protocol;
+            QueueName = host.HostName;
+            HostProtocol = host.Protocol;
             RemoteHostAddress = host.Endpoint;
             RemoteHostPort = host.Port;
             Protocol = host.NetProtocol;
@@ -99,7 +154,7 @@ namespace Nistec.Messaging.Remote
             QueueRequest request = new QueueRequest()
             {
                 QCommand = (QueueCmd)(int)command,
-                Host = _QueueName
+                Host = QueueName
             };
 
             var result = ExecDuplexStream(request, ConnectTimeout);
@@ -113,7 +168,7 @@ namespace Nistec.Messaging.Remote
             using (
 
                     Task<TransStream> task = Task<TransStream>.Factory.StartNew(() =>
-                        Report(command)
+                        Report(command, null)
                     ,
                     canceller.Token,
                     TaskCreationOptions.LongRunning,
@@ -143,11 +198,11 @@ namespace Nistec.Messaging.Remote
 
         #region Commit/Abort/Report
 
-        public TransStream Report(QueueCmdReport cmd)
+        public TransStream Report(QueueCmdReport cmd, string queueName)
         {
             QueueRequest request = new QueueRequest()
             {
-                Host = _QueueName,
+                Host = queueName??QueueName,
                 QCommand = (QueueCmd)(int)cmd
                 //Command = (QueueCmd)(int)cmd
             };
@@ -167,48 +222,48 @@ namespace Nistec.Messaging.Remote
         //    base.SendDuplexStreamAsync(request, onFault, onCompleted, resetEvent);
         //}
 
-        public T Report<T>(QueueCmdReport cmd)
+        public T Report<T>(QueueCmdReport cmd, string queueName)
         {
-            var res = Report(cmd);
+            var res = Report(cmd, queueName);
             if (res == null)
                 return default(T);
             return res.ReadValue<T>();
         }
 
-        public IQueueItem OperateQueue(QueueCmdOperation cmd)
+        public TransStream OperateQueue(QueueCmdOperation cmd, string queueName)
         {
             QueueRequest message = new QueueRequest()//queueName, (QueueCmd)(int)cmd)
             {
-                Host = _QueueName,
+                Host = queueName??QueueName,
                 QCommand = (QueueCmd)(int)cmd,
                 //Command = (QueueCmd)(int)cmd
             };
-            var response=ConsumItem(message,ConnectTimeout);
+            var response=ConsumItemStream(message,ConnectTimeout);
             return response;//==null? null: response.ToMessage();
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
             //return (Message)client.Exec(message, (QueueCmd)(int)cmd);
         }
 
-        public IQueueItem AddQueue(QProperties qp)
+        public TransStream AddQueue(QProperties qp)
         {
             var message = new QueueRequest()
             {
-                Host = _QueueName,
+                Host = QueueName,
                 QCommand = QueueCmd.AddQueue,
             };
 
             message.SetBody(qp.GetEntityStream(false), qp.GetType().FullName);
-            var response = ConsumItem(message, ConnectTimeout);
+            var response = ConsumItemStream(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
         }
 
-        public IQueueItem AddQueue(CoverMode mode, bool isTrans)
+        public TransStream AddQueue(CoverMode mode, bool isTrans)
         {
            
 
             QProperties qp = new QProperties()
             {
-                QueueName = _QueueName,
+                QueueName = QueueName,
                 ServerPath = "localhost",
                 Mode = mode,
                 IsTrans = isTrans,
@@ -245,28 +300,28 @@ namespace Nistec.Messaging.Remote
             //return (Message)res;// client.Exec(message, QueueCmd.AddQueue);
         }
 
-        public IQueueItem RemoveQueue()
+        public TransStream RemoveQueue(string queueName)
         {
             QueueRequest message = new QueueRequest()
             {
-                Host = _QueueName,
+                Host = queueName ?? QueueName,
                 QCommand = QueueCmd.RemoveQueue,
             };
-            var response= ConsumItem(message, ConnectTimeout);
+            var response= ConsumItemStream(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
 
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
             //return (Message)client.Exec(message, QueueCmd.RemoveQueue);
         }
 
-        public IQueueItem QueueExists()
+        public TransStream QueueExists(string queueName)
         {
             QueueRequest message = new QueueRequest()
             {
-                Host = _QueueName,
+                Host = queueName ?? QueueName,
                 QCommand = QueueCmd.Exists,
             };
-            var response= ConsumItem(message, ConnectTimeout);
+            var response= ConsumItemStream(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
             //return (Message)client.Exec(message, QueueCmd.RemoveQueue);
@@ -274,6 +329,94 @@ namespace Nistec.Messaging.Remote
 
 
         #endregion
-   
+
+        public string DoHttpJson(string command, string key, string groupId = null, string label = null, object value = null, int expiration = 0, bool pretty = false)
+        {
+
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                throw new ArgumentNullException("key is required");
+            }
+            var msg = new QueueRequest() { Command = command, Id = key, GroupId = groupId, Expiration = expiration };
+            msg.SetBody(value);
+            return SendHttpJsonDuplex(msg, pretty);
+
+
+            //string cmd = "cach_" + command.ToLower();
+            //switch (cmd)
+            //{
+            //    case "AddQueue":
+            //        //return Add(key, value, expiration);
+            //        {
+            //            if (string.IsNullOrWhiteSpace(key))
+            //            {
+            //                throw new ArgumentNullException("key is required");
+            //            }
+            //            var msg = new QueueRequest() { Command = cmd, Id = key, GroupId = groupId, Expiration = expiration };
+            //            msg.SetBody(value);
+            //            return SendHttpJsonDuplex(msg, pretty);
+            //        }
+            //    case QueueCmd.CopyTo:
+            //    //return CopyTo(key, detail, expiration);
+            //    case QueueCmd.CutTo:
+            //        //return CutTo(key, detail, expiration);
+            //        {
+            //            if (string.IsNullOrWhiteSpace(key))
+            //            {
+            //                throw new ArgumentNullException("key is required");
+            //            }
+            //            var msg = new CacheMessage() { Command = cmd, Id = key, GroupId = groupId, Expiration = expiration };
+            //            msg.SetBody(value);
+            //            msg.Args = MessageStream.CreateArgs(KnowsArgs.Source, label, KnowsArgs.Destination, key);
+            //            return SendHttpJsonDuplex(msg, pretty);
+            //        }
+            //    case QueueCmd.Fetch:
+            //    case QueueCmd.Get:
+            //    case QueueCmd.GetEntry:
+            //    case QueueCmd.GetRecord:
+            //    case QueueCmd.RemoveItemsBySession:
+            //    case QueueCmd.Reply:
+            //    case QueueCmd.Remove:
+            //    case QueueCmd.ViewEntry:
+            //        {
+            //            if (string.IsNullOrWhiteSpace(key))
+            //            {
+            //                throw new ArgumentNullException("key is required");
+            //            }
+            //            return SendHttpJsonDuplex(new QueueRequest() { Command = cmd, Id = key }, pretty);
+            //        }
+            //    case QueueCmd.KeepAliveItem:
+            //    case QueueCmd.RemoveAsync:
+            //        {
+            //            if (string.IsNullOrWhiteSpace(key))
+            //            {
+            //                throw new ArgumentNullException("key is required");
+            //            }
+            //            SendHttpJsonOut(new CacheMessage() { Command = cmd, Id = key });
+            //            return CacheState.Ok.ToString();
+            //        }
+
+            //    //case QueueCmd.LoadData:
+            //    //    return LoadData();
+            //    case QueueCmd.Set:
+            //        //return Set(key, value, expiration);
+            //        {
+            //            if (string.IsNullOrWhiteSpace(key))
+            //            {
+            //                throw new ArgumentNullException("key is required");
+            //            }
+
+            //            if (value == null)
+            //            {
+            //                throw new ArgumentNullException("value is required");
+            //            }
+            //            var message = new CacheMessage(cmd, key, value, expiration);
+            //            return SendHttpJsonDuplex(message, pretty);
+            //        }
+            //    default:
+            //        throw new ArgumentException("Unknown command " + command);
+            //}
+        }
+
     }
 }

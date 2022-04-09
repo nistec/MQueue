@@ -30,7 +30,8 @@ namespace Nistec.Services
         private HttpServerChannel m_HttpServerProducer;
         
         //private PipeServerDequeue m_ServerDequeue;
-        private PipeServerChannel m_ServerQueueManager;
+        private PipeServerChannel m_PipeServerQueueManager;
+        private TcpServerChannel m_TcpServerQueueManager;
 
         bool m_enableQueueController;
         bool m_enableTopicController;
@@ -128,14 +129,20 @@ namespace Nistec.Services
                     //QLogger.Info("HttpServerListener started...");
                 }
 
-                if (AgentManager.Settings.EnableQueueManager)
+                if (AgentManager.Settings.EnablePipeQueueManager)
                 {
-                    m_ServerQueueManager = new PipeServerChannel(QueueChannel.Manager, QueueSettings.DefaultQueueManager);
-                    m_ServerQueueManager.IsAsync = false;
-                    m_ServerQueueManager.Start();// (false);
+                    m_PipeServerQueueManager = new PipeServerChannel(QueueChannel.Manager, QueueSettings.DefaultQueueManager);
+                    m_PipeServerQueueManager.IsAsync = false;
+                    m_PipeServerQueueManager.Start();// (false);
                     //QLogger.Info("ServerQueueManager started...");
                 }
-
+                if (AgentManager.Settings.EnableTcpQueueManager)
+                {
+                    m_TcpServerQueueManager = new TcpServerChannel(QueueChannel.Manager, QueueSettings.DefaultQueueManager);
+                    //m_TcpServerQueueManager.IsAsync = false;
+                    m_TcpServerQueueManager.Start();// (false);
+                    //QLogger.Info("ServerQueueManager started...");
+                }
                 //if (AgentManager.Settings.EnableFolderListener)
                 //{
                 //    m_FolderServer = new FolderServerListener();
@@ -146,7 +153,7 @@ namespace Nistec.Services
                 //    m_DbServer = new DbServerListener();
                 //    m_DbServer.Start();
                 //}
-                
+
 
                 //svr.Start();//McLock.Lock.ValidateLock(), true);
                 //host_serviceStart();
@@ -183,10 +190,11 @@ namespace Nistec.Services
                 if (m_HttpServerConsumer != null)
                     m_HttpServerConsumer.Stop();
 
-                if (m_ServerQueueManager != null)
-                    m_ServerQueueManager.Stop();
+                if (m_PipeServerQueueManager != null)
+                    m_PipeServerQueueManager.Stop();
 
-
+                if (m_TcpServerQueueManager != null)
+                    m_TcpServerQueueManager.Stop();
                 //if (m_FolderServer != null)
                 //    m_FolderServer.Stop(true);
                 //if (m_DbServer != null)

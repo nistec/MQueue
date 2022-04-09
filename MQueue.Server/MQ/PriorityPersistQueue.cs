@@ -17,6 +17,7 @@ using Nistec.Messaging.Config;
 using Nistec.Data.Entities;
 using System.Threading.Tasks;
 using Nistec.Logging;
+using Nistec.Data.Persistance;
 
 namespace Nistec.Messaging
 {

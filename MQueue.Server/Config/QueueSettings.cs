@@ -33,7 +33,8 @@ namespace Nistec.Messaging.Config
         public readonly string RootPath = DefaultRootPath;
         /// <summary>QueuesPath.</summary>
         public readonly string QueuesPath= DefaultRootPath+ QueuesFolder;
-
+        public readonly string DbCoverConnection = null;
+        public readonly string DbCoverName = "QCover";
 
         /// <summary>MaxRetry.</summary>
         public readonly int MaxRetry = QueueDefaults.DefaultMaxRetry;
@@ -82,8 +83,9 @@ namespace Nistec.Messaging.Config
         /// <summary>EnableMailerQueue.</summary>
         public readonly bool EnableMailerQueue = false;
         /// <summary>EnableQueueManager.</summary>
-        public readonly bool EnableQueueManager = false;
-        
+        public readonly bool EnablePipeQueueManager = false;
+        public readonly bool EnableTcpQueueManager = false;
+
         /// <summary>EnableDbListener.</summary>
         public readonly bool EnableDbListener = false;
         /// <summary>EnableFolderListener.</summary>
@@ -136,7 +138,8 @@ namespace Nistec.Messaging.Config
             }
             RootPath = table.Get<string>("RootPath", DefaultRootPath);
             QueuesPath= Path.Combine(RootPath, QueuesFolder);
-     
+            DbCoverConnection = table.Get<string>("DbCoverConnection", null);
+
             MaxSize = table.Get<long>("MaxSize", QueueDefaults.DefaultQueueMaxSize);
             DefaultExpiration = table.Get<int>("DefaultExpiration", 30);
             SyncInterval = table.Get<int>("SyncInterval", 60);
@@ -149,7 +152,8 @@ namespace Nistec.Messaging.Config
             TaskerTimeout = table.Get<int>("TaskerTimeout", 60);
             EnableAsyncTask = table.Get<bool>("EnableAsyncTask", true);
             EnableMailerQueue = table.Get<bool>("EnableMailerQueue", false);
-            EnableQueueManager = table.Get<bool>("EnableQueueManager", false);
+            EnablePipeQueueManager = table.Get<bool>("EnablePipeQueueManager", false);
+            EnableTcpQueueManager = table.Get<bool>("EnableTcpQueueManager", false);
 
             //EnableQueueController = table.Get<bool>("EnableQueueController", false);
             //EnableTopicController = table.Get<bool>("EnableTopicController", false);

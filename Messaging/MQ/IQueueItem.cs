@@ -33,6 +33,16 @@ namespace Nistec.Messaging
         //TransformTypes TransformType { get; }
 
         /// <summary>
+        /// Get or Set Formatter type.
+        /// </summary>
+        Formatters Formatter { get; }
+
+        /// <summary>
+        /// Get EncodingName
+        /// </summary>
+        string EncodingName { get; }
+
+        /// <summary>
         /// Get Priority
         /// </summary>
         Priority Priority { get; }
@@ -41,11 +51,15 @@ namespace Nistec.Messaging
         /// Get The message Host\Queue name.
         /// </summary>
         string Host { get; set; }
-
+        /// <summary>
+        /// Get or Set The message Label.
+        /// </summary>
+        string Label { get; }
         /// <summary>
         /// Get ItemId
         /// </summary>
         string Identifier { get;}
+
         /// <summary>
         /// Get the current body stream.
         /// </summary>
@@ -54,6 +68,8 @@ namespace Nistec.Messaging
         NetStream ToStream();
 
         TransStream ToTransStream();
+
+        string BodyToString();
 
         string ToJson();
         string Print();
@@ -74,6 +90,18 @@ namespace Nistec.Messaging
         /// </summary>
         MessageState MessageState { get;}
 
+        /// <summary>
+        /// Get Destination
+        /// </summary>
+        string Destination { get; }
+        /// <summary>
+        /// Get Channel
+        /// </summary>
+        int ChannelId { get; }
+        /// <summary>
+        /// Get Channel
+        /// </summary>
+        int AccountId { get; }
         ///// <summary>
         ///// Get Command
         ///// </summary>
@@ -83,6 +111,8 @@ namespace Nistec.Messaging
         ///// Get or Set transformation type.
         ///// </summary>
         //TransformTypes TransformType { get; }
+
+
 
         ///// <summary>
         ///// Get or Set message type.
@@ -128,10 +158,10 @@ namespace Nistec.Messaging
         /// </summary>
         string Sender { get; }
 
-        /// <summary>
-        /// Get or Set The message Label.
-        /// </summary>
-        string Label { get; }
+        ///// <summary>
+        ///// Get or Set The message Label.
+        ///// </summary>
+        //string Label { get; }
 
         /// <summary>
         /// Get Duration in milliseconds/Expiration in minutes
@@ -167,6 +197,7 @@ namespace Nistec.Messaging
         ///// <returns></returns>
         //NetStream GetItemStream();
 
+        bool IsExpired { get; }
 
         #region property
         /*

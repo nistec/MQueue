@@ -303,7 +303,7 @@ namespace Nistec.Messaging
             mqp.ReloadOnStart = Types.ToBool(prop["ReloadOnStart"], false);
             mqp.TargetPath = Types.NZ(prop["TargetPath"], null);
             mqp.IsTopic = Types.ToBool(prop["IsTopic"], false);
-            mqp.CommitMode = (PersistCommitMode)Types.ToInt(prop["Mode"], (int)PersistCommitMode.None);
+            mqp.CommitMode = (PersistCommitMode)Types.ToInt(prop["CommitMode"], (int)PersistCommitMode.None);
             return mqp;
         }
 
@@ -323,7 +323,24 @@ namespace Nistec.Messaging
             };
             return mqp;
         }
+        public static QProperties ByCommaPipe(string cp)
+        {
+            var prop=  KeyValueUtil.ParseCommaPipe(cp);
 
+            QProperties mqp = new QProperties()
+            {
+                ServerPath = Types.NZ(prop["ServerPath"], "localhost"),
+                QueueName = Types.NZ(prop["QueueName"], "MQueue"),
+                Mode = EnumExtension.Parse<CoverMode>(prop["Mode"],CoverMode.Memory),
+                IsTrans = Types.ToBool(prop["IsTrans"], false),
+                MaxRetry = (byte)Types.ToInt(prop["MaxRetry"], DefaultMaxRetry),
+                ReloadOnStart = Types.ToBool(prop["ReloadOnStart"], false),
+                TargetPath = Types.NZ(prop["TargetPath"], null),
+                IsTopic = Types.ToBool(prop["IsTopic"], false),
+                CommitMode = EnumExtension.Parse<PersistCommitMode>(prop["CommitMode"], PersistCommitMode.None),
+            };
+            return mqp;
+        }
         #endregion
 
         #region  ISerialEntity

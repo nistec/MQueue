@@ -326,7 +326,7 @@ namespace Nistec.Messaging
         Received = 13,
         Peeking=14,
         Peeked = 15,
-
+        Holded = 16,
         TransCommited = 19,
 
         OperationFailed = 20,
@@ -336,6 +336,8 @@ namespace Nistec.Messaging
         FailedEnqueue = 24,
         FailedDequeue = 25,
         FailedPeek = 26,
+        FailedHoldEnqueue = 27,
+        FailedHoldDequeue = 28,
 
         AllreadyExists = 100,
         QueueNotFound = 101,

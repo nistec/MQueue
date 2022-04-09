@@ -32,8 +32,8 @@ namespace Nistec.Messaging.Listeners
 
         //}
 
-        public FolderListener(QueueAdapter adapter, int interval)
-            : base(adapter, interval)
+        public FolderListener(QueueAdapter adapter)
+            : base(adapter)
         {
             _api = new FolderQueue(adapter.Source);
             //_Listener= new ListenerQ(this, adapter);

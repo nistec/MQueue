@@ -391,7 +391,7 @@ namespace Nistec.Messaging.UI
             {
                 //this.cbProvider.Items.AddRange(Enum.GetNames(typeof(QueueProvider)));
                 this.cbCoverMode.Items.AddRange(Enum.GetNames(typeof(CoverMode)));
-                // this.StyleGuideBase.StylePlan = Cache.IStyle.StylePlan;
+                // this.StyleGuideBase.StylePlan = Queue.IStyle.StylePlan;
             }
         }
 

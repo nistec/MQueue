@@ -55,8 +55,9 @@ namespace Nistec.Messaging.Remote
     //    }
     //}
 
-    public abstract class RemoteApi
+    public abstract class RemoteApi: ChannelSettings
     {
+ /*
         public const int DefaultConnectTimeout = 6000;
         public const int DefaultReadTimeout = 180000;
         public const int DefaultWaitTimeout = 180000;
@@ -119,7 +120,7 @@ namespace Nistec.Messaging.Remote
         public bool IsCoverable { get; set; }
 
         #endregion
-
+*/
 
         /// <summary>
         /// CConvert stream to json format.
@@ -818,7 +819,24 @@ namespace Nistec.Messaging.Remote
                 //OnQItemCompleted(null, message, onCompleted);
             }
         }
- 
+
+        public TransStream ConsumItemStream(QueueRequest message, int timeout)
+        {
+            message.Host = EnsureHost(message.Host);
+
+            try
+            {
+
+                TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout));
+                return ts;
+            }
+            catch (Exception ex)
+            {
+                OnFault("ConsumItem error:" + ex.Message);
+                return null;
+            }
+        }
+
         public void ConsumItemStream(QueueRequest message, int timeout, Action<string> onFault, Action<TransStream> onCompleted)
         {
             message.Host = EnsureHost(message.Host);
@@ -1347,7 +1365,7 @@ namespace Nistec.Messaging.Remote
             switch (Protocol)
             {
                 case NetProtocol.Http:
-                    HttpClient.SendOut(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, ConnectTimeout, EnableRemoteException);
+                    HttpClient.SendOut(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, EnableRemoteException);
                     break;
                 case NetProtocol.Pipe:
                     PipeClient.SendOut(message, RemoteHostAddress, EnableRemoteException, IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
@@ -1359,6 +1377,33 @@ namespace Nistec.Messaging.Remote
             }
         }
 
+        #region message json
+
+        public string SendHttpJsonDuplex(QueueRequest message, bool pretty = false)
+        {
+            string response = null;
+
+            message.TransformType = TransformType.Json;
+            message.IsDuplex = true;
+
+            response = HttpClient.SendDuplexJson(message, RemoteHostAddress, false);
+            //response = HttpClientCache.SendDuplexJson(message, RemoteHostName, false);
+
+            if (pretty)
+            {
+                if (response != null)
+                    response = JsonSerializer.Print(response);
+            }
+            return response;
+        }
+
+        public void SendHttpJsonOut(QueueRequest message)
+        {
+            HttpClient.SendOutJson(message, RemoteHostAddress, false);
+            //HttpClientCache.SendOut(message, RemoteHostName, false);
+        }
+
+        #endregion
 
 
         #region Exec Stream
@@ -1393,7 +1438,7 @@ namespace Nistec.Messaging.Remote
             switch (Protocol)
             {
                 case NetProtocol.Http:
-                    HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+                    HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
                     break;
                 case NetProtocol.Pipe:
                     //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
@@ -1412,7 +1457,7 @@ namespace Nistec.Messaging.Remote
             switch (Protocol)
             {
                 case NetProtocol.Http:
-                    return HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort,ChannelSettings.HttpMethod, ConnectTimeout, EnableRemoteException);
+                    return HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort,HttpMethod, ConnectTimeout, EnableRemoteException);
 
                 case NetProtocol.Pipe:
                     //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
@@ -1431,7 +1476,7 @@ namespace Nistec.Messaging.Remote
             switch (Protocol)
             {
                 case NetProtocol.Http:
-                    HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+                    HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
                     break;
                 case NetProtocol.Pipe:
                     //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
@@ -1450,7 +1495,7 @@ namespace Nistec.Messaging.Remote
             switch (Protocol)
             {
                 case NetProtocol.Http:
-                    return HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, ChannelSettings.HttpMethod, ConnectTimeout, EnableRemoteException);
+                    return HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, EnableRemoteException);
 
                 case NetProtocol.Pipe:
                     //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None

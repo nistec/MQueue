@@ -8,15 +8,13 @@ using System.IO;
 
 namespace Nistec.Messaging.Listeners
 {
-    
+
     /// <summary>
     /// Represent an adapter properties for all kinds of queue adapters.
     /// </summary>
-    public class QueueAdapter:IDisposable
+    public class QueueAdapter : IDisposable
     {
-
-        
-
+               
         #region properties
         /// <summary>
         /// Get or Set the source <see cref="QueueHost"/> host properties.
@@ -60,15 +58,18 @@ namespace Nistec.Messaging.Listeners
         /// Get or Set the maximum number of items to fetch for each session, default is 1.
         /// </summary>
         public int MaxItemsPerSession { get; set; }
+
+        public int Interval { get; set; }
+
         /// <summary>
         /// Get or Set the delegate of target methods.
         /// </summary>
-        public Action<IQueueItem> QueueAction { get; set; }
+        public Action<IQueueItem> MessageReceivedAction { get; set; }
         /// <summary>
         /// Get or Set the delegate of acknowledgment methods.
         /// </summary>
-        public Action<IQueueAck> AckAction { get; set; }
-        public Action<string> FaultAction { get; set; }
+        public Action<IQueueAck> MessageAckAction { get; set; }
+        public Action<string> MessageFaultAction { get; set; }
         int _WorkerCount;
         /// <summary>
         /// Gets or Set the number of worker count.
@@ -137,7 +138,7 @@ namespace Nistec.Messaging.Listeners
             IsTrans = false;
             IsTopic = false;
             MaxItemsPerSession = 1;
-            //Interval = interval<=0? DefaultInterval:interval;// 1000;
+            Interval = 1000;// interval<=0? DefaultInterval:interval;// 1000;
             ConnectTimeout = Defaults.ConnectTimeout;
             ReadTimeout = Defaults.ReadTimeout;
             WorkerCount = 1;
@@ -151,7 +152,7 @@ namespace Nistec.Messaging.Listeners
         /// </summary>
         /// <param name="queueName"></param>
         /// <param name="serverName"></param>
-        public QueueAdapter(QueueHost host):this()
+        public QueueAdapter(QueueHost host) : this()
         {
             Source = host;
         }
@@ -175,8 +176,13 @@ namespace Nistec.Messaging.Listeners
         /// <param name="hostName"></param>
         public QueueAdapter(HostProtocol protocol, string serverName, int hostPort, string hostName) : this()
         {
-            Source = QueueHost.Get(protocol, serverName, hostPort, hostName);
+            Source = new QueueHost(protocol, serverName, hostPort, hostName);
         }
+        public QueueAdapter(string serverName, string pipeName, string hostName) : this()
+        {
+            Source = new QueueHost(HostProtocol.ipc, serverName, pipeName, hostName);
+        }
+
         #endregion
 
         #region Dispose
@@ -205,7 +211,7 @@ namespace Nistec.Messaging.Listeners
         {
             if (!disposed)
             {
-                
+
                 if (Source != null)
                 {
                     Source.Dispose();
@@ -221,9 +227,13 @@ namespace Nistec.Messaging.Listeners
                 //    Message.Dispose();
                 //    Message = null;
                 //}
-                if (QueueAction != null)
+                if (MessageReceivedAction != null)
                 {
-                    QueueAction = null;
+                    MessageReceivedAction = null;
+                }
+                if (MessageFaultAction != null)
+                {
+                    MessageFaultAction = null;
                 }
             }
             disposed = true;
@@ -312,7 +322,7 @@ namespace Nistec.Messaging.Listeners
             //{
             //    throw new ArgumentException("Incorrect OperationType, it is not an async type");
             //}
-            if (QueueAction == null)
+            if (MessageReceivedAction == null)
             {
                 throw new ArgumentException("Invalid QueueAction Adapter");
             }
@@ -393,6 +403,4 @@ namespace Nistec.Messaging.Listeners
             }
         }
     }
-
-  
 }

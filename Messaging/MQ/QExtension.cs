@@ -18,6 +18,7 @@ namespace Nistec.Messaging
 {
     public static class QExtension
     {
+ 
 
         public static NetProtocol GetProtocol(this HostProtocol protocol)
         {

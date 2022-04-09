@@ -20,6 +20,7 @@ using Nistec.Channels;
 using Nistec.Serialization;
 using Nistec.Generic;
 using Nistec.Data.Sqlite;
+using Nistec.Data.Persistance;
 
 namespace Nistec.Messaging.UI
 {
@@ -94,7 +95,14 @@ namespace Nistec.Messaging.UI
                 mcManagment.TreeView.Nodes.Clear();
                 mcManagment.ListCaption = "Queue Items";
 
-                var ts = ManagementApi.Get().Report(QueueCmdReport.ReportQueueList);
+                //string hostAddress = "nistec_queue_manager";
+                //if (cmdProtocol == NetProtocol.Tcp)
+                //{
+                //    var tcpSettings = TcpClientSettings.GetTcpClientSettings("nistec_queue_manager");
+                //    hostAddress = tcpSettings.Address;
+                //}
+
+                var ts = ManagementApi.Get().Report(QueueCmdReport.ReportQueueList,null);
                 //string[] list = TransStream.ReadValue<string[]>(ts);
 
                 if (ts == null)
@@ -149,7 +157,7 @@ namespace Nistec.Messaging.UI
 
             try
             {
-                var ts = ManagementApi.Get(name).Report(QueueCmdReport.ReportQueueItems);
+                var ts = ManagementApi.Get(ManagementApi.HostName,name,NetProtocol.Pipe).Report(QueueCmdReport.ReportQueueItems, null);
                 //var dt = TransStream.ReadValue(ts);
                 var dt = (ts != null) ? ts.ReadValue() : null;
                 //var q= AgentManager.Queue.Get(name);
@@ -263,7 +271,7 @@ namespace Nistec.Messaging.UI
             }
             catch (Exception ex)
             {
-                MsgBox.ShowError(ex.Message, "Cache Management");
+                MsgBox.ShowError(ex.Message, "Queue Management");
             }
         }
 
@@ -302,7 +310,7 @@ namespace Nistec.Messaging.UI
             return gridItems.GetCurrentDataRow();
         }
 
-        string GetSelectedCacheKey()
+        string GetSelectedQueueKey()
         {
             DataRowView record = GetCurrentGridRow();
             if (record == null)
@@ -774,7 +782,7 @@ namespace Nistec.Messaging.UI
             string name = GetSelectedItem();
             if (MsgBox.ShowQuestion("Delete Queue " + name + "?", "Nistec", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                var ts = ManagementApi.Get(name).Command(QueueCmd.RemoveQueue);
+                var ts = ManagementApi.Get(ManagementApi.HostName,name, NetProtocol.Pipe).Command(QueueCmd.RemoveQueue);
                 object val = (ts != null) ? ts.ReadValue():null;
                 //var val = TransStream.ReadValue(ts);
 
@@ -788,7 +796,7 @@ namespace Nistec.Messaging.UI
             string name = GetSelectedItem();
             if (MsgBox.ShowQuestion("Clear All items Queue " + name + "?", "Nistec", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                TransStream ts = ManagementApi.Get(name).Command(QueueCmd.ClearQueue);
+                TransStream ts = ManagementApi.Get(ManagementApi.HostName,name, NetProtocol.Pipe).Command(QueueCmd.ClearQueue);
                 object val = (ts != null) ? ts.ReadValue() : null;
                 //var val = TransStream.ReadValue(ts);
 
@@ -806,7 +814,7 @@ namespace Nistec.Messaging.UI
             //object obj = null;
             string itemName = "";
 
-            TransStream ts = ManagementApi.Get(name).Command(QueueCmd.QueueProperty);
+            TransStream ts = ManagementApi.Get(ManagementApi.HostName,name, NetProtocol.Pipe).Command(QueueCmd.QueueProperty);
             //var obj = TransStream.ReadValue(ts);
             var obj = (ts != null) ? ts.ReadValue() : null;
 

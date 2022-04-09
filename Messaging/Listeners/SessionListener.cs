@@ -45,6 +45,7 @@ namespace Nistec.Messaging.Listeners
 
         bool _IsAsync;
         public bool IsAsync { get { return _IsAsync; } }
+        public ListenerState State { get; private set; }
 
         ILogger _Logger;
         /// <summary>
@@ -53,7 +54,7 @@ namespace Nistec.Messaging.Listeners
         public ILogger Logger { get { return _Logger; } set { if (value != null) _Logger = value; } }
 
         public bool EnableDynamicWait { get; set; }
-
+        public string HostName { get; private set; }
         //AdapterOperations _AdapterOperation;
         //public AdapterOperations OperationType { get { return _AdapterOperation; } }
 
@@ -124,8 +125,8 @@ namespace Nistec.Messaging.Listeners
         /// <param name="e"></param>
         protected virtual void OnMessageReceived(GenericEventArgs<IQueueItem> e)
         {
-            if (Adapter.QueueAction != null)
-                Adapter.QueueAction(e.Args);
+            if (Adapter.MessageReceivedAction != null)
+                Adapter.MessageReceivedAction(e.Args);
             if (MessageReceived != null)
                 MessageReceived(this, e);
         }
@@ -155,8 +156,8 @@ namespace Nistec.Messaging.Listeners
         /// <param name="e"></param>
         protected virtual void OnErrorOcurred(GenericEventArgs<string> e)
         {
-            if (Adapter.FaultAction != null)
-                Adapter.FaultAction(e.Args);
+            if (Adapter.MessageFaultAction != null)
+                Adapter.MessageFaultAction(e.Args);
 
             if (ErrorOcurred != null)
                 ErrorOcurred(this, e);
@@ -183,7 +184,7 @@ namespace Nistec.Messaging.Listeners
 
         #region ctor
 
-        internal SessionListener(QueueAdapter adapter, int interval)
+        internal SessionListener(QueueAdapter adapter)//, int interval)
         {
             if (adapter == null)
             {
@@ -197,13 +198,15 @@ namespace Nistec.Messaging.Listeners
 
             //_Owner = owner;
             _Source = adapter.Source;
+            HostName = _Source.HostName;
+
             //_TransferTo = adapter.TransferTo;
 
             //_ServerName = channel.ServerName;
             //_QueueName = channel.Source;
             //IntervalWait = interval < MinWait ? MinWait : interval;// 1000;
 
-            Interval = interval;
+            Interval = adapter.Interval;
             _ConnectTimeout = adapter.ConnectTimeout;
             _ReadTimeout = adapter.ReadTimeout;
             _WorkerCount = adapter.WorkerCount;
@@ -216,7 +219,7 @@ namespace Nistec.Messaging.Listeners
 
             //_api = new QueueApi(adapter.Source);
 
-
+            State = ListenerState.Initilaized;
         }
 
         #endregion
@@ -280,7 +283,7 @@ namespace Nistec.Messaging.Listeners
                     catch (Exception ex) {
 
                         if (_Logger != null)
-                            _Logger.Exception("Session listener ActionTask error ", ex);
+                            _Logger.Exception("Session listener "+ HostName + " ActionTask error " , ex);
                         return false;
                     }
                 },
@@ -289,36 +292,48 @@ namespace Nistec.Messaging.Listeners
                     if (_Logger != null)
                         _Logger.Log((LoggerLevel)level, message);
                 },
+                ActionState = (ListenerState state) => {
+                    State = state;
+                },
                 Name = "SessionListener",
                 Interval = 100,
                 MaxThreads = 1
             };
             ActionWorker.Start();
-
+            State = ListenerState.Started;
             if (_Logger != null)
-                _Logger.Info("SessionListener Started");
+                _Logger.Info("SessionListener Started: {0}", HostName);
         }
         public void Stop()
         {
             if (ActionWorker == null)
                 return;
             ActionWorker.Stop();
+            State = ListenerState.Stoped;
             if (_Logger != null)
-                _Logger.Info("SessionListener Stoped");
+                _Logger.Info("SessionListener Stoped: {0}", HostName); 
         }
-        public void Pause(int seconds)
+        public bool Pause(OnOffState onOff)
         {
             if (ActionWorker == null)
-                return;
-            ActionWorker.Pause(seconds);
+                return false;
+            bool paused = ActionWorker.Pause(onOff);
             if (_Logger != null)
-                _Logger.Info("SessionListener Stoped");
+                _Logger.Info("SessionListener Paused: {0}, {1}", paused, HostName);
+
+            if (paused)
+                State = ListenerState.Paused;
+            return paused;
         }
         public void Shutdown(bool waitForWorkers)
         {
             if (ActionWorker == null)
                 return;
             ActionWorker.Shutdown(waitForWorkers);
+            State = ListenerState.Down;
+            Adapter.Dispose();
+            if (_Logger != null)
+                _Logger.Info("SessionListener Shutdown: {0}", HostName);
         }
 
         #endregion

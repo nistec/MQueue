@@ -29,12 +29,12 @@ namespace Nistec.Messaging.Listeners
         ILogger Log { get; set; }
     }
 
-    public interface IListener
-    {
-        void Start();
-        void Stop();
-        void Shutdown(bool waitForWorkers);
-        void Pause(int seconds);
-        //void Delay(TimeSpan time);
-    }
+    //public interface IListener
+    //{
+    //    void Start();
+    //    void Stop();
+    //    void Shutdown(bool waitForWorkers);
+    //    void Pause(int seconds);
+    //    //void Delay(TimeSpan time);
+    //}
 }

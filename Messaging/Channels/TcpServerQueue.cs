@@ -79,19 +79,9 @@ namespace Nistec.Messaging.Channels
         /// Read Request
         /// </summary>
         /// <param name="stream"></param>
-        /// <param name="readTimeout"></param>
         /// <returns></returns>
-        protected override IQueueItem ReadRequest(NetworkStream stream, int readTimeout,int ReceiveBufferSize = TcpSettings.DefaultReceiveBufferSize)
+        protected override IQueueItem ReadRequest(NetworkStream stream)
         {
-            //IQueueItem item = null;
-            //using (var ntStream = new NetStream())
-            //{
-            //    ntStream.CopyFrom(stream, readTimeout, ReceiveBufferSize);
-
-            //    item =new QueueItem(stream, null);
-            //}
-            //return item;
-
             return new QueueItem(stream, null);
         }
        

@@ -93,9 +93,8 @@ namespace Nistec.Messaging.Server
         /// Read Request
         /// </summary>
         /// <param name="stream"></param>
-        /// <param name="readTimeout"></param>
         /// <returns></returns>
-        protected override IQueueMessage ReadRequest(NetworkStream stream, int readTimeout, int ReceiveBufferSize)
+        protected override IQueueMessage ReadRequest(NetworkStream stream)
         {
             //IQueueMessage message = null;
             //using (var ntStream = new NetStream())

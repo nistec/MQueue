@@ -2,6 +2,7 @@
 using Nistec.Channels;
 using Nistec.Channels.Tcp;
 using Nistec.Collections;
+using Nistec.Data.Persistance;
 using Nistec.Data.Sqlite;
 using Nistec.Logging;
 using Nistec.Messaging;
@@ -79,12 +80,12 @@ namespace QueueListenerDemo
             {
                 Source = host,
                 IsAsync = true,
-                //Interval = 100,
+                Interval = 100,
                 ConnectTimeout = 5000,
                 ReadTimeout = 180000,
                 WorkerCount = 1,
                 EnableDynamicWait = true,
-                QueueAction = (message) =>
+                MessageReceivedAction = (message) =>
                 {
                     Console.WriteLine("State:{0},Arrived:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}", message.MessageState, message.ArrivedTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), message.Host, message.Label, message.Identifier, message.Duration);
 
@@ -92,13 +93,13 @@ namespace QueueListenerDemo
                     string sbody = body == null ? "null" : body.ToString();
                     Console.WriteLine("body: " + sbody);
                 },
-                FaultAction = (message) =>
+                MessageFaultAction = (message) =>
                 {
                     Console.WriteLine(message);
                 }
             };
 
-            QueueListener listener = new QueueListener(adapter, 100);
+            QueueListener listener = new QueueListener(adapter);
             string logpath = NetlogSettings.GetDefaultPath("qlistener");
             listener.Logger = new Logger(logpath);
             //listener.ErrorOcurred += Listener_ErrorOcurred;
@@ -147,12 +148,12 @@ namespace QueueListenerDemo
                 Port = 15002,
                 IsAsync = false
             };
-            var host = QueueHost.Parse(string.Format("file:{0}:Queues?{1}", Assists.EXECPATH, settings.HostName));
-            host.CoverMode = CoverMode.FileStream;
-            host.CommitMode = PersistCommitMode.OnMemory;
-            host.ReloadOnStart = true;
+            var qhost = QueueHost.Parse(string.Format("file:{0}:Queues?{1}", Assists.EXECPATH, settings.HostName));
+            qhost.CoverMode = CoverMode.FileStream;
+            qhost.CommitMode = PersistCommitMode.OnMemory;
+            qhost.ReloadOnStart = true;
 
-            var listener = new TopicSbscriberListener(host,true)
+            var listener = new TopicSbscriberListener(qhost, true)
             {
                 OnItemReceived = (IQueueItem message) =>
                 {

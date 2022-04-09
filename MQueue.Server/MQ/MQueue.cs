@@ -37,7 +37,7 @@ namespace Nistec.Messaging
         #endregion
 
         #region Topic
-        TopicController Topic;
+        internal TopicController Topic;
 
         public IQueueAck EnqueueTopicItem(QueueItem item)
         {

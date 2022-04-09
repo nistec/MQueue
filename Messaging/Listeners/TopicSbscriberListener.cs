@@ -23,7 +23,7 @@ namespace Nistec.Messaging.Listeners
     /// <summary>
     /// Represents a thread-safe queue listener (FIFO) collection for client.
     /// </summary>
-    public class TopicSbscriberListener : IControllerHandler
+    public class TopicSbscriberListener : IControllerHandler, IListener
     {
 
         IChannelService _ChannelService;
@@ -40,6 +40,7 @@ namespace Nistec.Messaging.Listeners
         public Action<string> OnError { get; set; }
         public string SbscriberHost { get; private set; }
         public HostProtocol HostProtocol { get; private set; }
+        public ListenerState State { get; private set; }
         public string HostInfo { get; private set; }
         public string ChannelInfo { get; private set; }
         #region ctor
@@ -115,6 +116,7 @@ namespace Nistec.Messaging.Listeners
         //}
         #endregion
 
+        #region DynamicWorker
         DynamicWorker ActionWorker;
 
         public void StartDynamicWorker() {
@@ -185,14 +187,14 @@ namespace Nistec.Messaging.Listeners
                 _Logger.Info("TopicSbscriberListener Stopted: " + SbscriberHost);
         }
 
-        public void Pause()
+        public void PauseChannelService()
         {
             _ChannelService.Pause();
             if (_Logger != null)
                 _Logger.Info("TopicSbscriberListener Paused: " + SbscriberHost);
         }
 
-        public bool PausePersistQueue(int seconds)
+        public bool Pause(OnOffState onff)
         {
             if (EnablePersistQueue)
             {
@@ -200,10 +202,20 @@ namespace Nistec.Messaging.Listeners
                 {
                     _Logger.Info("TopicSbscriberListener PausePersistQueue: " + SbscriberHost);
                 }
-                return ActionWorker.Pause(seconds);
+                return ActionWorker.Pause(onff);
             }
             return false;
         }
+
+        public void Shutdown(bool waitForWorkers)
+        {
+
+            if (ActionWorker != null)
+                ActionWorker.Shutdown(waitForWorkers);
+            if (Logger != null)
+                Logger.Info("TopicSbscriberListener Shutdown!");
+        }
+        #endregion
 
         #region override
 

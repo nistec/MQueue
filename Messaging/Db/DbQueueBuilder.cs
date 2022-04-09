@@ -7,7 +7,7 @@ namespace Nistec.Messaging.Db
 {
     public class DbQueueBuilder
     {
-
+        //TODO: change  UniqueId,MessageId
         #region statements
 
         const string FifoQueue = @"

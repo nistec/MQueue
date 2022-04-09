@@ -23,12 +23,12 @@ using Nistec.Messaging.Server;
 namespace Nistec.Messaging.Server
 {
 
-    public class TopicDispatcher
+    public class TopicDispatcher:IListener
     {
 
         PriorityPersistQueue EventQueue;
         //Topics m_Topic;
-
+        //Dictionary<string,bool> HoldSubscribers;
         //int DequeueInterval = 100;
         int SenderInterval = 100;
         bool Initialized = false;
@@ -37,7 +37,7 @@ namespace Nistec.Messaging.Server
         //bool IsStarted = false;
         QueueController Controller;
         public ILogger Logger { get; set;}
-
+        public ListenerState State { get; private set; }
         public TopicDispatcher(QueueController controller)
         {
             Controller = controller;
@@ -46,9 +46,111 @@ namespace Nistec.Messaging.Server
             var topicProp = new QProperties("TopicEvent", false, CoverMode.Memory);
             EventQueue = new PriorityPersistQueue(topicProp);
             Logger = QLogger.Logger.ILog;
+            //HoldSubscribers = new Dictionary<string, bool>();
             //m_Topic = new Topics();
         }
 
+        //public void HoldSubscriber(string name)
+        //{
+        //    HoldSubscribers[name] = true;
+        //}
+        //public void HoldReease(string name)
+        //{
+        //    HoldSubscribers.Remove(name);
+
+        //    EventQueue.HoldReEnqueue();
+        //}
+
+        #region DynamicWorker
+
+        DynamicWorker ActionWorker;
+        bool EnablePersistQueue=true;
+
+        public void StartDynamicWorker()
+        {
+
+
+            if (EnablePersistQueue)
+            {
+                if (ActionWorker != null)
+                    return;
+
+                ActionWorker = new DynamicWorker(DynamicWaitType.DynamicWait)
+                {
+                    ActionLog = (LogLevel level, string message) =>
+                    {
+                        if (Logger != null)
+                            Logger.Log((LoggerLevel)level, message);
+                    },
+                    ActionTask = () =>
+                    {
+                        IQueueItem item;
+                        try
+                        {
+                            if (EventQueue.TryDequeue(out item))
+                            {
+                                SendItem(item as QueueItem);
+
+                                return true;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Exception("Topic Sender Worker error ", ex);
+                        }
+                        return false;
+                    },
+                    ActionState = (ListenerState state) => {
+
+                        State = state;
+                    },
+                    Interval = 100,
+                    MaxThreads = 1,
+                    Name="TopicDispatcher"
+                };
+                ActionWorker.Start();
+            }
+        }
+
+        public void Start()
+        {
+ 
+            StartDynamicWorker();
+
+            if (Logger != null)
+                Logger.Info("TopicDispatcher Started...");
+        }
+
+        public void Stop()
+        {
+  
+            if (ActionWorker != null)
+                ActionWorker.Stop();
+            if (Logger != null)
+                Logger.Info("TopicDispatcher Stopted!");
+        }
+
+        public bool Pause(OnOffState onff)
+        {
+            bool paused = false;
+            if (ActionWorker != null)
+                paused= ActionWorker.Pause(onff);
+            if (Logger != null)
+                Logger.Info("TopicDispatcher Paused");
+            return paused;
+        }
+
+        public void Shutdown(bool waitForWorkers)
+        {
+
+            if (ActionWorker != null)
+                ActionWorker.Shutdown(waitForWorkers);
+            if (Logger != null)
+                Logger.Info("TopicDispatcher Shutdown!");
+        }
+
+        #endregion
+        /*
         public void Start()
         {
 
@@ -65,11 +167,13 @@ namespace Nistec.Messaging.Server
 
             try
             {
+                Thread.Sleep(3000);
                 for (int i = 0; i < MaxThreads; i++)
                 {
                     //thDequeueWorker[i].Join();
                     //if (!SendDirect)
-                    thSenderWorker[i].Join();
+
+                    //thSenderWorker[i].Join();
                 }
             }
             catch (Exception ex)
@@ -138,8 +242,8 @@ namespace Nistec.Messaging.Server
             }
             Logger.Warn("Topic Sender Worker stoped!");
         }
+        */
 
-        #endregion
 
         //public void AddItem(QueueItem item)
         //{
@@ -152,10 +256,17 @@ namespace Nistec.Messaging.Server
             {
                 var copy = item.Copy();
                 copy.Host = subscriber.QHost.RawHostAddress;
-                //copy.Args = new NameValueArgs();
-                //copy.Args["HostAddress"] = subscriber.Host;
-                EventQueue.Enqueue(copy);
-
+                if (subscriber.IsHold)
+                {
+                    DbCover.Add(item);
+                    //return new QueueAck(MessageState.Holded, item);
+                }
+                else
+                {
+                    //copy.Args = new NameValueArgs();
+                    //copy.Args["HostAddress"] = subscriber.Host;
+                    EventQueue.Enqueue(copy);
+                }
             }
 
             return new QueueAck(MessageState.Arrived, item);
@@ -165,10 +276,18 @@ namespace Nistec.Messaging.Server
         {
             var copy = item.Copy();
             copy.Host = subscriber.QHost.RawHostAddress;
-            //copy.Args = new NameValueArgs();
-            //copy.Args["HostAddress"] = subscriber.Host;
-            EventQueue.Enqueue(copy);
-            return new QueueAck(MessageState.Arrived, item);
+            if (subscriber.IsHold)
+            {
+                DbCover.Add(item);
+                return new QueueAck(MessageState.Holded, item);
+            }
+            else
+            {
+                //copy.Args = new NameValueArgs();
+                //copy.Args["HostAddress"] = subscriber.Host;
+                EventQueue.Enqueue(copy);
+                return new QueueAck(MessageState.Arrived, item);
+            }
         }
 
 
@@ -228,6 +347,7 @@ namespace Nistec.Messaging.Server
         bool _SendDirect = true;
         public bool SendDirect { get { return _SendDirect; } set { if (!Initialized) _SendDirect = value; } }
         public ILogger Logger { get; set; }
+        public bool IsHold { get; set; }
         //public static SyncTimerDispatcher<TransactionItem> SyncTimer = new SyncTimerDispatcher<TransactionItem>();
 
         TopicPublisher Publisher;
@@ -235,6 +355,15 @@ namespace Nistec.Messaging.Server
         QueueController Controller;
         MQueue Q;
 
+
+        public static TopicController Create(string queueName)
+        {
+            MQueue mq = AgentManager.Queue.Get(queueName);
+            if (mq == null)
+                throw new Exception("Queue not exists: " + queueName);
+
+            return new TopicController(mq);
+        }
 
         public TopicController(MQueue mq)
         {
@@ -314,15 +443,72 @@ namespace Nistec.Messaging.Server
             Initialized = true;
         }
 
+        public TopicSubscriber GetSubscriber(string subscriberName) {
+
+            TopicSubscriber ts;
+            if (Publisher.TryGetSubscriber(subscriberName, out ts)) {
+                return ts;
+            }
+            return ts;
+        }
+
+        public bool TryGetSubscriber(string subscriberName, out TopicSubscriber ts)
+        {
+            return (Publisher.TryGetSubscriber(subscriberName, out ts));
+        }
+
         public void AddSubscriber(TopicSubscriber ts)
         {
             Publisher.AddSubscriber(ts);
+        }
+        public void RemoveSubscriber(string subscriberName)
+        {
+            Publisher.RemoveSubscriber(subscriberName);
+        }
+
+        public void HoldSubscriber(string subscriberName)
+        {
+            Publisher.HoldSubscriber(subscriberName);
+        }
+
+        public void ReleaseHoldSubscriber(string subscriberName)
+        {
+            TopicSubscriber ts = GetSubscriber(subscriberName);
+            if (ts != null)
+            {
+                ts.IsHold = false;
+                DbCover.RenqueueAction(ts.Host, 0, (item)=>
+                {
+                    if (item != null)
+                        SendSubscriber(ts, item);
+                });
+            }
+        }
+
+        public void HoldTopic()
+        {
+            IsHold = true;
+        }
+
+        public void ReleaseHoldTopic()
+        {
+            IsHold = false;
+            DbCover.RenqueueAction(Q.QueueName, 0, (item) =>
+            {
+                if (item != null)
+                    Q.Enqueue(item);
+            });
         }
 
         public IQueueAck AddItem(QueueItem item)
         {
 
-            if (SendDirect)
+            if(IsHold)
+            {
+                DbCover.Add(item);
+                return new QueueAck(MessageState.Holded, item);
+            }
+            else if (SendDirect)
             {
                 //ack = SendSubscriber(subscriber, copy);
                 return Controller.TopicDispatcher.AddItem(item, Publisher);
@@ -335,17 +521,25 @@ namespace Nistec.Messaging.Server
                 foreach (var subscriber in Publisher.Subscribers.Values)
                 {
                     var copy = item.Copy();
-                    //if (SendDirect)
-                    //{
-                    //    //ack = SendSubscriber(subscriber, copy);
-                    //    ack = Controller.TopicDispatcher.AddItem(item, subscriber);
-                    //}
-                    //else
-                    //{
-                    copy.Host = subscriber.HostName;
-                    ack = Q.Enqueue(copy);
-                    //}
-                    acks.Add(ack);
+
+                    if (subscriber.IsHold)
+                    {
+
+                    }
+                    else
+                    {
+                        //if (SendDirect)
+                        //{
+                        //    //ack = SendSubscriber(subscriber, copy);
+                        //    ack = Controller.TopicDispatcher.AddItem(item, subscriber);
+                        //}
+                        //else
+                        //{
+                        copy.Host = subscriber.HostName;
+                        ack = Q.Enqueue(copy);
+                        //}
+                        acks.Add(ack);
+                    }
                 }
 
                 return new QueueAck(MessageState.Arrived, item);
@@ -375,6 +569,7 @@ namespace Nistec.Messaging.Server
                 return new QueueAck(MessageState.FailedEnqueue, copy);
             }
         }
+
 
     }
 

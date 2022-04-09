@@ -30,7 +30,6 @@ namespace Nistec.Messaging.Db
 
         protected override void BindLocalizer()
         {
- 
             //init by config key
             //base.Init(CurrentCulture(), "DataEntityDemo.Resources.AdventureWorks");
             //or

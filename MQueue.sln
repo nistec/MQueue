@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nistec.Lib", "..\Nistec.Lib
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nistec.Logger", "..\Nistec.Logger\Nistec.Logger.csproj", "{E510DD2C-859C-476C-9901-60EDFC5E71F1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nistec.Queue.Console", "MQueueConsole\Nistec.Queue.Console.csproj", "{7A6A2707-3CEB-4992-BA04-5B0937E5A263}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|.NET = Debug|.NET
@@ -211,6 +213,22 @@ Global
 		{E510DD2C-859C-476C-9901-60EDFC5E71F1}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{E510DD2C-859C-476C-9901-60EDFC5E71F1}.Release|x86.ActiveCfg = Release|Any CPU
 		{E510DD2C-859C-476C-9901-60EDFC5E71F1}.Release|x86.Build.0 = Release|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Debug|.NET.ActiveCfg = Debug|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Debug|.NET.Build.0 = Debug|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Debug|x86.Build.0 = Debug|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Release|.NET.ActiveCfg = Release|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Release|.NET.Build.0 = Release|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Release|x86.ActiveCfg = Release|Any CPU
+		{7A6A2707-3CEB-4992-BA04-5B0937E5A263}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

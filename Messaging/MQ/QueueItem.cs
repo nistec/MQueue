@@ -7,6 +7,7 @@ using Nistec.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Data;
 using System.IO;
 using System.IO.Pipes;
@@ -351,12 +352,14 @@ namespace Nistec.Messaging
                 //    break;
                 case "TypeName":
                     TypeName = Types.NZ(value, ""); break;
-                //case "Segments":
-                //    Segments = Types.ToByte(value, 0); break;
-                //case "HostType":
-                //    HostType = Types.ToByte(value, 0); break;
-                //case "Notify":
-                //    Notify = Types.NZ(value, ""); break;
+                case "EncodingName":
+                    EncodingName = Types.NZ(value, DefaultEncoding); break;
+                    //case "Segments":
+                    //    Segments = Types.ToByte(value, 0); break;
+                    //case "HostType":
+                    //    HostType = Types.ToByte(value, 0); break;
+                    //case "Notify":
+                    //    Notify = Types.NZ(value, ""); break;
                     //case "Command":
                     //    Command = Types.NZ(value,""); break;
                     //case "IsDuplex":
@@ -391,6 +394,7 @@ namespace Nistec.Messaging
 
                 BodyStream = this.BodyStream.Copy(),
                 TypeName = this.TypeName,
+                EncodingName=this.EncodingName
                 //Header = this.Header,
                 //ItemBinary = this.ItemBinary
             };
@@ -417,6 +421,8 @@ namespace Nistec.Messaging
             ArrivedTime = Assists.NullDate;
             Version = QueueDefaults.CurrentVersion;
             IsDuplex = true;
+            MessageType = MQTypes.Message;
+            EncodingName = DefaultEncoding;
         }
 
         //public QueueItem(QueueCmd command, TransformTypes transformType, Priority priority, string destination, string json)
@@ -485,6 +491,7 @@ namespace Nistec.Messaging
             ArrivedTime = Assists.NullDate;
             //m_BodyStream = null;
             BodyStream = null;
+            EncodingName = message.EncodingName;
         }
                
         //public QueueItem(Message message)
@@ -663,25 +670,34 @@ namespace Nistec.Messaging
             }
         }
 
-        ///// <summary>
-        ///// Get or Set transformation type.
-        ///// </summary>
-        //public TransformTypes TransformType { get; set; }
-
         /// <summary>
         /// Get or Set message type.
         /// </summary>
         public MQTypes MessageType { get; set; }
 
         /// <summary>
-        /// Get Priority
+        /// Get or set Priority
         /// </summary>
         public Priority Priority { get; set; }
         
         /// <summary>
-        /// Get The message Host\Queue name.
+        /// Get or set The message Host\Queue name.
         /// </summary>
         public string Host { get; set; }
+
+        /// <summary>
+        /// Get or set The message Destination.
+        /// </summary>
+        public string Destination { get; set; }
+        /// <summary>
+        /// Get or set The Channel ID.
+        /// </summary>
+        public int ChannelId { get; set; }
+        /// <summary>
+        /// Get or set The AccountId.
+        /// </summary>
+        public int AccountId { get; set; }
+
 
         //NetStream m_BodyStream;
         ///// <summary>
@@ -712,26 +728,17 @@ namespace Nistec.Messaging
         /// Get ArrivedTime
         /// </summary>
         public DateTime ArrivedTime { get; internal set; }
- 
-        ///// <summary>
-        ///// Get the last modified time.
-        ///// </summary>
-        //public DateTime Modified { get; set; }
-
+    
         /// <summary>
         /// Get or Set Duration in milliseconds/Expiration in minutes
         /// </summary>
         public int Duration { get; internal set; }
-        ///// <summary>
-        ///// Get or Set The message Sender.
-        ///// </summary>
-        //public string Sender { get; internal set; }
+   
 
-        ///// <summary>
-        ///// Get or Set The message Label.
-        ///// </summary>
-        //public string Label { get; set; }
-
+        public bool IsExpired
+        {
+            get { return Expiration == 0 ? true : Creation.AddMinutes(Expiration) > DateTime.Now; }
+        }
 
         #endregion
 
@@ -918,37 +925,35 @@ namespace Nistec.Messaging
             streamer.WriteValue((byte)Retry);
             streamer.WriteValue(ArrivedTime);
             streamer.WriteValue(Creation);
-            streamer.WriteValue(Modified);
+            //streamer.WriteValue(Modified);
             streamer.WriteValue(Duration);
-            //streamer.WriteValue(MessageId);
-            streamer.WriteValue((byte)TransformType);
-            streamer.WriteValue((byte)DuplexType);
-            streamer.WriteValue(Expiration);
-
+            //streamer.WriteValue((byte)TransformType);
+            //streamer.WriteValue((byte)DuplexType);
+            //streamer.WriteValue(Expiration);
             streamer.WriteString(Host);
-            streamer.WriteString(Label);
-            streamer.WriteString(Sender);
+            //streamer.WriteString(Label);
+            //streamer.WriteString(Sender);
+            streamer.WriteString(Destination);
+            streamer.WriteValue(ChannelId);
+            streamer.WriteValue(AccountId);
+            //streamer.WriteValue(BodyStream);
+            //streamer.WriteString(TypeName);
 
+            //MessageStream=======================================
+            streamer.WriteString(Id);
             streamer.WriteValue(BodyStream);
             streamer.WriteString(TypeName);
-
-           
-            
-            //streamer.WriteString(Topic);
-            //streamer.WriteValue(HeaderStream);
-
-            //streamer.WriteValue(new NetStream(Body));
-            //streamer.WriteValue(ItemBinary);
-
-            //if (Command != QueueCmd.Ack)
-            //{
-            //    streamer.WriteValue((int)Formatter);
-            //    streamer.WriteValue(BodyStream);
-            //    streamer.WriteString(TypeName);
-            //    streamer.WriteValue(Segments);
-            //    streamer.WriteString(Notify);
-            //}
-
+            streamer.WriteValue((int)Formatter);
+            streamer.WriteString(Label);
+            streamer.WriteString(GroupId);
+            streamer.WriteString(Command);
+            streamer.WriteString(Sender);
+            streamer.WriteValue((int)DuplexType);
+            streamer.WriteValue(Expiration);
+            streamer.WriteValue(Modified);
+            streamer.WriteValue(Args);
+            streamer.WriteValue((byte)TransformType);
+            streamer.WriteString(EncodingName);
             streamer.Flush();
         }
 
@@ -963,6 +968,7 @@ namespace Nistec.Messaging
             if (streamer == null)
                 streamer = new BinaryStreamer(stream);
 
+  
             Version = streamer.ReadValue<int>();
             
             MessageState = (MessageState)streamer.ReadValue<byte>();
@@ -973,40 +979,41 @@ namespace Nistec.Messaging
             Retry = streamer.ReadValue<byte>();
             ArrivedTime = streamer.ReadValue<DateTime>();
             Creation = streamer.ReadValue<DateTime>();
-            Modified = streamer.ReadValue<DateTime>();
+            //Modified = streamer.ReadValue<DateTime>();
             Duration = streamer.ReadValue<int>();
-
-            TransformType = (TransformType)streamer.ReadValue<byte>();
-            DuplexType = (DuplexTypes)streamer.ReadValue<byte>();
-            Expiration = streamer.ReadValue<int>();
-
-            //switch (Version)
-            //{
-            //    case 4022:
-            //        TransformType = (TransformType)streamer.ReadValue<byte>();
-            //        IsDuplex = streamer.ReadValue<bool>();
-            //        Expiration = streamer.ReadValue<int>();
-            //        break;
-            //    default:
-            //        byte transformType = streamer.ReadValue<byte>();
-            //        TransformType = TransformType.Object;
-            //        IsDuplex = true;
-            //        Expiration = 0;
-            //        break;
-            //}
-            
-            //MessageId = streamer.ReadValue<int>();
-            //TransformType = (TransformTypes)streamer.ReadValue<byte>();
-            
-           
+            //TransformType = (TransformType)streamer.ReadValue<byte>();
+            //DuplexType = (DuplexTypes)streamer.ReadValue<byte>();
+            //Expiration = streamer.ReadValue<int>();
             Host = streamer.ReadString();
+            //Label = streamer.ReadString();
+            //Sender = streamer.ReadString();
+            Destination = streamer.ReadString();
+            ChannelId = streamer.ReadValue<int>();
+            AccountId = streamer.ReadValue<int>();
+            //BodyStream = (NetStream)streamer.ReadValue();
+            //TypeName = streamer.ReadString();
+
+
+            //MessageStream=======================================
+            Id = streamer.ReadString();
+            BodyStream = (NetStream)streamer.ReadValue();
+            TypeName = streamer.ReadString();
+            Formatter = (Formatters)streamer.ReadValue<int>();
             Label = streamer.ReadString();
+            GroupId = streamer.ReadString();
+            Command = streamer.ReadString();
             Sender = streamer.ReadString();
+            DuplexType = (DuplexTypes)streamer.ReadValue<int>();
+            Expiration = streamer.ReadValue<int>();
+            Modified = streamer.ReadValue<DateTime>();
+            Args = (NameValueArgs)streamer.ReadValue();
+            TransformType = (TransformType)streamer.ReadValue<byte>();
+            EncodingName = Types.NZorEmpty(streamer.ReadString(), DefaultEncoding); 
+                       
+
             ////Topic = streamer.ReadString();
             //HeaderStream = (NetStream)streamer.ReadValue();
 
-            BodyStream = (NetStream)streamer.ReadValue();
-            TypeName = streamer.ReadString();
 
             //var ns = (NetStream)streamer.ReadValue();
             //Body = ns.ToArray();
@@ -1048,21 +1055,38 @@ namespace Nistec.Messaging
             info.Add("Retry", Retry);
             info.Add("ArrivedTime", ArrivedTime);
             info.Add("Creation", Creation);
-            info.Add("Modified", Modified);
+            //info.Add("Modified", Modified);
             info.Add("Duration", Duration);
-            //info.Add("MessageId", MessageId);
-            info.Add("TransformType", (byte)TransformType);
-            info.Add("IsDuplex", IsDuplex);
-            info.Add("DuplexType", (byte)DuplexType);
-            info.Add("Expiration", Expiration);
+            //info.Add("TransformType", (byte)TransformType);
+            //info.Add("DuplexType", (byte)DuplexType);
+            //info.Add("Expiration", Expiration);
 
             info.Add("Host", Host);
-            info.Add("Label", Label);
-            info.Add("Sender", Sender);
-            ////info.Add("Topic", Topic);
-            //info.Add("Headers", HeaderStream);
+            //info.Add("Label", Label);
+            //info.Add("Sender", Sender);
+            info.Add("Destination", Destination);
+            info.Add("ChannelId", ChannelId);
+            info.Add("AccountId", AccountId);
+            //info.Add("BodyStream", BodyStream);
+            //info.Add("TypeName", TypeName);
+
+            //MessageStream=======================================
+            info.Add("Id", Id);
             info.Add("BodyStream", BodyStream);
             info.Add("TypeName", TypeName);
+            info.Add("Formatter", (int)Formatter);
+            info.Add("Label", Label);
+            info.Add("GroupId", GroupId);
+            info.Add("Command", Command);
+            info.Add("Sender", Sender);
+            info.Add("DuplexType", (int)DuplexType);
+            info.Add("Expiration", Expiration);
+            info.Add("Modified", Modified);
+            info.Add("Args", Args);
+            info.Add("TransformType", (byte)TransformType);
+            info.Add("EncodingName", EncodingName);
+
+
             //info.Add("ItemBinary", new NetStream(ItemBinary));
 
             //if (Command != QueueCmd.Ack)
@@ -1108,22 +1132,36 @@ namespace Nistec.Messaging
             Retry = info.GetValue<byte>("Retry");
             ArrivedTime = info.GetValue<DateTime>("ArrivedTime");
             Creation = info.GetValue<DateTime>("Creation");
-            Modified = info.GetValue<DateTime>("Modified");
+            //Modified = info.GetValue<DateTime>("Modified");
             Duration = info.GetValue<int>("Duration");
-            //MessageId = info.GetValue<int>("MessageId");
-            TransformType = (TransformType)info.GetValue<byte>("TransformType");
-            DuplexType = (DuplexTypes)info.GetValue<byte>("DuplexType");
-            //IsDuplex = info.GetValue<bool>("IsDuplex");
-            Expiration = info.GetValue<int>("Expiration");
-            
+            //TransformType = (TransformType)info.GetValue<byte>("TransformType");
+            //DuplexType = (DuplexTypes)info.GetValue<byte>("DuplexType");
+            //Expiration = info.GetValue<int>("Expiration");
             Host = info.GetValue<string>("Host");
-            Label = info.GetValue<string>("Label");
-            Sender = info.GetValue<string>("Sender");
-            ////Topic = info.GetValue<string>("Topic");
-            //HeaderStream = (NetStream)info.GetValue("HeaderStream");
+            //Label = info.GetValue<string>("Label");
+            //Sender = info.GetValue<string>("Sender");
+            Destination = info.GetValue<string>("Destination");
+            ChannelId = info.GetValue<int>("ChannelId");
+            AccountId = info.GetValue<int>("AccountId");
+            //BodyStream = (NetStream)info.GetValue("BodyStream");
+            //TypeName = info.GetValue<string>("TypeName");
 
+
+            //MessageStream=======================================
+            Id = info.GetValue<string>("Id");
             BodyStream = (NetStream)info.GetValue("BodyStream");
             TypeName = info.GetValue<string>("TypeName");
+            Formatter = (Formatters)info.GetValue<int>("Formatter");
+            Label = info.GetValue<string>("Label");
+            GroupId = info.GetValue<string>("GroupId");
+            Command = info.GetValue<string>("Command");
+            Sender = info.GetValue<string>("Sender");
+            DuplexType = (DuplexTypes)info.GetValue<int>("DuplexType");
+            Expiration = info.GetValue<int>("Expiration");
+            Modified = info.GetValue<DateTime>("Modified");
+            Args = (NameValueArgs)info.GetValue("Args");
+            TransformType = (TransformType)info.GetValue<byte>("TransformType");
+            EncodingName = Types.NZorEmpty(info.GetValue<string>("EncodingName"), DefaultEncoding); 
 
             //var ns = (NetStream)info.GetValue("ItemBinary");
             //ItemBinary = ns.ToArray();
@@ -1144,6 +1182,211 @@ namespace Nistec.Messaging
             //}
 
         }
+        #endregion
+
+        #region ISerialJson
+
+        public override string EntityWrite(IJsonSerializer serializer, bool pretty = false)
+        {
+            if (serializer == null)
+                serializer = new JsonSerializer(JsonSerializerMode.Write, null);
+
+            //object body = null;
+            //if (BodyStream != null)
+            //{
+            //    body = BinarySerializer.ConvertFromStream(BodyStream);
+            //}
+
+            
+            serializer.WriteToken("Version", Version);
+            serializer.WriteToken("MessageState", (byte)MessageState);
+            serializer.WriteToken("MessageType", (byte)MessageType);
+            serializer.WriteToken("Command", (byte)QCommand);
+            serializer.WriteToken("Priority", (byte)Priority);
+            serializer.WriteToken("Identifier", Identifier);
+            serializer.WriteToken("Retry", Retry);
+            serializer.WriteToken("ArrivedTime", ArrivedTime);
+            serializer.WriteToken("Creation", Creation);
+            //serializer.WriteToken("Modified", Modified);
+            serializer.WriteToken("Duration", Duration);
+            //serializer.WriteToken("TransformType", (byte)TransformType);
+            //serializer.WriteToken("DuplexType", (byte)DuplexType);
+            //serializer.WriteToken("Expiration", Expiration);
+
+            serializer.WriteToken("Host", Host);
+            //serializer.WriteToken("Label", Label);
+            //serializer.WriteToken("Sender", Sender);
+            serializer.WriteToken("Destination", Destination);
+            serializer.WriteToken("ChannelId", ChannelId);
+            serializer.WriteToken("AccountId", AccountId);
+            //serializer.WriteToken("BodyStream", BodyStream);
+            //serializer.WriteToken("TypeName", TypeName);
+
+            //MessageStream=======================================
+            serializer.WriteToken("Id", Id);
+            serializer.WriteToken("BodyStream", BodyStream == null ? null : BodyStream.ToBase64String());
+            serializer.WriteToken("TypeName", TypeName);
+            serializer.WriteToken("Formatter", Formatter);
+            serializer.WriteToken("Label", Label, null);
+            serializer.WriteToken("GroupId", GroupId, null);
+            serializer.WriteToken("Command", Command);
+            serializer.WriteToken("Sender", Sender);
+            serializer.WriteToken("DuplexType", (int)DuplexType);
+            serializer.WriteToken("Expiration", Expiration);
+            serializer.WriteToken("Modified", Modified);
+            serializer.WriteToken("Args", Args);
+            serializer.WriteToken("TransformType", TransformType);
+            serializer.WriteToken("EncodingName", EncodingName);
+
+            //serializer.WriteToken("Body", body);
+
+            return serializer.WriteOutput(pretty);
+        }
+
+        public override object EntityRead(string json, IJsonSerializer serializer)
+        {
+            if (serializer == null)
+                serializer = new JsonSerializer(JsonSerializerMode.Read, new JsonSettings() { IgnoreCaseOnDeserialize = true });
+
+            //var queryParams = new Dictionary<string, string>(HtmlPage.Document.QueryString, StringComparer.InvariantCultureIgnoreCase);
+
+
+            var dic = serializer.Read<Dictionary<string, object>>(json);
+
+            if (dic != null)
+            {
+
+
+
+                Version = dic.Get<int>("Version");
+                MessageState = (MessageState)dic.Get<byte>("MessageState");
+                MessageType = (MQTypes)dic.Get<byte>("MessageType");
+                QCommand = (QueueCmd)dic.Get<byte>("Command");
+                Priority = (Priority)dic.Get<byte>("Priority");
+                Identifier = dic.Get<string>("Identifier");
+                Retry = dic.Get<byte>("Retry");
+                ArrivedTime = dic.Get<DateTime>("ArrivedTime");
+                Creation = dic.Get<DateTime>("Creation");
+                //Modified = dic.Get<DateTime>("Modified");
+                Duration = dic.Get<int>("Duration");
+                //TransformType = (TransformType)dic.Get<byte>("TransformType");
+                //DuplexType = (DuplexTypes)dic.Get<byte>("DuplexType");
+                //Expiration = dic.Get<int>("Expiration");
+                Host = dic.Get<string>("Host");
+                //Label = dic.Get<string>("Label");
+                //Sender = dic.Get<string>("Sender");
+                Destination = dic.Get<string>("Destination");
+                ChannelId = dic.Get<int>("ChannelId");
+                AccountId = dic.Get<int>("AccountId");
+                //BodyStream = (NetStream)dic.Get("BodyStream");
+                //TypeName = dic.Get<string>("TypeName");
+
+                //MessageStream=======================================
+                Id = dic.Get<string>("Id");
+                var body = dic.Get<string>("BodyStream");
+                TypeName = dic.Get<string>("TypeName");
+                Formatter = dic.GetEnum<Formatters>("Formatter", Formatters.Json);
+                Label = dic.Get<string>("Label");
+                GroupId = dic.Get<string>("GroupId");
+                Command = dic.Get<string>("Command");
+                Sender = dic.Get<string>("Sender");
+                DuplexType = (DuplexTypes)dic.Get<int>("DuplexType");
+                Expiration = dic.Get<int>("Expiration");
+                Modified = dic.Get<DateTime>("Modified");
+                Args = NameValueArgs.Convert((IDictionary<string, object>)dic.Get("Args"));// dic.Get<NameValueArgs>("Args");
+                TransformType = (TransformType)dic.GetEnum<TransformType>("TransformType", TransformType.Object);
+                EncodingName = Types.NZorEmpty(dic.Get<string>("EncodingName"), DefaultEncoding);  
+
+                if (body != null && body.Length > 0)
+                    BodyStream = NetStream.FromBase64String(body);
+            }
+
+            return this;
+        }
+
+        public override object EntityRead(NameValueCollection queryString, IJsonSerializer serializer)
+        {
+            if (serializer == null)
+                serializer = new JsonSerializer(JsonSerializerMode.Read, new JsonSettings() { IgnoreCaseOnDeserialize = true });
+
+            if (queryString != null)
+            {
+
+                Version = queryString.Get<int>("Version");
+                MessageState = (MessageState)queryString.Get<byte>("MessageState");
+                MessageType = (MQTypes)queryString.Get<byte>("MessageType");
+                QCommand = (QueueCmd)queryString.Get<byte>("Command");
+                Priority = (Priority)queryString.Get<byte>("Priority");
+                Identifier = queryString.Get<string>("Identifier");
+                Retry = queryString.Get<byte>("Retry");
+                ArrivedTime = queryString.Get<DateTime>("ArrivedTime");
+                Creation = queryString.Get<DateTime>("Creation");
+                //Modified = queryString.Get<DateTime>("Modified");
+                Duration = queryString.Get<int>("Duration");
+                //TransformType = (TransformType)queryString.Get<byte>("TransformType");
+                //DuplexType = (DuplexTypes)queryString.Get<byte>("DuplexType");
+                //Expiration = queryString.Get<int>("Expiration");
+                Host = queryString.Get<string>("Host");
+                //Label = queryString.Get<string>("Label");
+                //Sender = queryString.Get<string>("Sender");
+                Destination = queryString.Get<string>("Destination");
+                ChannelId = queryString.Get<int>("ChannelId");
+                AccountId = queryString.Get<int>("AccountId");
+                //BodyStream = (NetStream)queryString.Get("BodyStream");
+                //TypeName = queryString.Get<string>("TypeName");
+
+                //MessageStream=======================================
+                Id = queryString.Get<string>("Id");
+                var body = queryString.Get<string>("BodyStream");
+                TypeName = queryString.Get<string>("TypeName");
+                Formatter = queryString.GetEnum<Formatters>("Formatter", Formatters.Json);
+                Label = queryString.Get<string>("Label");
+                GroupId = queryString.Get<string>("GroupId");
+                Command = queryString.Get<string>("Command");
+                Sender = queryString.Get<string>("Sender");
+                DuplexType = (DuplexTypes)queryString.Get<int>("DuplexType");
+                Expiration = queryString.Get<int>("Expiration");
+                Modified = queryString.Get<DateTime>("Modified", DateTime.Now);
+                var args = queryString.Get("Args");
+                if (args != null)
+                {
+                    string[] nameValue = args.SplitTrim(':', ',', ';');
+                    Args = NameValueArgs.Get(nameValue);
+                }
+                TransformType = (TransformType)queryString.GetEnum<TransformType>("TransformType", TransformType.Object);
+                EncodingName = Types.NZorEmpty(queryString.Get<string>("EncodingName"), DefaultEncoding); 
+                if (body != null && body.Length > 0)
+                    BodyStream = NetStream.FromBase64String(body);
+
+
+                //MessageStream=======================================
+                //Command = queryString.Get<string>("Command".ToLower());
+                //Sender = queryString.Get<string>("Sender".ToLower());
+                //Id = queryString.Get<string>("Id".ToLower());
+                //TypeName = queryString.Get<string>("TypeName".ToLower());
+                //Label = queryString.Get<string>("Label".ToLower());
+                //GroupId = queryString.Get<string>("GroupId".ToLower());
+                //var body = queryString.Get<string>("BodyStream".ToLower());
+                //Modified = queryString.Get<DateTime>("Modified".ToLower(), DateTime.Now);
+                //Formatter = queryString.GetEnum<Formatters>("Formatter".ToLower(), Formatters.Json);
+                ////IsDuplex = queryString.Get<bool>("IsDuplex".ToLower());
+                //DuplexType = (DuplexTypes)queryString.Get<int>("DuplexType".ToLower());
+                //Expiration = queryString.Get<int>("Expiration".ToLower());
+                //var args = queryString.Get("Args".ToLower());
+                //if (args != null)
+                //{
+                //    string[] nameValue = args.SplitTrim(':', ',', ';');
+                //    Args = NameValueArgs.Get(nameValue);
+                //}
+                ////Args = NameValueArgs.Convert((IDictionary<string, object>)queryString.Get("Args".ToLower()));//queryString.Get<NameValueArgs>("Args".ToLower());
+                //TransformType = (TransformType)queryString.GetEnum<TransformType>("TransformType".ToLower(), TransformType.Object);
+                //if (body != null && body.Length > 0)
+                //    BodyStream = NetStream.FromBase64String(body);
+            }
+
+            return this;
+        }
+
         #endregion
 
         #region Converters
@@ -1637,7 +1880,7 @@ namespace Nistec.Messaging
             Host,
             Label,
             Sender,
-            //BodyStream,
+            GetBinary(),
             TypeName
             };
         }

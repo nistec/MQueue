@@ -6,6 +6,7 @@ using System.IO;
 using Nistec.Messaging.Io;
 using Nistec.Generic;
 using Nistec.Messaging.Listeners;
+using System.Collections.Specialized;
 
 namespace Nistec.Messaging
 {
@@ -29,6 +30,10 @@ namespace Nistec.Messaging
             return ((int)state < 20);
         }
 
+        public static string NewIdentifier()
+        {
+            return UUID.NewUuid().ToString();
+        }
 
         public static DateTime NullDate
         {
@@ -475,6 +480,33 @@ namespace Nistec.Messaging
             return filename.Replace(string.Format("\\{0}\\", Assists.FolderCovered), "\\Info\\");
         }
 
-       
+
+        //public static IDictionary<string, string> CommaPipePrse(string s)
+        //{
+        //    Dictionary<string, string> dic = new Dictionary<string, string>();
+        //    string[] args = s.SplitTrim('|');
+        //    foreach (string arg in args)
+        //    {
+        //        string[] kv = arg.SplitTrim('=');
+        //        if (kv.Length == 2)
+        //            dic.Add(kv[0], kv[1]);
+        //    }
+
+        //    return dic;
+        //}
+
+        //public static NameValueCollection CommaPipeParse(string s)
+        //{
+        //    NameValueCollection dic = new NameValueCollection();
+        //    string[] args = s.SplitTrim('|');
+        //    foreach (string arg in args)
+        //    {
+        //        string[] kv = arg.SplitTrim('=');
+        //        if (kv.Length == 2)
+        //            dic.Add(kv[0], kv[1]);
+        //    }
+
+        //    return dic;
+        //}
     }
 }

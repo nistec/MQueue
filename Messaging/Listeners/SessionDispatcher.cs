@@ -210,14 +210,13 @@ namespace Nistec.Messaging.Listeners
         /// Pause the queue for given time using host name and <see cref="TimeSpan"/> time.
         /// </summary>
         /// <param name="queueName"></param>
-        /// <param name="seconds"></param>
         /// <returns></returns>
-        public bool PauseQueue(string queueName, int seconds)
+        public bool PauseQueue(string queueName)
         {
             IListener li = Find(queueName);
             if (li == null)
                 return false;
-            li.Pause(seconds);
+            li.Pause(OnOffState.On);
             return true;
         }
 

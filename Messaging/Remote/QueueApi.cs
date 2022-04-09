@@ -109,7 +109,7 @@ namespace Nistec.Messaging.Remote
             Protocol = protocol;
             ConnectTimeout = (connectTimeout <= 0) ? DefaultConnectTimeout : connectTimeout;
             //RemoteHostName = ChannelSettings.RemoteQueueHostName;
-            EnableRemoteException = ChannelSettings.EnableRemoteException;
+            EnableRemoteException = ChannelSettings.DefaultEnableRemoteException;
         }
 
         //public QueueApi(string queueName) : this()
@@ -126,8 +126,8 @@ namespace Nistec.Messaging.Remote
         {
             var qh = QueueHost.Parse(hostAddress);
 
-            _QueueName = queueName;
-            _HostProtocol = qh.Protocol;
+            QueueName = queueName;
+            HostProtocol = qh.Protocol;
             RemoteHostAddress = qh.Endpoint;
             RemoteHostPort = qh.Port;
             Protocol = qh.Protocol.GetProtocol();
@@ -135,8 +135,8 @@ namespace Nistec.Messaging.Remote
         public QueueApi(string queueName, HostProtocol protocol, string endpoint, int port, string hostName) 
             : this()
         {
-            _QueueName = queueName;
-            _HostProtocol = protocol;
+            QueueName = queueName;
+            HostProtocol = protocol;
             RemoteHostAddress = endpoint;// QueueHost.GetRawAddress(protocol,serverName,port, hostName);
             RemoteHostPort = port;
             Protocol = protocol.GetProtocol();
@@ -145,11 +145,27 @@ namespace Nistec.Messaging.Remote
         public QueueApi(QueueHost host) 
             : this()
         {
-            _QueueName = host.HostName;
-            _HostProtocol = host.Protocol;
+            QueueName = host.HostName;
+            HostProtocol = host.Protocol;
             RemoteHostAddress = host.Endpoint;
             RemoteHostPort = host.Port;
             Protocol = host.NetProtocol;
+        }
+
+        public static QueueApi Get(string hostAddress, int connectTimeout = 0, bool isAsync=false)
+        {
+            var host = QueueHost.Parse(hostAddress);
+            var api = new QueueApi(host);
+            api.IsAsync = isAsync;
+            api.ConnectTimeout = connectTimeout;
+            return api;
+        }
+        public static QueueApi Get(QueueHost host, int connectTimeout = 0, bool isAsync = false)
+        {
+            var api = new QueueApi(host);
+            api.IsAsync = isAsync;
+            api.ConnectTimeout = connectTimeout;
+            return api;
         }
 
         #endregion
@@ -185,6 +201,8 @@ namespace Nistec.Messaging.Remote
         #endregion
 
         #region Enqueue
+
+        
 
         //public IQueueAck Enqueue(QueueItem message)
         //{
@@ -289,7 +307,7 @@ namespace Nistec.Messaging.Remote
             QueueRequest message = new QueueRequest()
             {
                 QCommand = QueueCmd.Dequeue,
-                Host = _QueueName,
+                Host = QueueName,
                 DuplexType = DuplexTypes.WaitOne
             };
 
@@ -328,7 +346,7 @@ namespace Nistec.Messaging.Remote
         {
             QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.DequeuePriority, null);
             {
-                Host = _QueueName,
+                Host = QueueName,
                 QCommand = QueueCmd.DequeuePriority
             };
             request.Priority = priority;
@@ -361,7 +379,7 @@ namespace Nistec.Messaging.Remote
             QueueRequest message = new QueueRequest()
             {
                 QCommand = QueueCmd.Peek,
-                Host = _QueueName,
+                Host = QueueName,
             };
 
             return ConsumItem(message, connectTimeout);
@@ -780,7 +798,7 @@ namespace Nistec.Messaging.Remote
         {
             QueueRequest request = new QueueRequest()
             {
-                Host = _QueueName,
+                Host = QueueName,
                 QCommand = (QueueCmd)(int)cmd,
                 //Command = (QueueCmd)(int)cmd
             };
@@ -794,7 +812,7 @@ namespace Nistec.Messaging.Remote
         {
             QueueRequest request = new QueueRequest()
             {
-                Host = _QueueName,
+                Host = QueueName,
                 QCommand = (QueueCmd)(int)cmd,
                 //Command = (QueueCmd)(int)cmd
             };
@@ -812,7 +830,7 @@ namespace Nistec.Messaging.Remote
         {
             QueueRequest message = new QueueRequest()//queueName, (QueueCmd)(int)cmd)
             {
-                Host = _QueueName,
+                Host = QueueName,
                 QCommand = (QueueCmd)(int)cmd,
                 //Command = (QueueCmd)(int)cmd
             };
@@ -826,7 +844,7 @@ namespace Nistec.Messaging.Remote
         {
             var message = new QueueRequest()
             {
-                Host = _QueueName,
+                Host = QueueName,
                 QCommand = QueueCmd.AddQueue,
             };
 
@@ -841,7 +859,7 @@ namespace Nistec.Messaging.Remote
 
             QProperties qp = new QProperties()
             {
-                QueueName = _QueueName,
+                QueueName = QueueName,
                 ServerPath = "localhost",
                 Mode = mode,
                 IsTrans = isTrans,
@@ -882,7 +900,7 @@ namespace Nistec.Messaging.Remote
         {
             QueueRequest message = new QueueRequest()
             {
-                Host = _QueueName,
+                Host = QueueName,
                 QCommand = QueueCmd.RemoveQueue,
             };
             var response= ConsumItem(message, ConnectTimeout);
@@ -896,7 +914,7 @@ namespace Nistec.Messaging.Remote
         {
             QueueRequest message = new QueueRequest()
             {
-                Host = _QueueName,
+                Host = QueueName,
                 QCommand = QueueCmd.Exists,
             };
             var response= ConsumItem(message, ConnectTimeout);

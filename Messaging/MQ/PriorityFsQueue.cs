@@ -184,6 +184,7 @@ namespace Nistec.Messaging
 
         #region override
 
+
         protected override bool TryAdd(Ptr ptr, IQueueItem item)
         {
             var copy = item.Copy();

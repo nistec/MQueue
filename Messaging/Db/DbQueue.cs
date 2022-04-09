@@ -18,6 +18,7 @@ namespace Nistec.Messaging.Db
 
         #region schema
 
+
         public static DataTable QueueSchema()
         {
 
@@ -33,7 +34,7 @@ namespace Nistec.Messaging.Db
             dt.Columns.Add("Modified", typeof(DateTime));
             dt.Columns.Add("Expiration", typeof(Int32));
             dt.Columns.Add("MessageId", typeof(Int16));
-            dt.Columns.Add("BodyStream", typeof(string));
+            dt.Columns.Add("BodyStream", typeof(byte[]));
             return dt.Copy();
         }
 

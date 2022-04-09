@@ -111,6 +111,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Channels\TcpServerChannel.cs" />
+    <Compile Include="Server\DbCover.cs" />
     <Compile Include="Server\QueueController.cs">
       <SubType>Code</SubType>
     </Compile>

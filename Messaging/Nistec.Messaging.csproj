@@ -129,6 +129,7 @@
     <Compile Include="Remote\ChannelSettings.cs" />
     <Compile Include="Channels\HttpClientQueue.cs" />
     <Compile Include="Remote\ManagementApi.cs" />
+    <Compile Include="Remote\RemoteExtension.cs" />
     <Compile Include="Remote\QueueApi.cs" />
     <Compile Include="Channels\PipeClientQueue.cs">
       <SubType>Code</SubType>
@@ -156,6 +157,7 @@
     <Compile Include="Proxies\MailerDefaults.cs" />
     <Compile Include="Proxies\QueueProxy.cs" />
     <Compile Include="Proxies\ServiceProxy.cs" />
+    <Compile Include="Remote\RemoteManager.cs" />
     <Compile Include="Transactions\Enums.cs">
       <SubType>
       </SubType>
@@ -211,6 +213,7 @@
     <Folder Include="Channels\_exc\" />
     <Folder Include="Listeners\_exc\" />
     <Folder Include="MQ\_exc\" />
+    <Folder Include="Remote\_MControl\" />
     <Folder Include="Transactions\_exc\" />
     <Folder Include="_exc\" />
   </ItemGroup>

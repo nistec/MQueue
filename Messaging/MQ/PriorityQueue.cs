@@ -46,6 +46,8 @@ namespace Nistec.Messaging
         private GenericPtrQueue mediumQ;
         private GenericPtrQueue highQ;
 
+        //private Dictionary<string,IQueueItem> holdItems;
+
         ILogger _Logger;
         /// <summary>
         /// Get or Set Logger that implements <see cref="ILogger"/> interface.
@@ -143,6 +145,7 @@ namespace Nistec.Messaging
             normalQ = new GenericPtrQueue();
             mediumQ = new GenericPtrQueue();
             highQ = new GenericPtrQueue();
+            //holdItems = new Dictionary<string, IQueueItem>();
             _Logger = QLogger.Logger.ILog;
         }
 
@@ -620,12 +623,25 @@ namespace Nistec.Messaging
 
             //Console.WriteLine("The call executed return value \"{0}\".", returnValue);
         }
-   
+
         #endregion
 
         #region Queue methods
 
-      
+        /// <summary>
+        /// Clear all Message
+        /// </summary>
+        /// <returns></returns>
+        public virtual void Clear()
+        {
+            normalQ.Clear();
+            mediumQ.Clear();
+            highQ.Clear();
+
+            ClearItems();
+        }
+
+
         /// <summary>
         /// Peek Message
         /// </summary>
@@ -1060,7 +1076,6 @@ namespace Nistec.Messaging
             //return new QueueAck(MessageState.Arrived, item);// new Ptr(ptr, PtrState.Arrived);
         }
 
-
         /// <summary>
         /// Remove Item
         /// </summary>
@@ -1083,6 +1098,63 @@ namespace Nistec.Messaging
             //}
         }
 
+        #endregion
+
+        #region hold Queue
+
+        /*
+        /// <summary>
+        /// Enqueue Message to hold queue
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public virtual IQueueAck HoldAdd(IQueueItem item)
+        {
+
+            var ptr = item.GetPtr();
+            //holdItems[]
+            if (TryAdd(ptr, item))
+            {
+
+              //  holdQ.Enqueue(ptr);
+
+                //tran.Complete();
+                if (MessageArrived != null)
+                {
+                    OnMessageArrived(new QueueItemEventArgs(item, MessageState.Holded));
+                }
+                return new QueueAck(MessageState.Holded, item);// new Ptr(ptr, PtrState.Arrived);
+            }
+
+            //}
+            //Thread.Sleep(ThreadWait);
+            return new QueueAck(MessageState.FailedHoldEnqueue, item);// ptr;
+        }
+
+        /// <summary>
+        /// ReEnqueue Message from hold queue to normalQ
+        /// </summary>
+        /// <param name="ptr"></param>
+        /// <param name="transactional"></param>
+        /// <returns></returns>
+        public virtual int HoldReEnqueue()
+        {
+            int count = 0;
+            bool isEmpty = false;
+            //while (!isEmpty)
+            //{
+            //    var ptr = holdQ.Dequeue();
+            //    if (ptr.IsEmpty)
+            //        isEmpty = true;
+            //    else
+            //    {
+            //        normalQ.Enqueue(ptr);
+            //        count++;
+            //    }
+            //}
+            
+            return count;
+        }
         #endregion
 
         #region public methods
@@ -1198,6 +1270,7 @@ namespace Nistec.Messaging
 
         //    return qitems.ToArray();
         //}
+        */
         #endregion
     }
 
