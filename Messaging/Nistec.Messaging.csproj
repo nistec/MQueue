@@ -84,6 +84,9 @@
     <Compile Include="Channels\HttpServerQueue.cs" />
     <Compile Include="Channels\PipeServerQueue.cs" />
     <Compile Include="Channels\TcpServerQueue.cs" />
+    <Compile Include="Client\QueueProducer.cs" />
+    <Compile Include="Client\QueueClient.cs" />
+    <Compile Include="Client\QueueConsumer.cs" />
     <Compile Include="Db\DbMessage.cs">
       <SubType>Code</SubType>
     </Compile>
