@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace QueueListenerDemo
 {
@@ -31,6 +32,29 @@ namespace QueueListenerDemo
             return host;
         }
 
+        public static void Consume(QueueHost host)
+        {
+            QueueApi q = new QueueApi(host);
+            q.ConnectTimeout = 500000000;
+            q.ReadTimeout = -1;
+            int i = 0;
+            do
+            {
+                i++;
+                var item = q.Consume(60);// DuplexTypes.WaitOne);
+
+                if (item != null)
+                {
+                    Console.WriteLine(item.Print());
+                }
+                else
+                {
+                    Console.WriteLine("Get nothing!");
+                }
+                Thread.Sleep(100);
+
+            } while (i < 100);
+        }
 
         public static void DoGet(QueueHost host)
         {
@@ -53,7 +77,7 @@ namespace QueueListenerDemo
         {
             QueueApi q = new QueueApi(host);
             var req = new QueueRequest() { QCommand = QueueCmd.ReportQueueItems, DuplexType = DuplexTypes.NoWaite, Host = "NC_Quick" };
-            var ts = q.ExecDuplexStream(req, 1000000);
+            var ts = q.ExecDuplexStream(req, 1000000,0);
 
             if (ts != null)
             {

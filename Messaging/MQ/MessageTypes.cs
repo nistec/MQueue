@@ -66,6 +66,7 @@ namespace Nistec.Messaging
         PeekPriority = 15,
         PeekItem = 16,
         RemoveItem = 17,
+        Consume=18,
         //trans
         Commit = 20,
         Abort = 21,

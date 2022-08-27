@@ -117,7 +117,7 @@ namespace Nistec.Messaging
         #region ctor
 
         public PriorityPersistQueue(IQProperties qp)
-            : base(qp.QueueName)
+            : base(qp.QueueName,qp.ConsumeInterval)
         {
 
             DbLiteSettings settings = new DbLiteSettings()

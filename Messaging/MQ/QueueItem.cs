@@ -77,6 +77,17 @@ namespace Nistec.Messaging
             return msg;
         }
 
+        public static QueueItem Create(NameValueCollection nvc)
+        {
+            if (nvc == null)
+            {
+                throw new ArgumentNullException("QueueItem.Load.NameValueCollection");
+            }
+            var msg = new QueueItem();
+            msg.Load(nvc);
+            msg.Modified = DateTime.Now;
+            return msg;
+        }
         public static QueueItem Create(GenericRecord rcd)
         {
             if (rcd == null)
@@ -221,7 +232,19 @@ namespace Nistec.Messaging
                 }
             }
         }
+        internal void Load(NameValueCollection nvc)
+        {
+            if (nvc == null)
+            {
+                throw new ArgumentNullException("Message.Load.NameValueCollection");
+            }
+            ClearData();
 
+            foreach (string Key in nvc.Keys)
+            {
+                SetInnerValue(Key, nvc.Get(Key));
+            }
+        }
 
         internal void Load(IDictionary dic)
         {

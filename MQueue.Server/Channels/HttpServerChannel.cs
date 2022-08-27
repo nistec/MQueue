@@ -59,9 +59,9 @@ namespace Nistec.Messaging.Server
         /// <param name="qChannel"></param>
         /// <param name="hostName"></param>
         public HttpServerChannel(QueueChannel qChannel, string hostName)
-            : base(hostName)
+           : base(QueueServerSettings.LoadHttpConfigServer(hostName))
         {
-            Settings = QueueServerSettings.LoadHttpConfigServer(hostName);
+            //Settings = QueueServerSettings.LoadHttpConfigServer(hostName);
             QueueChannel = qChannel;
         }
 
@@ -100,8 +100,23 @@ namespace Nistec.Messaging.Server
         protected override IQueueMessage ReadRequest(HttpRequestInfo request)
         {
 
-            //throw new Exception("Not implemented.");
 
+            if (QueueChannel == QueueChannel.Producer)
+            {
+                if (request.BodyType == HttpBodyType.QueryString)
+                    return QueueItem.Create(request.QueryString);
+                return QueueItem.Create(request.BodyStream);
+            }
+            else
+            {
+                if (request.BodyType == HttpBodyType.QueryString)
+                    return new QueueRequest(request.QueryString);
+                return new QueueRequest(request.BodyStream);
+            }
+
+
+            //throw new Exception("Not implemented.");
+            /*
             MessageStream stream = null;
             if (request.BodyStream != null)
             {
@@ -124,10 +139,14 @@ namespace Nistec.Messaging.Server
 
             //return QueueItem.Create(stream.GetStream());
 
+
+
             if (QueueChannel == QueueChannel.Producer)
                 return QueueItem.Create(stream.GetStream());
             else
                 return new QueueRequest(stream.GetStream());
+
+            */
         }
 
         #endregion

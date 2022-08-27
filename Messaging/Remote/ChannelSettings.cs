@@ -24,7 +24,7 @@ namespace Nistec.Messaging.Remote
         public const bool DefaultEnableRemoteException = false;
 
         public string _HttpMethod = DefaultHttpMethod;
-        public string HttpMethod { get { return HttpMethod; } set { HttpMethod = value; } }
+        public string HttpMethod { get { return _HttpMethod; } set { _HttpMethod = value; } }
         //==================================================
 
         public const int DefaultConnectTimeout = 6000;
@@ -57,9 +57,9 @@ namespace Nistec.Messaging.Remote
         int _ConnectTimeout = DefaultConnectTimeout;
         public int ConnectTimeout { get { return _ConnectTimeout; } set { _ConnectTimeout = (value <= 0 ? DefaultConnectTimeout : value); } }
         int _ReadTimeout = DefaultReadTimeout;
-        public int ReadTimeout { get { return _ReadTimeout; } set { _ReadTimeout = ((value == 0 || value < -1) ? DefaultReadTimeout : value); } }
+        public int ReadTimeout { get { return _ReadTimeout; } set { _ReadTimeout = ((value == 0 ) ? DefaultReadTimeout : value); } }//|| value < -1
         int _WaitTimeout = DefaultWaitTimeout;
-        public int WaitTimeout { get { return _WaitTimeout; } set { _WaitTimeout = ((value == 0 || value <= 0) ? DefaultWaitTimeout : value); } }
+        public int WaitTimeout { get { return _WaitTimeout; } set { _WaitTimeout = ((value == 0 ) ? DefaultWaitTimeout : value); } }//|| value <= 0
 
         public int EnsureConnectTimeout(int timeout)
         {

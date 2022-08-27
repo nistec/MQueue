@@ -118,7 +118,7 @@ namespace Nistec.Messaging.Config
                 Address = HttpSettings.EnsureHostAddress(settings.Address),
                 Method=settings.Method,
 
-                //Port = settings.Port,
+                Port = settings.Port,
                 //IsAsync = settings.IsAsync,
                 //ReceiveBufferSize = settings.ReceiveBufferSize,
                 //SendBufferSize = settings.SendBufferSize,

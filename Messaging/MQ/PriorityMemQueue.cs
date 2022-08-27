@@ -132,8 +132,8 @@ namespace Nistec.Messaging
 
         #region ctor
 
-        public PriorityMemQueue(string name)
-            : base(name)
+        public PriorityMemQueue(string name, int consumeIterval)
+            : base(name, consumeIterval)
         {
             
             int numProcs = Environment.ProcessorCount;

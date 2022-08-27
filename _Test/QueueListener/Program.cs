@@ -18,13 +18,13 @@ namespace QueueListenerDemo
 
             Console.WriteLine("QueueListener started...");
 
-            QueueReceiver.DoGet(QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "Netcell"));
+            QueueReceiver.Consume(QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "Controller"));// "NC_Bulk"));
             //QueueReceiver.DoGet(QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "NC_Bulk"));
             //QueueReceiver.DoListnning(QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "NC_Bulk"));
             //QueueReceiver.DoSbscriberListener();
 
-            HttpServerChannel channel = new HttpServerChannel();
-            channel.Start();
+            //HttpServerChannel channel = new HttpServerChannel();
+            //channel.Start();
 
             //TopicSubs topicSubs = new TopicSubs();
             //topicSubs.Start();

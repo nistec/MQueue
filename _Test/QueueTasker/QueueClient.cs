@@ -124,10 +124,10 @@ namespace QueueTasker
 
         public static void PublishItem()
         {
-            var host = QueueHost.Parse("tcp:127.0.0.1:15000?Netcell");
+            var host = QueueHost.Parse("tcp:127.0.0.1:15000?Controller");
             QueueApi q = QueueClient.GetApi(host);
             var item = QueueClient.CreateQueueItem("Hello world " + DateTime.Now.ToString("s"), "test");
-            item.Host = "Netcell";
+            item.Host = "Controller";
             item.QCommand = QueueCmd.Enqueue;
             //IQueueAck ack = null;
 

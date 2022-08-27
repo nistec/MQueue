@@ -192,6 +192,7 @@ namespace Nistec.Messaging
             m_QueueName = prop.QueueName;
             m_CoverMode = prop.Mode;
             m_maxRetry = prop.MaxRetry;
+            m_MaxWait = prop.MaxWait;
             m_isTrans = prop.IsTrans;
             IsTopic = prop.IsTopic;
             TargetPath = prop.TargetPath;
@@ -461,6 +462,17 @@ namespace Nistec.Messaging
 
         #region properties
 
+        long m_MaxWait = QProperties.DefaultMaxWait;
+        /// <summary>
+        /// Get max max consume waiting 
+        /// </summary>
+        public long MaxWait
+        {
+            get { return Interlocked.Read(ref m_MaxWait); }
+            set {
+                Interlocked.Exchange(ref m_MaxWait, value);
+            }
+        }
 
         /// <summary>
         /// Get max retry for item
@@ -1251,6 +1263,100 @@ namespace Nistec.Messaging
         public bool TryDequeue(out IQueueItem item)
         {
             return Q.TryDequeue(out item);
+        }
+
+        /*
+       public bool TryConsume(out IQueueItem item)
+       {
+           long waiting = 0;
+
+           do
+           {
+               if(!Q.TryDequeue(out item))
+               {
+                   Thread.Sleep(1000);
+                   Interlocked.Add(ref waiting, 1000);
+               }
+
+           } while (item == null || Interlocked.Read(ref waiting) < Interlocked.Read(ref m_MaxWait));
+
+           return (item != null);
+       }
+
+       private readonly object _syncObj = new object();
+
+       public long ReadValue()
+       {
+           // reading of value (99.9% case in app) will not use lock-object, 
+           // since this is too much overhead in our highly multithreaded app.
+           return Interlocked.Read(ref m_MaxWait);
+       }
+
+       public bool SetValueIfGreaterThan(long value)
+       {
+           // sync Exchange access to _myValue, since a secure greater-than comparisons is needed
+           lock (_syncObj)
+           {
+
+               // now we can set value savely to _myValue.
+
+
+               // greather than condition
+               if (Interlocked.Add(ref waiting, value) < Interlocked.Read(ref m_MaxWait))
+               {
+                   // now we can set value savely to _myValue.
+                   //Interlocked.Exchange(ref m_MaxWait, value);
+                   return true;
+               }
+               return false;
+           }
+       }
+
+       readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> memWaiter = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
+
+       long waiting = 0;
+       public IQueueItem Consume(string key)//long wait = 60000)
+       {
+
+           IQueueItem item = null;
+
+           memWaiter.TryAdd(key, 0);
+
+           do
+           {
+               item = Q.Dequeue();
+               if (item == null)
+               {
+                   Thread.Sleep(1000);
+                   memWaiter.AddOrUpdate(key, 1000 , (k, v) => v +1000);
+                   Console.WriteLine("Current key: {0}, val: {1}", key, memWaiter.Get<long>(key));
+                   //lock (_syncObj)
+                   //{
+                   //    memWaiter[key] += 1000;
+                   //}
+                   //Interlocked.Add(ref waiting, 1000);
+               }
+
+           } while (item == null && memWaiter.Get<long>(key) < Interlocked.Read(ref m_MaxWait));
+
+           int val;
+           memWaiter.TryRemove(key, out val);
+           Console.WriteLine("Removed key: {0}, val: {1}", key, val);
+           //while (item == null || (Interlocked.CompareExchange(ref waiting, 1000, m_MaxWait) < m_MaxWait));//Interlocked.Read(ref waiting) < Interlocked.Read(ref m_MaxWait));
+
+           return item;
+       }
+       */
+
+        /// <summary>
+        /// Consume Message
+        /// </summary>
+        /// <param name="maxSecondWait"></param>
+        /// <returns></returns>
+        public IQueueItem Consume(int maxSecondWait)
+        {
+
+            return Q.Consume(maxSecondWait);
         }
 
         /// <summary>

@@ -138,6 +138,25 @@ namespace Nistec.Messaging.Config
                 return Types.ToByte(this["MaxRetry"], (byte)3); 
             }
         }
+
+        [ConfigurationProperty("MaxWait", DefaultValue = QProperties.DefaultMaxWait, IsRequired = false)]
+        public int MaxWait
+        {
+            get
+            {
+                return Types.ToInt(this["MaxWait"], QProperties.DefaultMaxWait);
+            }
+        }
+
+        [ConfigurationProperty("ConsumeInterval", DefaultValue = QProperties.DefaultConsumeInterval, IsRequired = false)]
+        public int ConsumeInterval
+        {
+            get
+            {
+                return Types.ToInt(this["ConsumeInterval"], QProperties.DefaultMaxWait);
+            }
+        }
+
         /// <summary>
         /// Get cover mode.
         /// </summary>

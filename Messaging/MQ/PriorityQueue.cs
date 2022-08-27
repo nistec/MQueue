@@ -42,6 +42,7 @@ namespace Nistec.Messaging
         const int TransWait = 1000;
         const int MaxRetry = 3;
 
+        int ConsumeInterval = 100;
         private GenericPtrQueue normalQ;
         private GenericPtrQueue mediumQ;
         private GenericPtrQueue highQ;
@@ -138,8 +139,9 @@ namespace Nistec.Messaging
 
         #region ctor
 
-        public PriorityQueue(string name)
+        public PriorityQueue(string name, int consumeInterval=100)
         {
+            ConsumeInterval = Math.Max(consumeInterval,10);
             this.Name = name;
             //this.isTrans = false;
             normalQ = new GenericPtrQueue();
@@ -760,6 +762,7 @@ namespace Nistec.Messaging
                     {
 
                         ((QueueItem)item).SetState(MessageState.Receiving);
+                        ((QueueItem)item).QCommand = QueueCmd.Dequeue;
                         //item.Status = ItemState.Dequeue;
                         //((QueueItem)item).SetSentTime();
 
@@ -780,6 +783,7 @@ namespace Nistec.Messaging
                 if (item != null)
                 {
                     ((QueueItem)item).SetState(MessageState.Receiving);
+                    ((QueueItem)item).QCommand = QueueCmd.Dequeue;
                     //item.Status = ItemState.Dequeue;
                     //((QueueItem)item).SetSentTime();
 
@@ -976,6 +980,54 @@ namespace Nistec.Messaging
 
         }
 
+
+        /// <summary>
+        /// Consume Message
+        /// </summary>
+        /// <param name="maxSecondWait"></param>
+        /// <returns></returns>
+        public virtual IQueueItem Consume(int maxSecondWait)
+        {
+            Ptr ptr = Ptr.Empty;
+            IQueueItem item = null;
+            DateTime start = DateTime.Now;
+            bool wait = true;
+            try
+            {
+                do
+                {
+                    if (highQ.TryDequeue(out ptr))
+                    {
+                        item = DequeueScop(ptr);
+                    }
+                    else if (mediumQ.TryDequeue(out ptr))
+                    {
+                        item = DequeueScop(ptr);
+                    }
+                    else if (normalQ.TryDequeue(out ptr))
+                    {
+                        item = DequeueScop(ptr);
+                    }
+                    else if(maxSecondWait>0 && DateTime.Now.Subtract(start).TotalSeconds > maxSecondWait)
+                    {
+                        wait = false;
+                    }
+                    else
+                    {
+                        Thread.Sleep(ConsumeInterval);
+                    }
+                } while (item==null && wait);
+
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception("PriorityQueue Consume error ", ex);
+            }
+
+            return item;
+
+        }
+
         //private IQueueItem GetFirstItem()
         //{
         //    IQueueItem item = null;
@@ -1001,7 +1053,7 @@ namespace Nistec.Messaging
         //    return item;
         //}
 
- 
+
         /// <summary>
         /// Enqueue Message
         /// </summary>

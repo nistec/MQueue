@@ -13,6 +13,9 @@ namespace Nistec.Messaging.Server
     public class AgentManager
     {
 
+        readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> memWaiter = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
+
+
         public static void StartController()
         {
             Queue.Start();

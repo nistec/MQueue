@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyFileVersion("3.5.0.0")]
 #else
 [assembly: AssemblyTitle("Nistec.Queue.Server")]
-[assembly: AssemblyFileVersion("4.0.2.0")]
+[assembly: AssemblyFileVersion("4.0.2.01")]
 #endif
 
 [assembly: AssemblyDescription("Messaging Framework")]

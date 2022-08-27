@@ -33,12 +33,14 @@ namespace Nistec.Messaging
         bool IsTrans { get; }
         bool IsTopic { get; }
         byte MaxRetry { get; }
+        int MaxWait { get; }
         CoverMode Mode { get; }
         string TargetPath { get; }
         int ConnectTimeout { get; }
 
         bool ReloadOnStart { get; }
 
+        int ConsumeInterval { get; }
         //Persist properties
         /// <summary>
         /// Use commit mode.
@@ -65,15 +67,21 @@ namespace Nistec.Messaging
         #region properties
 
         public const byte DefaultMaxRetry = 5;
+        public const int DefaultMaxWait = 10000;
+        public const int DefaultConsumeInterval = 100;
 
         public string ServerPath { get; set; }
         public string QueueName { get; set; }
         public bool IsTrans { get; set; }
         public byte MaxRetry{ get; set; }
+        public int MaxWait { get; set; }
         public CoverMode Mode { get; set; }
         public string TargetPath { get; set; }
         public int ConnectTimeout { get; set; }
         public bool IsTopic { get; set; }
+
+        public int ConsumeInterval { get; set; }
+        
 
         //public QCover Cover { get; set; }
 
@@ -164,6 +172,7 @@ namespace Nistec.Messaging
             Mode = CoverMode.Memory;
             IsTrans = false;
             MaxRetry = DefaultMaxRetry;
+            MaxWait = DefaultMaxWait;
             ReloadOnStart = false;
             IsTopic = false;
             TargetPath = null;
@@ -181,6 +190,7 @@ namespace Nistec.Messaging
             Mode = CoverMode.Memory;
             IsTrans = false;
             MaxRetry = DefaultMaxRetry;
+            MaxWait = DefaultMaxWait;
             ReloadOnStart = false;
             IsTopic = false;
             TargetPath = null;
@@ -200,6 +210,7 @@ namespace Nistec.Messaging
             Mode = mode;
             IsTrans = isTrans;
             MaxRetry = DefaultMaxRetry;
+            MaxWait = DefaultMaxWait;
             ReloadOnStart = false;
             IsTopic = false;
             TargetPath = null;
@@ -225,6 +236,7 @@ namespace Nistec.Messaging
             Mode = (CoverMode)(int)parser.GetAttributeValue(node, "CoverMode", "value", (int)CoverMode.Memory);
             IsTrans = Types.ToBool(parser.GetAttributeValue(node, "IsTrans", "value", "false"), false);
             MaxRetry = (byte)parser.GetAttributeValue(node, "MaxRetry", "value", (int)DefaultMaxRetry);
+            MaxWait = (int)parser.GetAttributeValue(node, "MaxWait", "value", (int)DefaultMaxWait);
             IsTopic = Types.ToBool(parser.GetAttributeValue(node, "IsTopic", "value", "false"), false);
             TargetPath = parser.GetAttributeValue(node, "TargetPath", "value", null);
             CommitMode = (PersistCommitMode)(int)parser.GetAttributeValue(node, "CommitMode", "value", (int)PersistCommitMode.None);
@@ -268,6 +280,7 @@ namespace Nistec.Messaging
             prop["Mode"] =(int) Mode;
             prop["IsTrans"] = IsTrans;
             prop["MaxRetry"] = MaxRetry;
+            prop["MaxWait"] = MaxWait;
             prop["ReloadOnStart"] = ReloadOnStart;
             prop["TargetPath"] = TargetPath;
             prop["IsTopic"] = IsTopic;
@@ -283,7 +296,8 @@ namespace Nistec.Messaging
            prop["Mode"] = ((int)Mode).ToString();
            prop["IsTrans"] = IsTrans.ToString();
            prop["MaxRetry"] = MaxRetry.ToString();
-           prop["ReloadOnStart"] = ReloadOnStart.ToString();
+            prop["MaxWait"] = MaxWait.ToString();
+            prop["ReloadOnStart"] = ReloadOnStart.ToString();
             prop["TargetPath"] = TargetPath;
             prop["IsTopic"] = IsTopic.ToString();
             prop["CommitMode"] = ((int)CommitMode).ToString();
@@ -300,6 +314,7 @@ namespace Nistec.Messaging
             mqp.Mode = (CoverMode)Types.ToInt(prop["Mode"], (int)CoverMode.Memory);
             mqp.IsTrans = Types.ToBool(prop["IsTrans"], false);
             mqp.MaxRetry = (byte)Types.ToInt(prop["MaxRetry"], DefaultMaxRetry);
+            mqp.MaxWait = (int)Types.ToInt(prop["MaxWait"], DefaultMaxWait);
             mqp.ReloadOnStart = Types.ToBool(prop["ReloadOnStart"], false);
             mqp.TargetPath = Types.NZ(prop["TargetPath"], null);
             mqp.IsTopic = Types.ToBool(prop["IsTopic"], false);
@@ -316,6 +331,7 @@ namespace Nistec.Messaging
                 Mode = (CoverMode)gnv.Get<byte>("Mode", (byte)CoverMode.Memory),
                 IsTrans = gnv.Get<bool>("IsTrans", false),
                 MaxRetry = (byte)gnv.Get<byte>("MaxRetry", DefaultMaxRetry),
+                MaxWait = (int)gnv.Get<int>("MaxWait", DefaultMaxWait),
                 ReloadOnStart = gnv.Get<bool>("ReloadOnStart", false),
                 TargetPath = gnv.Get("TargetPath", null),
                 IsTopic = gnv.Get<bool>("IsTopic", false),
@@ -334,6 +350,7 @@ namespace Nistec.Messaging
                 Mode = EnumExtension.Parse<CoverMode>(prop["Mode"],CoverMode.Memory),
                 IsTrans = Types.ToBool(prop["IsTrans"], false),
                 MaxRetry = (byte)Types.ToInt(prop["MaxRetry"], DefaultMaxRetry),
+                MaxWait = (int)Types.ToInt(prop["MaxWait"], DefaultMaxWait),
                 ReloadOnStart = Types.ToBool(prop["ReloadOnStart"], false),
                 TargetPath = Types.NZ(prop["TargetPath"], null),
                 IsTopic = Types.ToBool(prop["IsTopic"], false),
@@ -360,6 +377,7 @@ namespace Nistec.Messaging
             streamer.WriteValue((byte)Mode);
             streamer.WriteValue(IsTrans);
             streamer.WriteValue(MaxRetry);
+            streamer.WriteValue(MaxWait);
             streamer.WriteValue(QueueName);
             streamer.WriteValue(ServerPath);
             //streamer.WriteValue(Cover);
@@ -390,6 +408,7 @@ namespace Nistec.Messaging
             Mode = (CoverMode)streamer.ReadValue<byte>();
             IsTrans = streamer.ReadValue<bool>();
             MaxRetry = streamer.ReadValue<byte>();
+            MaxWait = streamer.ReadValue<int>();
             QueueName = streamer.ReadString();
             ServerPath = streamer.ReadString();
             //Cover = streamer.ReadValue<QCover>();

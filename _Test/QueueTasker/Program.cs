@@ -19,7 +19,7 @@ namespace QueueTasker
             Console.WriteLine("QueueTasker started...");
 
             //QueueClientDemo.PublishItem();
-            QueueClientDemo.PublishMulti(100);
+            QueueClientDemo.PublishMulti(1000);
 
             //QueueClientDemo.SendItem(false);
             //QueueClientDemo.SendMulti(false,10000);

@@ -93,8 +93,88 @@ namespace Nistec.Messaging.Server
                 throw new Exception("Queue not exists: " + qname);
             return mq;
         }
-        #region queue request
+        #region queue response
 
+        public TransStream DoResponse(IQueueItem item, MessageState state)
+        {
+            if (item == null)
+            {
+                return null;
+                //throw new MessageException(MessageState.MessageError, "Invalid queue item to write response");
+            }
+
+            var ts = ((QueueItem)item).ToTransStream(state);
+
+            //((QueueItem)item).SetState(state);
+            QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
+            //return item.ToStream();
+
+            return ts;
+
+            //if (item != null)
+            //{
+            //    ((QueueItem)item).SetState(state);
+            //    return item.GetItemStream();
+            //}
+            //else
+            //{
+            //    Message response = Message.Ack(MessageState.UnExpectedError, new MessageException(MessageState.UnExpectedError, "WriteResponse error: there is no item stream to write reponse"));
+            //    return response.ToStream();
+            //}
+
+            // QLogger.DebugFormat("Server WriteResponse State:{0}, MessageId: {1}", item.MessageState, item.MessageId);
+        }
+
+        public TransStream DoResponse(IQueueAck item)
+        {
+            if (item == null)
+            {
+                return null;
+                //throw new MessageException(MessageState.MessageError, "Invalid queue item to write response");
+            }
+            QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
+            return item.ToTransStream();
+        }
+        public TransStream DoResponse(IQueueItem item)
+        {
+            if (item == null)
+            {
+                return null;
+                //throw new MessageException(MessageState.MessageError, "Invalid queue item to write response");
+            }
+            QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
+            return item.ToTransStream();
+        }
+        public TransStream DoReportValue(object value)
+        {
+            return new TransStream(value, TransType.Object);
+        }
+
+        public TransStream DoReport(object item, QueueCmd cmd, MessageState state, string lbl)
+        {
+            if (item == null)
+            {
+                throw new MessageException(MessageState.PipeError, "Invalid item to write response");
+            }
+            if (item != null)
+            {
+                var message = QueueItem.Ack(state, cmd, lbl, null);
+
+                message.SetBody(item);
+                return message.ToTransStream();
+            }
+            else
+            {
+                QueueItem response = QueueItem.Ack(MessageState.UnExpectedError, cmd, new MessageException(MessageState.UnExpectedError, "WriteReport error: there is no item stream to write reponse"));
+                return response.ToTransStream();
+            }
+
+            // QLogger.DebugFormat("Server WriteReport State:{0}, MessageType: {1}", state, msgType);
+
+        }
+        #endregion
+
+        #region queue request
         internal TransStream ExecRequset(IQueueMessage request)
         {
             bool responseAck = false;
@@ -102,7 +182,7 @@ namespace Nistec.Messaging.Server
             {
                 if (request.QCommand == QueueCmd.QueueHasValue)
                 {
-                    return MessageAckServer.DoReportValue(QueueCount(request.Host));
+                    return DoReportValue(QueueCount(request.Host));
                 }
 
                 Logger.Debug("QueueController ExecRequset : {0}", request.Print());
@@ -116,7 +196,7 @@ namespace Nistec.Messaging.Server
                             responseAck = true;
                             //MQueue Q = Get(request.Host);
                             var ack = ExecSet((QueueItem)request);
-                            return MessageAckServer.DoResponse(ack);
+                            return DoResponse(ack);
                         }
                     case QueueCmd.Dequeue:
                     case QueueCmd.DequeuePriority:
@@ -124,7 +204,8 @@ namespace Nistec.Messaging.Server
                     case QueueCmd.Peek:
                     case QueueCmd.PeekPriority:
                     case QueueCmd.PeekItem:
-                        return MessageAckServer.DoResponse(ExecGet(request), MessageState.Receiving);
+                    case QueueCmd.Consume:
+                        return DoResponse(ExecGet(request), MessageState.Receiving);
                     case QueueCmd.Commit:
                         break;
                     case QueueCmd.Abort:
@@ -135,11 +216,11 @@ namespace Nistec.Messaging.Server
                         {
                             responseAck = true;
                             MQueue mq = null;
-                            return MessageAckServer.DoResponse(AddQueue(new QProperties(request.BodyStream), out mq));
+                            return DoResponse(AddQueue(new QProperties(request.BodyStream), out mq));
                         }
                     case QueueCmd.RemoveQueue:
                         responseAck = true;
-                        return MessageAckServer.DoResponse(RemoveQueue(request.Host));
+                        return DoResponse(RemoveQueue(request.Host));
                     case QueueCmd.HoldEnqueue:
                         throw new Exception("Operation not supported");
                     case QueueCmd.ReleaseHoldEnqueue:
@@ -227,7 +308,7 @@ namespace Nistec.Messaging.Server
                     case QueueCmd.PerformanceCounter:
                         throw new Exception("Operation not supported");
                     case QueueCmd.QueueCount:
-                        return MessageAckServer.DoReport(QueueCount(request.Host), QueueCmd.QueueCount, MessageState.Ok, null);
+                        return DoReport(QueueCount(request.Host), QueueCmd.QueueCount, MessageState.Ok, null);
                 }
             }
             catch (MessageException mex)
@@ -274,6 +355,8 @@ namespace Nistec.Messaging.Server
                     return Q.Peek();
                 case QueueCmd.PeekPriority:
                     return Q.Peek(request.Priority);
+                case QueueCmd.Consume:
+                    return Q.Consume(request.Expiration);// (Guid.NewGuid().ToString());// request.Identifier);
             }
 
             return null;

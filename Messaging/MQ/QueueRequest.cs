@@ -15,6 +15,7 @@ using Nistec.Data.Entities;
 using Nistec.Messaging.Remote;
 using Nistec.Serialization;
 using Nistec.Channels;
+using System.Collections.Specialized;
 
 namespace Nistec.Messaging
 {
@@ -200,6 +201,32 @@ namespace Nistec.Messaging
             EntityRead(stream,null);
         }
 
+        public QueueRequest(NameValueCollection QueryString)
+        {
+            Version = QueryString.Get<int>("Version");
+            //var MessageState = (MessageState)QueryString.Get<byte>("MessageState");
+            //var MessageType = (MQTypes)QueryString.Get<byte>("MessageType");
+            QCommand = EnumExtension.ParseOrCast<QueueCmd>(QueryString.Get("QCommand"), QueueCmd.None);// (QueueCmd)QueryString.Get<byte>("QCommand");
+            Priority = EnumExtension.ParseOrCast<Priority>(QueryString.Get("Priority"), Priority.Normal);// (Priority)QueryString.Get<byte>("Priority");
+            Identifier = QueryString.Get("Identifier");//.ReadValue<Guid>();
+            //var Retry = QueryString.Get<byte>("Retry");
+            //var ArrivedTime = QueryString.Get<DateTime>("ArrivedTime");
+            Creation = DateTime.Now;// QueryString.Get<DateTime>("Creation");
+            Modified = DateTime.Now;//QueryString.Get<DateTime>("Modified");
+            //var Duration = QueryString.Get<int>("Duration");
+
+            TransformType = EnumExtension.ParseOrCast<TransformType>(QueryString.Get("TransformType"), TransformType.None);// (TransformType)QueryString.Get<byte>("TransformType");
+            DuplexType = EnumExtension.ParseOrCast<DuplexTypes>(QueryString.Get("DuplexType"), DuplexTypes.WaitOne);// (DuplexTypes)QueryString.Get<byte>("DuplexType");
+            Expiration = QueryString.Get<int>("Expiration");
+            Host = QueryString.Get("Host");
+            Label = QueryString.Get("Label");
+            Sender = QueryString.Get("Sender");
+            //BodyStream = (NetStream)Get.ReadValue();
+            SetBody(QueryString.Get("Body"));
+            TypeName = typeof(string).GetType().FullName;// QueryString.Get("TypeName");
+
+        }
+
         #endregion
 
         #region Dispose
@@ -239,7 +266,7 @@ namespace Nistec.Messaging
 
         #region  ISerialEntity
 
-        
+
         /// <summary>
         /// Write the current object include the body and properties to stream using <see cref="IBinaryStreamer"/>, This method is a part of <see cref="ISerialEntity"/> implementation.
         /// </summary>

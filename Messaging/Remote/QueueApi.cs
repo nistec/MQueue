@@ -311,7 +311,7 @@ namespace Nistec.Messaging.Remote
                 DuplexType = DuplexTypes.WaitOne
             };
 
-            return ConsumItem(message, connectTimeout);
+            return RequestItem(message, connectTimeout);
 
         }
 
@@ -320,7 +320,7 @@ namespace Nistec.Messaging.Remote
             message.QCommand = QueueCmd.Dequeue;
             //message.Host = this._QueueName;
 
-            return ConsumItem(message, connectTimeout);
+            return RequestItem(message, connectTimeout);
 
         }
  
@@ -330,7 +330,7 @@ namespace Nistec.Messaging.Remote
             //message.Host = this._QueueName;
             //message.MessageState = MessageState.Sending;
 
-            ConsumItem(message, connectTimeout, onCompleted, aw);
+            RequestItem(message, connectTimeout, onCompleted, aw);
 
         }
         //public void DequeueAsync(QueueRequest message, int connectTimeout, Action<IQueueItem> onCompleted, Action<bool> onAck, AutoResetEvent resetEvenet)
@@ -367,6 +367,21 @@ namespace Nistec.Messaging.Remote
         //}
         #endregion
 
+        #region Consume
+        public IQueueItem Consume(int maxWaitSecond)
+        {
+            QueueRequest message = new QueueRequest()
+            {
+                QCommand = QueueCmd.Consume,
+                Host = QueueName,
+                DuplexType = DuplexTypes.WaitOne
+            };
+
+            return ConsumeItem(message, maxWaitSecond);
+
+        }
+        #endregion
+
         #region Peek
 
         //public IQueueItem Peek(QueueRequest message)
@@ -382,7 +397,7 @@ namespace Nistec.Messaging.Remote
                 Host = QueueName,
             };
 
-            return ConsumItem(message, connectTimeout);
+            return RequestItem(message, connectTimeout);
 
         }
 
@@ -391,7 +406,7 @@ namespace Nistec.Messaging.Remote
             message.QCommand = QueueCmd.Peek;
             //message.Host = this._QueueName;
 
-            return ConsumItem(message, connectTimeout);
+            return RequestItem(message, connectTimeout);
 
         }
 
@@ -403,7 +418,7 @@ namespace Nistec.Messaging.Remote
 
             //void OnAck(bool ack) { }
 
-            ConsumItem(message, connectTimeout, onCompleted, DynamicWait.Empty);
+            RequestItem(message, connectTimeout, onCompleted, DynamicWait.Empty);
 
         }
         #endregion
@@ -712,7 +727,7 @@ namespace Nistec.Messaging.Remote
                 Host = host
             };
 
-            var ack = ConsumItem(request, ConnectTimeout);
+            var ack = ConsumeItem(request, ConnectTimeout);
             if (ack == null)
             {
                 ack = new QueueItem()//MessageState.UnExpectedError, "Server was not responsed for this message", command.ToString(), host);
@@ -802,7 +817,7 @@ namespace Nistec.Messaging.Remote
                 QCommand = (QueueCmd)(int)cmd,
                 //Command = (QueueCmd)(int)cmd
             };
-            var response = ConsumItem(request, ConnectTimeout);
+            var response = RequestItem(request, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
             //return (Message)client.Exec(message, (QueueCmd)(int)cmd);
@@ -816,7 +831,7 @@ namespace Nistec.Messaging.Remote
                 QCommand = (QueueCmd)(int)cmd,
                 //Command = (QueueCmd)(int)cmd
             };
-            var res = ConsumItem (request, ConnectTimeout);
+            var res = RequestItem(request, ConnectTimeout);
             //var res= response == null ? null : response.ToMessage();
 
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
@@ -834,7 +849,7 @@ namespace Nistec.Messaging.Remote
                 QCommand = (QueueCmd)(int)cmd,
                 //Command = (QueueCmd)(int)cmd
             };
-            var response= ConsumItem(message, ConnectTimeout);
+            var response= RequestItem(message, ConnectTimeout);
             return response;//==null? null: response.ToMessage();
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
             //return (Message)client.Exec(message, (QueueCmd)(int)cmd);
@@ -849,7 +864,7 @@ namespace Nistec.Messaging.Remote
             };
 
             message.SetBody(qp.GetEntityStream(false), qp.GetType().FullName);
-            var response = ConsumItem(message, ConnectTimeout);
+            var response = RequestItem(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
         }
 
@@ -903,7 +918,7 @@ namespace Nistec.Messaging.Remote
                 Host = QueueName,
                 QCommand = QueueCmd.RemoveQueue,
             };
-            var response= ConsumItem(message, ConnectTimeout);
+            var response= RequestItem(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
 
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
@@ -917,7 +932,7 @@ namespace Nistec.Messaging.Remote
                 Host = QueueName,
                 QCommand = QueueCmd.Exists,
             };
-            var response= ConsumItem(message, ConnectTimeout);
+            var response= RequestItem(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
             //return (Message)client.Exec(message, QueueCmd.RemoveQueue);

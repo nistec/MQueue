@@ -36,7 +36,7 @@ namespace Nistec.Messaging
         #region ctor
 
         public PriorityComplexQueue(IQProperties qp)
-            : base(qp.QueueName)
+            : base(qp.QueueName, qp.ConsumeInterval)
         {
 
             int numProcs = Environment.ProcessorCount;

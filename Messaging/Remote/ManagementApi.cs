@@ -117,7 +117,7 @@ namespace Nistec.Messaging.Remote
                 Host = QueueName,
                 QCommand = QueueCmd.Reply,
             };
-            var response = ConsumItemStream(message, ConnectTimeout);
+            var response = RequestItemStream(message, ConnectTimeout);
             return response;
         }
 
@@ -157,7 +157,7 @@ namespace Nistec.Messaging.Remote
                 Host = QueueName
             };
 
-            var result = ExecDuplexStream(request, ConnectTimeout);
+            var result = ExecDuplexStream(request, ConnectTimeout, ReadTimeout);
             
             return result;
 
@@ -206,7 +206,7 @@ namespace Nistec.Messaging.Remote
                 QCommand = (QueueCmd)(int)cmd
                 //Command = (QueueCmd)(int)cmd
             };
-            var response = ExecDuplexStream(request, ConnectTimeout);
+            var response = ExecDuplexStream(request, ConnectTimeout, ReadTimeout);
             return response;
         }
 
@@ -238,7 +238,7 @@ namespace Nistec.Messaging.Remote
                 QCommand = (QueueCmd)(int)cmd,
                 //Command = (QueueCmd)(int)cmd
             };
-            var response=ConsumItemStream(message,ConnectTimeout);
+            var response= RequestItemStream(message,ConnectTimeout);
             return response;//==null? null: response.ToMessage();
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
             //return (Message)client.Exec(message, (QueueCmd)(int)cmd);
@@ -253,7 +253,7 @@ namespace Nistec.Messaging.Remote
             };
 
             message.SetBody(qp.GetEntityStream(false), qp.GetType().FullName);
-            var response = ConsumItemStream(message, ConnectTimeout);
+            var response = RequestItemStream(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
         }
 
@@ -307,7 +307,7 @@ namespace Nistec.Messaging.Remote
                 Host = queueName ?? QueueName,
                 QCommand = QueueCmd.RemoveQueue,
             };
-            var response= ConsumItemStream(message, ConnectTimeout);
+            var response= RequestItemStream(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
 
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
@@ -321,7 +321,7 @@ namespace Nistec.Messaging.Remote
                 Host = queueName ?? QueueName,
                 QCommand = QueueCmd.Exists,
             };
-            var response= ConsumItemStream(message, ConnectTimeout);
+            var response= RequestItemStream(message, ConnectTimeout);
             return response;// == null ? null : response.ToMessage();
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
             //return (Message)client.Exec(message, QueueCmd.RemoveQueue);
