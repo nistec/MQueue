@@ -6,14 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 
-#if(CLIENT)
-[assembly: AssemblyTitle("Nistec.Client.Messaging")]
-[assembly: AssemblyFileVersion("3.5.0.0")]
-#else
+//#if(CLIENT)
+//[assembly: AssemblyTitle("Nistec.Client.Messaging")]
+//[assembly: AssemblyFileVersion("3.5.0.0")]
+//#else
 [assembly: AssemblyTitle("Nistec.Queue.Server")]
-[assembly: AssemblyFileVersion("4.0.2.01")]
-#endif
-
 [assembly: AssemblyDescription("Messaging Framework")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Nistec.Net")]
@@ -41,7 +38,7 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
 [assembly: AssemblyVersion("4.0.2.0")]
-
+[assembly: AssemblyFileVersion("4.0.2.3")]
 
 
 

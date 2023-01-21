@@ -213,7 +213,7 @@ namespace Nistec.Messaging
 
         public static TransStream DoReportValue(object value)
         {
-            return new TransStream(value, TransType.Object);
+            return new TransStream(value);//, TransType.Object);
         }
 
 

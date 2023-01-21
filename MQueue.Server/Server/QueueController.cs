@@ -147,7 +147,7 @@ namespace Nistec.Messaging.Server
         }
         public TransStream DoReportValue(object value)
         {
-            return new TransStream(value, TransType.Object);
+            return new TransStream(value);//, TransType.Object);
         }
 
         public TransStream DoReport(object item, QueueCmd cmd, MessageState state, string lbl)
@@ -190,7 +190,7 @@ namespace Nistec.Messaging.Server
                 switch (request.QCommand)
                 {
                     case QueueCmd.Reply:
-                        return TransStream.Write("Reply: " + request.Identifier, TransType.Object);
+                        return TransStream.WriteState(0, "Reply: " + request.Identifier);//, TransType.Object);
                     case QueueCmd.Enqueue:
                         {
                             responseAck = true;
@@ -256,40 +256,40 @@ namespace Nistec.Messaging.Server
                         {
                             MQueue mq = GetValidQ(request.Host);
                             mq.Topic.HoldTopic();
-                            return TransStream.Write(MessageState.Ok, TransType.State);
+                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     case QueueCmd.TopicHoldRelease:
                         {
                             MQueue mq = GetValidQ(request.Host);
                             mq.Topic.ReleaseHoldTopic();
-                            return TransStream.Write(MessageState.Ok, TransType.State);
+                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     case QueueCmd.TopicSubscribeHold:
                         {
                             MQueue mq = GetValidQ(request.Host);
 
                             mq.Topic.HoldSubscriber(request.Label);
-                            return TransStream.Write(MessageState.Ok, TransType.State);
+                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     case QueueCmd.TopicSubscribeRelease:
                         {
                             MQueue mq = GetValidQ(request.Host);
                             mq.Topic.ReleaseHoldSubscriber(request.Label);
-                            return TransStream.Write(MessageState.Ok, TransType.State);
+                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     case QueueCmd.TopicSubscribeAdd:
                         {
                             MQueue mq = GetValidQ(request.Host);
                             TopicController tc = new TopicController(mq);
                             tc.AddSubscriber(TopicSubscriber.Parse(request.Label));
-                            return TransStream.Write(MessageState.Ok, TransType.State);
+                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     case QueueCmd.TopicSubscribeRemove:
                         {
                             MQueue mq = GetValidQ(request.Host);
                             TopicController tc = new TopicController(mq);
                             tc.RemoveSubscriber(request.Label);
-                            return TransStream.Write(MessageState.Ok, TransType.State);
+                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     //reports
                     case QueueCmd.Exists:

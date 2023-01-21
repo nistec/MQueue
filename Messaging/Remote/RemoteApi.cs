@@ -658,7 +658,7 @@ namespace Nistec.Messaging.Remote
 
         #endregion
 
-        #region Consum
+        #region Consume
 
         public IQueueAck __ConsumItem(QueueItem message, int timeout)
         {
@@ -698,6 +698,58 @@ namespace Nistec.Messaging.Remote
             }
         }
 
+        public void ConsumeItem(QueueRequest message, int maxWaitSecond, Action<IQueueItem> onCompleted)//, IDynamicWait dw)//Action<bool> onAck)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.Expiration = maxWaitSecond;
+            //message.MessageState = MessageState.Receiving;
+            int timeout = 24 * 60 * 60 * 1000;
+            int maxWait = Math.Max(maxWaitSecond, WaitTimeout);
+            bool isCompleted = false;
+            bool ack = false;
+            try
+            {
+
+                Task task = Task.Factory.StartNew(() =>
+                {
+                    ExecDuplexStreamAsync(message, timeout,ReadTimeout, (TransStream ts) =>
+                    {
+                        if (TransStream.IsEmptyStream(ts))
+                        {
+                            ack = false;
+                        }
+                        else
+                        {
+                            OnQItemCompleted(ts, onCompleted);
+                            ack = true;
+                        }
+                        //if (onAck != null)
+                        //    onAck(ack);
+                        //if (dw != null)
+                        //    dw.DynamicWaitAck(ack);
+
+                        isCompleted = true;
+                    }, IsAsync);
+
+                    //while (!isCompleted)
+                    //{
+                    //    Thread.Sleep(WaitInterval);
+                    //}
+
+                });
+
+                task.Wait(maxWait);
+            }
+            catch (Exception ex)
+            {
+                OnFault("ConsumItem error:" + ex.Message);
+                //OnQItemCompleted(null, message, onCompleted);
+            }
+        }
+        #endregion
+
+        #region RequestItem
+
         public IQueueItem RequestItem(QueueRequest message, int timeout)
         {
             message.Host = EnsureHost(message.Host);
@@ -711,7 +763,7 @@ namespace Nistec.Messaging.Remote
             }
             catch (Exception ex)
             {
-                OnFault("ConsumItem error:" + ex.Message);
+                OnFault("RequestItem error:" + ex.Message);
                 return null;// OnQItemCompleted(null, message);
             }
         }
@@ -759,7 +811,7 @@ namespace Nistec.Messaging.Remote
             }
             catch (Exception ex)
             {
-                OnFault("ConsumItem error:" + ex.Message);
+                OnFault("RequestItem error:" + ex.Message);
                 //OnQItemCompleted(null, message, onCompleted);
             }
         }
@@ -930,7 +982,7 @@ namespace Nistec.Messaging.Remote
             catch (OperationCanceledException cex)
             {
                 //Console.WriteLine($"{nameof(OperationCanceledException)} thrown with message: {cex.Message}");
-                onFault("CRequestItemStream OperationCanceledException:" + cex.Message);
+                onFault("RequestItemStream OperationCanceledException:" + cex.Message);
             }
             catch (Exception ex)
             {
@@ -1425,7 +1477,7 @@ namespace Nistec.Messaging.Remote
         #endregion
 
 
-        #region Exec Stream
+        #region Exec QueueItem Stream 
 
 
         //public T SendDuplexStream<T>(QueueItem message, Action<string> onFault)
@@ -1450,7 +1502,7 @@ namespace Nistec.Messaging.Remote
         //    return (CacheState)ts.ReadState();
         //}
 
-        public void ExecDuplexStreamAsync(QueueItem message, int connectTimeout, Action<TransStream> onCompleted, bool isChannelAsync = false)
+        public void ExecDuplexStreamAsync(QueueItem message, int connectTimeout,  Action<TransStream> onCompleted, bool isChannelAsync = false)
         {
             message.TransformType = TransformType.Stream;
 
@@ -1486,6 +1538,28 @@ namespace Nistec.Messaging.Remote
                     break;
             }
             return TcpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, isAsync, EnableRemoteException);
+        }
+        #endregion
+
+        #region Exec RequestItem Stream 
+
+        public void ExecDuplexStreamAsync(QueueRequest message, int connectTimeout,int readTimeout, Action<TransStream> onCompleted, bool isChannelAsync = false)
+        {
+            message.TransformType = TransformType.Stream;
+
+            switch (Protocol)
+            {
+                case NetProtocol.Http:
+                    HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+                    break;
+                case NetProtocol.Pipe:
+                    //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                    PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
+                    break;
+                case NetProtocol.Tcp:
+                    TcpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout,onCompleted, isChannelAsync, EnableRemoteException);
+                    break;
+            }
         }
 
         public void ExecDuplexStreamAsync(QueueRequest message, int connectTimeout, Action<TransStream> onCompleted, bool isChannelAsync = false)

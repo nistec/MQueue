@@ -97,7 +97,7 @@ namespace Nistec.Messaging
         //}
         public TransStream ToTransStream()
         {
-            TransStream stream = new TransStream(this, TransType.Object);
+            TransStream stream = new TransStream(this);//, TransType.Object);
             return stream;
         }
 

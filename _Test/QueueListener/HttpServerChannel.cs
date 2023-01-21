@@ -98,7 +98,7 @@ namespace QueueListenerDemo
         protected override TransStream ExecTransStream(string request)
         {
             Log.Info("HttpServerChannel ExecTransStream :{0}, Request:{1}", this.Settings.HostName, request);
-            return TransStream.Write(request, TransType.Info);
+            return TransStream.Write(request, TransType.Stream);
             //return AgentManager.Queue.ExecRequset(request);
         }
 

@@ -1,4 +1,5 @@
-﻿using Nistec.Data.Entities;
+﻿using Nistec;
+using Nistec.Data.Entities;
 using Nistec.Messaging;
 using Nistec.Messaging.Remote;
 using System;
@@ -17,9 +18,24 @@ namespace QueueTasker
         {
 
             Console.WriteLine("QueueTasker started...");
+            int items = 0;
+            string k = null;
+            do
+            {
+                Console.WriteLine("enter number of items to run");
+                k = Console.ReadLine();
+
+                if (k != "quit")
+                {
+                    items = Types.ToInt(k);
+                    Console.WriteLine("items to run {0}", items);
+
+                    if (items > 0)
+                        QueueClientDemo.PublishMulti(items);
+                }
+            } while (k != "quit");
 
             //QueueClientDemo.PublishItem();
-            QueueClientDemo.PublishMulti(1000);
 
             //QueueClientDemo.SendItem(false);
             //QueueClientDemo.SendMulti(false,10000);
