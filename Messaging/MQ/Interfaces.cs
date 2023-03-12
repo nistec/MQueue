@@ -14,15 +14,16 @@ using Nistec.Channels;
 
 namespace Nistec.Messaging
 {
+    public interface IControllerHandler<T>
+    {
+        TransStream OnMessageReceived(T message);
+        void OnErrorOcurred(string message);
+    }
 
     public interface IControllerHandler
     {
         TransStream OnMessageReceived(IQueueItem message);
-        void OnErrorOcurred(string msg);
-
-        //void OnMessageReceived(IQueueMessage message);
-
-        //void OnErrorOcurred(string message);
+        void OnErrorOcurred(string message);
     }
 
     public interface IQueueClient
@@ -71,12 +72,24 @@ namespace Nistec.Messaging
         //void Completed(Guid itemId, int status);
         //IQueueItem EndReceive(IAsyncResult asyncResult);
     }
+    public interface IQueueReceiver
+    {
+        string QueueName { get; }
+        bool IsTopic { get;}
+        string TargetPath { get; }
 
-    //public interface IQueueTrans
-    //{
-    //    void CommitTrans(Guid itemId);
-    //    void AbortTrans(Guid itemId);
-    //}
+        IQueueAck Enqueue(IQueueItem item);
+        IQueueItem Dequeue();
+        IQueueItem Dequeue(Priority priority);
+        IQueueItem Dequeue(Ptr ptr);
+        IQueueItem Consume(int maxSecondWait);
+        bool TryDequeue(out IQueueItem item);
+        IQueueItem Peek();
+        void AbortTrans(Guid ItemId);
+        void CommitTrans(Guid ItemId);
+        IQueueAck Requeue(IQueueItem item);
+
+    }
 
     public interface ITransScop
     {

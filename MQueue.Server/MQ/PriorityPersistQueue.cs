@@ -105,11 +105,24 @@ namespace Nistec.Messaging
         }
         protected override void ReloadItems()
         {
-            m_db.LoadDb();
+            m_db.LoadDbAsync();
         }
         protected override int Count()
         {
             return m_db.Count;
+        }
+
+        public override bool ItemExists(Ptr ptr)
+        {
+            try
+            {
+                 return m_db.SelectValue(ptr.Identifier) != null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("ItemExists error: " + ex.Message);
+            }
+            return false;
         }
 
         #endregion
@@ -136,7 +149,7 @@ namespace Nistec.Messaging
             //m_db.ItemChanged += M_db_ItemChanged;
 
             m_db.ItemLoaded = (item) => {
-                this.ReEnqueue(item);
+                this.Requeue(item);
             };
 
             if (qp.ReloadOnStart)

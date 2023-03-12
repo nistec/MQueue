@@ -266,6 +266,54 @@ namespace Nistec.Messaging
     }
 
     #endregion
+
+    #region IntPtrItemEventsArgs
+
+    public delegate void TItemEventHandler<T>(object sender, TItemEventArgs<T> e);
+
+    public class TItemEventArgs<T> : EventArgs
+    {
+        private T ptr;
+        private ItemState state;
+
+        public TItemEventArgs(T ptr, ItemState state)
+        {
+            this.ptr = ptr;
+            this.state = state;
+        }
+
+        #region Properties 
+
+        /// <summary>
+        /// Get QueueItem
+        /// </summary>
+        public T Item
+        {
+            get { return this.ptr; }
+        }
+        /// <summary>
+        /// Get Queue item state
+        /// </summary>
+        public ItemState State
+        {
+            get { return this.state; }
+            //set { this.state = value; }
+        }
+
+        public void Commit()
+        {
+            this.state = ItemState.Commit;
+        }
+        public void Abort()
+        {
+            this.state = ItemState.Abort;
+        }
+
+        #endregion
+
+    }
+
+    #endregion
 }
 
 

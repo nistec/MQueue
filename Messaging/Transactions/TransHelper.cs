@@ -8,11 +8,11 @@ namespace Nistec.Messaging.Transactions
 {
     public static class TransHelper
     {
-        public const int DefaultTransTimeout = 60;
+        public const int DefaultTransTimeoutSeconds = 60;
 
         public static TransactionOptions GetTransactionOptions()
         {
-            return GetTransactionOptions(TimeSpan.FromSeconds(DefaultTransTimeout));
+            return GetTransactionOptions(TimeSpan.FromSeconds(DefaultTransTimeoutSeconds));
         }
 
         public static TransactionOptions GetTransactionOptions(TimeSpan timeout)

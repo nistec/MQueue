@@ -10,8 +10,15 @@ using Nistec.Channels;
 
 namespace Nistec.Messaging
 {
+    public interface IHostMessage: ITransformMessage
+    {
+        T Parse<T>(Stream stream);
+        string Identifier { get; }
+        //string Label { get; }
+        string Host { get; }
+    }
 
-    public interface IQueueMessage : ISerialEntity, ITransformMessage, IDisposable
+    public interface IQueueMessage : IMessageStream, ISerialEntity, ITransformMessage, IDisposable
     {
         /// <summary>
         /// Get message type.
@@ -27,15 +34,25 @@ namespace Nistec.Messaging
         /// </summary>
         QueueCmd QCommand { get;}
 
+        #region IMessageStream
+
+        ///// <summary>
+        ///// Get or Set Formatter type.
+        ///// </summary>
+        //Formatters Formatter { get; }
+        ///// <summary>
+        ///// Get or Set The message Label.
+        ///// </summary>
+        //string Label { get; }
+        #endregion
+
+
         ///// <summary>
         ///// Get or Set transformation type.
         ///// </summary>
         //TransformTypes TransformType { get; }
 
-        /// <summary>
-        /// Get or Set Formatter type.
-        /// </summary>
-        Formatters Formatter { get; }
+
 
         /// <summary>
         /// Get EncodingName
@@ -51,10 +68,7 @@ namespace Nistec.Messaging
         /// Get The message Host\Queue name.
         /// </summary>
         string Host { get; set; }
-        /// <summary>
-        /// Get or Set The message Label.
-        /// </summary>
-        string Label { get; }
+       
         /// <summary>
         /// Get ItemId
         /// </summary>
@@ -75,7 +89,7 @@ namespace Nistec.Messaging
         string Print();
     }
 
-    public interface IQueueItem : IQueueMessage
+    public interface IQueueItem : IQueueMessage //, IMessageStream//changeIQueueMessage
     {
 
         #region property
@@ -148,15 +162,49 @@ namespace Nistec.Messaging
         /// </summary>
         DateTime ArrivedTime { get; }
 
-        /// <summary>
-        /// Get the last modified time.
-        /// </summary>
-        DateTime Modified { get;  }
+        #region IQueueMessage
 
-        /// <summary>
-        /// Get or Set The message Sender.
-        /// </summary>
-        string Sender { get; }
+        ///// <summary>
+        ///// Get the current body stream.
+        ///// </summary>
+        //NetStream BodyStream { get; }
+
+        ///// <summary>
+        ///// Get Command
+        ///// </summary>
+        //QueueCmd QCommand { get; }
+
+        //TransStream ToTransStream();
+
+        #endregion
+
+        #region IMessageStream
+
+        //string Print();
+        ///// <summary>
+        ///// Get Priority
+        ///// </summary>
+        //Priority Priority { get; }
+
+        ///// <summary>
+        ///// Get The message Host\Queue name.
+        ///// </summary>
+        //string Host { get; set; }
+        ///// <summary>
+        ///// Get ItemId
+        ///// </summary>
+        //string Identifier { get; }
+
+        ///// <summary>
+        ///// Get the last modified time.
+        ///// </summary>
+        //DateTime Modified { get;  }
+
+        ///// <summary>
+        ///// Get or Set The message Sender.
+        ///// </summary>
+        //string Sender { get; }
+        #endregion
 
         ///// <summary>
         ///// Get or Set The message Label.
@@ -189,7 +237,7 @@ namespace Nistec.Messaging
         /// <returns></returns>
         T GetBody<T>();
 
-        byte[] Serilaize();
+        byte[] Serialize();
 
         ///// <summary>
         ///// Get body stream after set the position to first byte in buffer, This method is a part of <see cref="IMessageStream"/> implementation.

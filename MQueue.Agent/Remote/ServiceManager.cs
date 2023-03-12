@@ -82,6 +82,10 @@ namespace Nistec.Services
 
                 AgentManager.Start();// m_enableQueueController, m_enableTopicController);
 
+
+
+
+
                 if (AgentManager.Settings.EnablePipeProducer)
                 {
 

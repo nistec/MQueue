@@ -120,4 +120,106 @@ namespace Nistec.Messaging.Channels
 
 
     }
+
+    public class HttpServerGeneric<T> : HttpServer<T>, IChannelService where T: IHostMessage
+    {
+
+        QueueChannel QueueChannel = QueueChannel.Consumer;
+        IControllerHandler<T> Controller;
+
+        #region override
+
+        /// <summary>
+        /// OnStart
+        /// </summary>
+        protected override void OnStart()
+        {
+            base.OnStart();
+            Log.Info("HttpServerQueue started :{0}, QueueChannel:{1}", this.Settings.HostName, QueueChannel.ToString());
+        }
+        /// <summary>
+        /// OnStop
+        /// </summary>
+        protected override void OnStop()
+        {
+            base.OnStop();
+            Log.Info("HttpServerQueue stoped :{0}, QueueChannel:{1}", this.Settings.HostName, QueueChannel.ToString());
+        }
+
+        /// <summary>
+        /// OnLoad
+        /// </summary>
+        protected override void OnLoad()
+        {
+            base.OnLoad();
+        }
+        #endregion
+
+        #region ctor
+
+        /// <summary>
+        /// Constractor using <see cref="HttpSettings"/> settings.
+        /// </summary>
+        /// <param name="settings"></param>
+        /// <param name="controller"></param>
+        public HttpServerGeneric(HttpSettings settings, IControllerHandler<T> controller)
+            : base(settings)
+        {
+            Controller = controller;
+        }
+
+        #endregion
+
+        #region abstract methods
+
+        protected override string ExecString(T message)
+        {
+            var ts = Controller.OnMessageReceived(message);
+            return (ts == null) ? null : ts.ReadJson();
+        }
+
+        protected override TransStream ExecTransStream(T message)
+        {
+            return Controller.OnMessageReceived((T)message);
+        }
+
+        /// <summary>
+        /// Read Request
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        protected override T ReadRequest(HttpRequestInfo request)
+        {
+            //throw new Exception("Not implemented.");
+
+            MessageStream stream = null;
+            if (request.BodyStream != null)
+            {
+                stream = MessageStream.ParseStream(request.BodyStream, NetProtocol.Http);
+            }
+            else
+            {
+
+                var message = new HttpMessage();
+
+                if (request.QueryString != null)//request.BodyType == HttpBodyType.QueryString)
+                    message.EntityRead(request.QueryString, null);
+                else if (request.Body != null)
+                    message.EntityRead(request.Body, null);
+                //else if (request.Url.LocalPath != null && request.Url.LocalPath.Length > 1)
+                //    message.EntityRead(request.Url.LocalPath.TrimStart('/').TrimEnd('/'), null);
+
+                stream = message;
+            }
+
+            return Nistec.Runtime.ActivatorUtil.CreateInstance<T>().Parse<T>(stream.GetStream());
+
+            //return new QueueRequest(stream.GetStream());
+            //return QueueItem.Create(stream.GetStream());
+        }
+
+        #endregion
+
+
+    }
 }

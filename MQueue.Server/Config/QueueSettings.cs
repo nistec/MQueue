@@ -93,8 +93,8 @@ namespace Nistec.Messaging.Config
 
         /// <summary>EnableQueue.</summary>
         //public readonly bool EnableQueueController = true;
-        ///// <summary>EnableTopic.</summary>
-        //public readonly bool EnableTopicController = false;
+        /// <summary>EnableTopic.</summary>
+        public readonly bool EnableTopicController = false;
 
         /// <summary>EnableJournalQueue.</summary>
         public readonly bool EnableJournalQueue = false;
@@ -123,9 +123,10 @@ namespace Nistec.Messaging.Config
         public readonly int MailerIntervalManager = 60000;
         /// <summary>MailerIntervalDequeue.</summary>
         public readonly int MailerIntervalDequeue = 60000;
+        public readonly int MaxTopicConnections = 5;
 
 
-        public  QueueSettings()
+        public QueueSettings()
         {
             //XmlTable table = NetConfig.GetCustomConfig("QueueSettings");
 
@@ -138,6 +139,7 @@ namespace Nistec.Messaging.Config
             }
             RootPath = table.Get<string>("RootPath", DefaultRootPath);
             QueuesPath= Path.Combine(RootPath, QueuesFolder);
+            //QueuesPath = table.Get<string>("QueuePath", Path.Combine(RootPath, QueuesFolder)); 
             DbCoverConnection = table.Get<string>("DbCoverConnection", null);
 
             MaxSize = table.Get<long>("MaxSize", QueueDefaults.DefaultQueueMaxSize);
@@ -156,7 +158,7 @@ namespace Nistec.Messaging.Config
             EnableTcpQueueManager = table.Get<bool>("EnableTcpQueueManager", false);
 
             //EnableQueueController = table.Get<bool>("EnableQueueController", false);
-            //EnableTopicController = table.Get<bool>("EnableTopicController", false);
+            EnableTopicController = table.Get<bool>("EnableTopicController", false);
 
             EnableJournalQueue = table.Get<bool>("EnableJournalQueue", false);
 
@@ -175,6 +177,7 @@ namespace Nistec.Messaging.Config
             EnableDbListener = table.Get<bool>("EnableDbListener", false);
             EnableSizeHandler = table.Get<bool>("EnableSizeHandler", false);
             EnablePerformanceCounter = table.Get<bool>("EnablePerformanceCounter", false);
+            MaxTopicConnections = table.Get<int>("MaxTopicConnections", 5);
 
             QueueDefaults.DefaultExpiration = DefaultExpiration;
             QueueDefaults.EnableLog = EnableLog;

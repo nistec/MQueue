@@ -116,6 +116,7 @@
     <Compile Include="Listeners\Interfaces.cs" />
     <Compile Include="Listeners\QueueListener.cs" />
     <Compile Include="Listeners\TopicSbscriberListener.cs" />
+    <Compile Include="MQ\GenericQueue.cs" />
     <Compile Include="MQ\PriorityFsQueue.cs" />
     <Compile Include="MQ\PriorityMemQueue.cs" />
     <Compile Include="MQ\PriorityQueue.cs" />

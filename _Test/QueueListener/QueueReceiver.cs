@@ -20,6 +20,7 @@ namespace QueueListenerDemo
     public class QueueReceiver
     {
 
+
         //var api= QueueApi.Get(Nistec.Channels.NetProtocol.Pipe);
         //var hostPipe = QueueHost.Parse("ipc:.:nistec_queue_listener?NC_Quick");
         //var hostTcp = QueueHost.Parse("tcp:localhost:15001?NC_Quick");

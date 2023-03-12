@@ -8,9 +8,89 @@ using System.Collections.Concurrent;
 using System.IO;
 using Nistec.Runtime;
 using Nistec.Runtime.Advanced;
+using Nistec.Messaging.Server;
 
 namespace Nistec.Messaging.Transactions
 {
+    internal class TransactionDispatcher : SyncTimerDispatcher<IQueueItem> //IDisposable
+    {
+
+        public const int MaxRetry = 3;
+        
+        #region ctor
+        public TransactionDispatcher()
+            : this((int)TimeSpan.FromMinutes(1).TotalSeconds, 100, true)
+        {
+
+        }
+
+        public TransactionDispatcher(int intervalSeconds, int initialCapacity, bool isRemote)
+            : base(intervalSeconds, initialCapacity, isRemote)
+        {
+           
+        }
+
+        #endregion
+
+        #region Transactional
+
+        //public SyncTimerDispatcher<IQueueItem> TransactionalDispatcher
+        //{
+        //    get
+        //    {
+        //        if (transactionalItems == null)
+        //        {
+        //            transactionalItems = new SyncTimerDispatcher<IQueueItem>();
+        //            transactionalItems.SyncItemCompleted += TransactionalItems_SyncItemCompleted;
+        //        }
+        //        return transactionalItems;
+        //    }
+        //}
+
+        //private void TransactionalItems_SyncItemCompleted(object sender, SyncItemEventArgs<IQueueItem> e)
+        //{
+        //    OnTransactionExpired(e);
+        //}
+
+        protected virtual void OnTransactionExpired(SyncItemEventArgs<IQueueItem> e)
+        {
+            //if(e.Item.Retry> MaxRetry)
+            //{
+            //    e.Item.Host
+            //}
+            //if (this.SyncItemCompleted != null)
+            //{
+            //    this.SyncItemCompleted(this, e);
+            //}
+        }
+
+        public static IQueueAck Requeue(IQueueItem item)
+        {
+            return QueueController.Requeue(item);
+        }
+
+        //public void Add(IQueueItem item, int expirationMinurs = 1)
+        //{
+        //    if (this.Initialized)
+        //        this.Add(item, expirationMinurs);
+        //}
+        public bool Commit(IQueueItem item)
+        {
+            return this.Remove(item);
+        }
+
+        public void Abort(IQueueItem item)
+        {
+            OnTransactionExpired(new SyncItemEventArgs<IQueueItem>(item));
+        }
+
+
+        #endregion
+
+    }
+
+    
+    #if(false)
 
     internal class TransactionDispatcher : SyncTimerDispatcher<TransactionItem> //IDisposable
     {
@@ -339,4 +419,6 @@ namespace Nistec.Messaging.Transactions
         #endregion
 
     }
+
+    #endif
 }

@@ -343,19 +343,14 @@ namespace Nistec.Messaging
                     Duration = Types.ToInt(value); break;
                 //case "MessageId":
                 //    MessageId = Types.ToInt(value); break;
-
-
                 //case "TransformType":
                 //    TransformType = (TransformTypes)Types.ToByte(value, 0); break;
-
-
                 case "TransformType":
                     TransformType = (TransformType)Types.ToByte(value, 0); break;
                 case "Expiration":
                     Expiration = Types.ToInt(value, 0); break;
                 case "IsDuplex":
                     IsDuplex = Types.ToBool(value, false); break;
-
                 case "Host":
                     Host = Types.NZ(value, ""); break;
                 case "Label":
@@ -367,7 +362,6 @@ namespace Nistec.Messaging
                 //case "HeaderStream":
                 //    SetHeader((GenericNameValue)value);
                 //    break;
-
                 //case "Formatter":
                 //    Formatter = (Formatters)Types.ToInt(value); break;
                 //case "BodyStream":
@@ -674,7 +668,6 @@ namespace Nistec.Messaging
         /// </summary>
         public string Identifier { get; set; }
 
-
         /// <summary>
         /// Get MessageState
         /// </summary>
@@ -720,7 +713,23 @@ namespace Nistec.Messaging
         /// Get or set The AccountId.
         /// </summary>
         public int AccountId { get; set; }
+        /// <summary>
+        /// Get or set The MessageId.
+        /// </summary>
+        public int MessageId { get; set; }
+        ///// <summary>
+        ///// Get or set The BatchId.
+        ///// </summary>
+        //public int BatchId { get; set; }
+        ///// <summary>
+        ///// Get or set The OperationId.
+        ///// </summary>
+        //public int OperationId { get; set; }
 
+        /// <summary>
+        /// Get or set The Amount.
+        /// </summary>
+        public decimal Amount { get; set; }
 
         //NetStream m_BodyStream;
         ///// <summary>
@@ -766,8 +775,7 @@ namespace Nistec.Messaging
         #endregion
 
         #region ItemStream/Body
-
-
+        
         //byte[] _ItemBinary;
         //public byte[] ItemBinary
         //{
@@ -959,10 +967,15 @@ namespace Nistec.Messaging
             streamer.WriteString(Destination);
             streamer.WriteValue(ChannelId);
             streamer.WriteValue(AccountId);
-            //streamer.WriteValue(BodyStream);
-            //streamer.WriteString(TypeName);
+            streamer.WriteValue(MessageId);
+            //streamer.WriteValue(BatchId);
+            //streamer.WriteValue(OperationId);
+            streamer.WriteValue(Amount);
 
-            //MessageStream=======================================
+        //streamer.WriteValue(BodyStream);
+        //streamer.WriteString(TypeName);
+
+        //MessageStream=======================================
             streamer.WriteString(Id);
             streamer.WriteValue(BodyStream);
             streamer.WriteString(TypeName);
@@ -1013,6 +1026,10 @@ namespace Nistec.Messaging
             Destination = streamer.ReadString();
             ChannelId = streamer.ReadValue<int>();
             AccountId = streamer.ReadValue<int>();
+            MessageId = streamer.ReadValue<int>();
+            //BatchId = streamer.ReadValue<int>();
+            //OperationId = streamer.ReadValue<int>();
+            Amount = streamer.ReadValue<decimal>();
             //BodyStream = (NetStream)streamer.ReadValue();
             //TypeName = streamer.ReadString();
 
@@ -1031,8 +1048,7 @@ namespace Nistec.Messaging
             Modified = streamer.ReadValue<DateTime>();
             Args = (NameValueArgs)streamer.ReadValue();
             TransformType = (TransformType)streamer.ReadValue<byte>();
-            EncodingName = Types.NZorEmpty(streamer.ReadString(), DefaultEncoding); 
-                       
+            EncodingName = Types.NZorEmpty(streamer.ReadString(), DefaultEncoding);
 
             ////Topic = streamer.ReadString();
             //HeaderStream = (NetStream)streamer.ReadValue();
@@ -1090,6 +1106,11 @@ namespace Nistec.Messaging
             info.Add("Destination", Destination);
             info.Add("ChannelId", ChannelId);
             info.Add("AccountId", AccountId);
+            info.Add("MessageId", MessageId);
+            //info.Add("BatchId", BatchId);
+            //info.Add("OperationId", OperationId);
+            info.Add("Amount", Amount);
+
             //info.Add("BodyStream", BodyStream);
             //info.Add("TypeName", TypeName);
 
@@ -1166,6 +1187,11 @@ namespace Nistec.Messaging
             Destination = info.GetValue<string>("Destination");
             ChannelId = info.GetValue<int>("ChannelId");
             AccountId = info.GetValue<int>("AccountId");
+            MessageId = info.GetValue<int>("MessageId");
+            //BatchId = info.GetValue<int>("BatchId");
+            //OperationId = info.GetValue<int>("OperationId");
+            Amount = info.GetValue<decimal>("Amount");
+
             //BodyStream = (NetStream)info.GetValue("BodyStream");
             //TypeName = info.GetValue<string>("TypeName");
 
@@ -1242,6 +1268,11 @@ namespace Nistec.Messaging
             serializer.WriteToken("Destination", Destination);
             serializer.WriteToken("ChannelId", ChannelId);
             serializer.WriteToken("AccountId", AccountId);
+            serializer.WriteToken("MessageId", MessageId);
+            //serializer.WriteToken("BatchId", BatchId);
+            //serializer.WriteToken("OperationId", OperationId);
+            serializer.WriteToken("Amount", Amount);
+
             //serializer.WriteToken("BodyStream", BodyStream);
             //serializer.WriteToken("TypeName", TypeName);
 
@@ -1301,6 +1332,11 @@ namespace Nistec.Messaging
                 Destination = dic.Get<string>("Destination");
                 ChannelId = dic.Get<int>("ChannelId");
                 AccountId = dic.Get<int>("AccountId");
+                MessageId = dic.Get<int>("MessageId");
+                //BatchId = dic.Get<int>("BatchId");
+                //OperationId = dic.Get<int>("OperationId");
+                Amount = dic.Get<decimal>("Amount");
+
                 //BodyStream = (NetStream)dic.Get("BodyStream");
                 //TypeName = dic.Get<string>("TypeName");
 
@@ -1355,6 +1391,11 @@ namespace Nistec.Messaging
                 Destination = queryString.Get<string>("Destination");
                 ChannelId = queryString.Get<int>("ChannelId");
                 AccountId = queryString.Get<int>("AccountId");
+                MessageId = queryString.Get<int>("MessageId");
+                //BatchId = queryString.Get<int>("BatchId");
+                //OperationId = queryString.Get<int>("OperationId");
+                Amount = queryString.Get<decimal>("Amount");
+
                 //BodyStream = (NetStream)queryString.Get("BodyStream");
                 //TypeName = queryString.Get<string>("TypeName");
 
@@ -1414,7 +1455,7 @@ namespace Nistec.Messaging
 
         #region Converters
 
-        public byte[] Serilaize()
+        public byte[] Serialize()
         {
             return BinarySerializer.SerializeToBytes(this);
         }
@@ -1903,7 +1944,7 @@ namespace Nistec.Messaging
             Host,
             Label,
             Sender,
-            GetBinary(),
+            GetBytes(),
             TypeName
             };
         }

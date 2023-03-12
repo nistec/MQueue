@@ -12,11 +12,129 @@ using Nistec.Generic;
 using Nistec.Messaging.Transactions;
 using Nistec.Logging;
 using Nistec.Data.Entities;
+using Nistec.Runtime.Advanced;
 
 namespace Nistec.Messaging
 {
+    public interface IPriorityQueue
+    {
+ 
+        #region abstract
 
-    public abstract class PriorityQueue : /*ITransScop,*/ IDisposable
+        IEnumerable<IPersistEntity> QueryItems();
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Get the total number of items in queue
+        /// </summary>
+        int TotalCount { get; }
+       
+        /// <summary>
+        /// Get the item count in queue by priority
+        /// </summary>
+        /// <param name="priority"></param>
+        /// <returns></returns>
+        int QueueCount(Priority priority);
+        
+        /// <summary>
+        /// Get if the queue is transactional
+        /// </summary>
+        bool IsTrans { get; }
+
+        /// <summary>
+        /// Get the queue host name
+        /// </summary>
+        string Name { get;}
+
+        #endregion
+
+        #region Queue methods
+
+        /// <summary>
+        /// Clear all Message
+        /// </summary>
+        /// <returns></returns>
+        void Clear();
+
+
+        /// <summary>
+        /// Peek Message
+        /// </summary>
+        /// <returns></returns>
+        IQueueItem Peek(Ptr ptr);
+
+        /// <summary>
+        /// Peek Message
+        /// </summary>
+        /// <returns></returns>
+        IQueueItem Peek(Priority priority);
+
+        /// <summary>
+        /// Dequeue Message
+        /// </summary>
+        /// <returns></returns>
+        IQueueItem Peek();
+     
+        /// <summary>
+        /// Dequeue Message
+        /// </summary>
+        /// <returns></returns>
+        IQueueItem Dequeue(Ptr ptr);
+
+        /// <summary>
+        /// Dequeue Message
+        /// </summary>
+        /// <returns></returns>
+        IQueueItem Dequeue(Priority priority);
+
+        /// <summary>
+        /// Dequeue Message
+        /// </summary>
+        /// <returns></returns>
+        bool TryDequeue(out IQueueItem item);
+        /// <summary>
+        /// Dequeue Message
+        /// </summary>
+        /// <returns></returns>
+        IQueueItem Dequeue();
+
+
+        /// <summary>
+        /// Consume Message
+        /// </summary>
+        /// <param name="maxSecondWait"></param>
+        /// <returns></returns>
+        IQueueItem Consume(int maxSecondWait);
+  
+        /// <summary>
+        /// Enqueue Message
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        IQueueAck Enqueue(IQueueItem item);
+
+        /// <summary>
+        /// Re Enqueue Message
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        IQueueAck Requeue(IQueueItem item);
+
+        /// <summary>
+        /// Remove Item
+        /// </summary>
+        /// <param name="ptr"></param>
+        IQueueItem RemoveItem(Ptr ptr);
+
+        bool ItemExists(Ptr ptr);
+
+        #endregion
+    }
+
+    public abstract class PriorityQueue : /*ITransScop,*/ IDisposable, IPriorityQueue
     {
         //internal static PriorityQueue Factory(IQProperties prop)
         //{
@@ -47,6 +165,9 @@ namespace Nistec.Messaging
         private GenericPtrQueue mediumQ;
         private GenericPtrQueue highQ;
 
+        SyncTimerDispatcher<IQueueItem> transactionalItems;
+
+       //ConcurrentDictionary<Ptr,IQueueItem> TransactionalItems;
         //private Dictionary<string,IQueueItem> holdItems;
 
         ILogger _Logger;
@@ -69,8 +190,8 @@ namespace Nistec.Messaging
 
         public event QueueItemEventHandler MessageArrived;
         public event QueueItemEventHandler MessageReceived;
-        public event QueueItemEventHandler TransactionBegin;
-        public event QueueItemEventHandler TransactionEnd;
+        //public event QueueItemEventHandler TransactionBegin;
+        //public event QueueItemEventHandler TransactionEnd;
         public event QueueItemEventHandler ErrorOccured;
 
         protected virtual void OnMessageArrived(QueueItemEventArgs e)
@@ -84,16 +205,16 @@ namespace Nistec.Messaging
                 MessageReceived(this, e);
         }
 
-        protected virtual void OnTransBegin(QueueItemEventArgs e)
-        {
-            if (TransactionBegin != null)
-                TransactionBegin(this, e);
-        }
-        protected virtual void OnTransEnd(QueueItemEventArgs e)
-        {
-            if (TransactionEnd != null)
-                TransactionEnd(this, e);
-        }
+        //protected virtual void OnTransBegin(QueueItemEventArgs e)
+        //{
+        //    if (TransactionBegin != null)
+        //        TransactionBegin(this, e);
+        //}
+        //protected virtual void OnTransEnd(QueueItemEventArgs e)
+        //{
+        //    if (TransactionEnd != null)
+        //        TransactionEnd(this, e);
+        //}
 
         protected virtual void OnErrorOccured(QueueItemEventArgs e)
         {
@@ -133,20 +254,24 @@ namespace Nistec.Messaging
 
         public abstract IEnumerable<IPersistEntity> QueryItems();
 
+        public abstract bool ItemExists(Ptr ptr);
+
         //protected abstract bool TransBegin(Ptr ptr, out IQueueItem item);
 
         #endregion
 
         #region ctor
 
-        public PriorityQueue(string name, int consumeInterval=100)
+        public PriorityQueue(string name,int consumeInterval=100)
         {
             ConsumeInterval = Math.Max(consumeInterval,10);
             this.Name = name;
-            //this.isTrans = false;
+            this.isTrans = false;
             normalQ = new GenericPtrQueue();
             mediumQ = new GenericPtrQueue();
             highQ = new GenericPtrQueue();
+            TransactionExpiryMinuts = 1;
+            //transactionalItems = new SyncTimerDispatcher<TransactionItem>();
             //holdItems = new Dictionary<string, IQueueItem>();
             _Logger = QLogger.Logger.ILog;
         }
@@ -192,7 +317,12 @@ namespace Nistec.Messaging
         #endregion
 
         #region Properties
-       
+
+        public bool IsEmpty
+        {
+            get { return highQ.IsEmpty && mediumQ.IsEmpty && normalQ.IsEmpty; }
+        }
+
         /// <summary>
         /// Get the total number of items in queue
         /// </summary>
@@ -231,7 +361,11 @@ namespace Nistec.Messaging
         /// Get the queue host name
         /// </summary>
         public string Name { get; private set; }
-        
+        /// <summary>
+        /// Transaction Expiry in Minuts, deafult is 1 minute
+        /// </summary>
+        public int TransactionExpiryMinuts { get; set; }
+
         #endregion
 
         #region Trans
@@ -449,7 +583,7 @@ namespace Nistec.Messaging
             }
 
         }
-        */ 
+        */
         #endregion
 
         /*
@@ -584,6 +718,52 @@ namespace Nistec.Messaging
         */
         #endregion
 
+        #region Transactional
+
+        public SyncTimerDispatcher<IQueueItem> TransactionalDispatcher
+        {
+            get
+            {
+                if(transactionalItems==null)
+                {
+                    transactionalItems = new SyncTimerDispatcher<IQueueItem>();
+                    transactionalItems.SyncItemCompleted += TransactionalItems_SyncItemCompleted;
+                }
+                return transactionalItems;
+            }
+        }
+
+        private void TransactionalItems_SyncItemCompleted(object sender, SyncItemEventArgs<IQueueItem> e)
+        {
+            OnTransactionExpired(e);
+        }
+
+        protected virtual void OnTransactionExpired(SyncItemEventArgs<IQueueItem> e)
+        {
+            //if (this.SyncItemCompleted != null)
+            //{
+            //    this.SyncItemCompleted(this, e);
+            //}
+        }
+
+        protected virtual void TransactionAdd(IQueueItem item, int expirationMinurs = 1)
+        {
+            if (TransactionalDispatcher.Initialized)
+                TransactionalDispatcher.Add(item, expirationMinurs);
+        }
+        protected virtual bool TransactionCommit(IQueueItem item)
+        {
+            return TransactionalDispatcher.Remove(item);
+        }
+
+        protected virtual void TransactionAbort(IQueueItem item)
+        {
+            OnTransactionExpired(new SyncItemEventArgs<IQueueItem>(item));
+        }
+
+
+        #endregion
+
         #region AsyncTask
 
         private delegate void RemoveItemCallback(Ptr ptr);
@@ -707,15 +887,15 @@ namespace Nistec.Messaging
         public virtual IQueueItem Peek()
         {
             Ptr ptr = Ptr.Empty;
-            if (highQ.TryPeek(out ptr))
+            if (!highQ.IsEmpty && highQ.TryPeek(out ptr))
             {
                return Peek(ptr);
             }
-            else if (mediumQ.TryPeek(out ptr))
+            else if (!mediumQ.IsEmpty && mediumQ.TryPeek(out ptr))
             {
                 return Peek(ptr);
             }
-            else if (normalQ.TryPeek(out ptr))
+            else if (!normalQ.IsEmpty && normalQ.TryPeek(out ptr))
             {
                 return Peek(ptr);
             }
@@ -737,7 +917,7 @@ namespace Nistec.Messaging
             //return item;
 
         }
-
+        /*
         /// <summary>
         /// Dequeue Message
         /// </summary>
@@ -796,6 +976,30 @@ namespace Nistec.Messaging
 
             return item;
         }
+        */
+        private bool DequeueScopEvent(IQueueItem item)
+        {
+
+            if (item != null)
+            {
+                if (IsTrans)
+                {
+                    TransactionAdd(item, TransactionExpiryMinuts);
+                }
+                ((QueueItem)item).SetState(MessageState.Receiving);
+                ((QueueItem)item).QCommand = QueueCmd.Dequeue;
+                //item.Status = ItemState.Dequeue;
+                //((QueueItem)item).SetSentTime();
+
+                if (MessageReceived != null)
+                {
+                    OnMessageReceived(new QueueItemEventArgs(item, MessageState.Receiving));
+                }
+            }
+            return item != null;
+        }
+
+       
 
         /// <summary>
         /// Dequeue Message
@@ -803,16 +1007,21 @@ namespace Nistec.Messaging
         /// <returns></returns>
         public virtual IQueueItem Dequeue(Ptr ptr)
         {
-
+            IQueueItem item = null;
             try
             {
-                return DequeueScop(ptr);
+                if (TryDequeue(ptr, out item))
+                {
+                    DequeueScopEvent(item);
+                    return item;
+                }
+                //return DequeueScop(ptr);
             }
             catch (TransactionAbortedException tex)
             {
                 Logger.Exception("PriorityQueue Dequeue error ", tex);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.Exception("PriorityQueue Dequeue error ", ex);
             }
@@ -827,27 +1036,29 @@ namespace Nistec.Messaging
         public virtual IQueueItem Dequeue(Priority priority)
         {
             Ptr ptr = Ptr.Empty;
+            IQueueItem item = null;
             try
             {
-                //using (TransactionScope tran = new TransactionScope())
-                //{
+                using (TransactionScope scope = TransHelper.GetTransactionScope())
+                {
                     switch (priority)
                     {
                         case Priority.Normal:
                             if (normalQ.TryDequeue(out ptr))
-                                return DequeueScop(ptr);
+                                TryDequeue(ptr, out item);// item = DequeueScop(ptr);
                             break;
                         case Priority.Medium:
                             if (mediumQ.TryDequeue(out ptr))
-                                return DequeueScop(ptr);
+                                TryDequeue(ptr, out item); //item = DequeueScop(ptr);
                             break;
                         case Priority.High:
                             if (highQ.TryDequeue(out ptr))
-                                return DequeueScop(ptr);
+                                TryDequeue(ptr, out item); //item = DequeueScop(ptr);
                             break;
                     }
 
-                    return null;
+                    scope.Complete();
+                    //return null;
 
                     //if (ptr.IsEmpty)
                     //{
@@ -862,15 +1073,15 @@ namespace Nistec.Messaging
                     //{
                     //    item = Dequeue(priority);
                     //}
-                //} 
-
+                }
+                DequeueScopEvent(item);
             }
             catch (Exception ex)
             {
                 Logger.Exception("PriorityQueue Dequeue error ", ex);
             }
 
-            return null;
+            return item;
         }
 
         /// <summary>
@@ -884,30 +1095,36 @@ namespace Nistec.Messaging
             try
             {
 
-                //using (TransactionScope tran = new TransactionScope())
-                //{
+                using (TransactionScope scope = TransHelper.GetTransactionScope())
+                {
 
-                    if (highQ.TryDequeue(out ptr))
+                    if (!highQ.IsEmpty && highQ.TryDequeue(out ptr))
                     {
-                        item= DequeueScop(ptr);
-                        return item!=null;
+                        TryDequeue(ptr, out item);
+                        //item = DequeueScop(ptr);
+                        //return item!=null;
                     }
-                    else if (mediumQ.TryDequeue(out ptr))
+                    else if (!mediumQ.IsEmpty && mediumQ.TryDequeue(out ptr))
                     {
-                        item = DequeueScop(ptr);
-                        return item != null;
+                        TryDequeue(ptr, out item);
+                        //item = DequeueScop(ptr);
+                        //return item != null;
                     }
-                    else if (normalQ.TryDequeue(out ptr))
+                    else if (!normalQ.IsEmpty && normalQ.TryDequeue(out ptr))
                     {
-                        item = DequeueScop(ptr);
-                        return item != null;
+                        TryDequeue(ptr, out item);
+                        //item = DequeueScop(ptr);
+                        //return item != null;
                     }
                     else
                     {
                         item = null;
-                        return false;
+                        //return false;
                     }
-                //}
+                    scope.Complete();
+                }
+
+                return DequeueScopEvent(item);
             }
             catch (Exception ex)
             {
@@ -925,30 +1142,30 @@ namespace Nistec.Messaging
         public virtual IQueueItem Dequeue()
         {
             Ptr ptr = Ptr.Empty;
-
+            IQueueItem item = null;
             try
             {
 
-                //using (TransactionScope tran = new TransactionScope())
-                //{
+                using (TransactionScope scope = TransHelper.GetTransactionScope())
+                {
 
-                    if (highQ.TryDequeue(out ptr))
+                    if (!highQ.IsEmpty && highQ.TryDequeue(out ptr))
                     {
-                        return DequeueScop(ptr);
+                        TryDequeue(ptr, out item); //item = DequeueScop(ptr);
                     }
-                    else if (mediumQ.TryDequeue(out ptr))
+                    else if (!mediumQ.IsEmpty && mediumQ.TryDequeue(out ptr))
                     {
-                        return DequeueScop(ptr);
+                        TryDequeue(ptr, out item); //item = DequeueScop(ptr);
                     }
-                    else if (normalQ.TryDequeue(out ptr))
+                    else if (!normalQ.IsEmpty && normalQ.TryDequeue(out ptr))
                     {
-                        return DequeueScop(ptr);
+                        TryDequeue(ptr, out item); //item = DequeueScop(ptr);
                     }
                     else
                     {
-                        return null;
+                        item = null;
                     }
-
+                    scope.Complete();
                     //changed:syncCount:
                     //if (ptr == Guid.Empty)
                     //    ptr = mediumQ.Dequeue();
@@ -969,15 +1186,15 @@ namespace Nistec.Messaging
                     //    Thread.Sleep(300);
                     //    return Dequeue();
                     //}
-               //}
+                }
+                DequeueScopEvent(item);
             }
             catch (Exception ex)
             {
                 Logger.Exception("PriorityQueue Dequeue error ", ex);
             }
 
-            return null;
-
+            return item;
         }
 
 
@@ -992,32 +1209,42 @@ namespace Nistec.Messaging
             IQueueItem item = null;
             DateTime start = DateTime.Now;
             bool wait = true;
+            int sycle = 0;
             try
             {
                 do
                 {
-                    if (highQ.TryDequeue(out ptr))
-                    {
-                        item = DequeueScop(ptr);
-                    }
-                    else if (mediumQ.TryDequeue(out ptr))
-                    {
-                        item = DequeueScop(ptr);
-                    }
-                    else if (normalQ.TryDequeue(out ptr))
-                    {
-                        item = DequeueScop(ptr);
-                    }
-                    else if(maxSecondWait>0 && DateTime.Now.Subtract(start).TotalSeconds > maxSecondWait)
-                    {
-                        wait = false;
-                    }
-                    else
-                    {
+                    if(sycle>0)
                         Thread.Sleep(ConsumeInterval);
-                    }
-                } while (item==null && wait);
 
+                    using (TransactionScope scope = TransHelper.GetTransactionScope())
+                    {
+                        if (!highQ.IsEmpty && highQ.TryDequeue(out ptr))
+                        {
+                            TryDequeue(ptr, out item); //item = DequeueScop(ptr);
+                        }
+                        else if (!mediumQ.IsEmpty && mediumQ.TryDequeue(out ptr))
+                        {
+                            TryDequeue(ptr, out item); //item = DequeueScop(ptr);
+                        }
+                        else if (!normalQ.IsEmpty && normalQ.TryDequeue(out ptr))
+                        {
+                            TryDequeue(ptr, out item); //item = DequeueScop(ptr);
+                        }
+                        else if (maxSecondWait > 0 && DateTime.Now.Subtract(start).TotalSeconds > maxSecondWait)
+                        {
+                            wait = false;
+                        }
+                        //else
+                        //{
+                        //    Thread.Sleep(ConsumeInterval);
+                        //}
+                        scope.Complete();
+                    }
+                    sycle++;
+                } while (item == null && wait);
+
+                DequeueScopEvent(item);
             }
             catch (Exception ex)
             {
@@ -1100,12 +1327,18 @@ namespace Nistec.Messaging
 
 
         /// <summary>
-        /// Enqueue Message
+        /// ReEnqueue Message
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        internal protected virtual void ReEnqueue(IQueueItem item)
+        public virtual IQueueAck Requeue(IQueueItem item)
         {
+            if(item.Retry > MaxRetry)
+            {
+                return new QueueAck(MessageState.RetryExceeds, item);
+            }
+            ((QueueItem)item).DoRetry();
+
             Ptr ptr = new Ptr(item, Name);
 
             switch (item.Priority)
@@ -1121,12 +1354,22 @@ namespace Nistec.Messaging
                     break;
             }
 
+            if (!ItemExists(ptr))
+            {
+                if(!TryAdd(ptr, item))
+                {
+                    return new QueueAck(MessageState.FailedEnqueue, item);
+                }
+            }
+            return  new QueueAck(MessageState.Received, item);
+
             //if (MessageArrived != null)
             //{
             //    OnMessageArrived(new QueueItemEventArgs(item, MessageState.Arrived));
             //}
             //return new QueueAck(MessageState.Arrived, item);// new Ptr(ptr, PtrState.Arrived);
         }
+
 
         /// <summary>
         /// Remove Item

@@ -319,6 +319,11 @@ namespace Nistec.Messaging.Io
         {
             return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", RootPath, HostName, Assists.FolderQueue, Assists.GetFolderId(item.Identifier), item.Identifier, Assists.FileExt);
         }
+        public string GetFilename(string path)
+        {
+            return Path.GetFileNameWithoutExtension(path);
+        }
+
         public string GetQueueFilename(string identifier)
         {
             string path = Assists.GetIdentifierPath(QueuePath, identifier);
@@ -481,6 +486,12 @@ namespace Nistec.Messaging.Io
                 ptr.DoRetry();
                 return ptr;
             }
+        }
+
+        public bool ItemExists(string identifier)
+        {
+            string filename = GetQueueFilename(identifier);
+            return File.Exists(filename);
         }
 
         public QueueItem ReadItemExt(string identifier, bool checkRetry)
@@ -1441,9 +1452,11 @@ namespace Nistec.Messaging.Io
                 foreach (string message in messages)
                 {
                     string filename = null;
+                    string identifier = null;
                     try
                     {
-                        filename = GetQueueFilenameExt(message);
+                        identifier = GetFilename(message);
+                        filename = message;// GetQueueFilenameExt(message);
                         var item = QueueItem.ReadFile(filename);
 
                         //var item = ReadItemExt(message, true);

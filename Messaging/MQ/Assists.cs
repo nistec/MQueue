@@ -7,6 +7,7 @@ using Nistec.Messaging.Io;
 using Nistec.Generic;
 using Nistec.Messaging.Listeners;
 using System.Collections.Specialized;
+using Nistec.Channels;
 
 namespace Nistec.Messaging
 {
@@ -28,6 +29,15 @@ namespace Nistec.Messaging
         public static bool IsStateOk(this MessageState state)
         {
             return ((int)state < 20);
+        }
+        public static bool IsStateOk(this ChannelState state)
+        {
+            return ((int)state < 20);
+        }
+
+        public static bool IsConnectionError(this ChannelState state)
+        {
+            return state == ChannelState.ConnectionError;
         }
 
         public static string NewIdentifier()
@@ -383,11 +393,11 @@ namespace Nistec.Messaging
         }
         public static string GetFolderId(string identifier,int length=1)
         {
-            if (identifier == null || identifier.Length<2)
+            if (identifier == null || identifier.Length<1 || length > 5)
             {
-                throw new ArgumentNullException("identifier");
+                throw new ArgumentException("identifier is null or length out of range, should be between 1 and 5");
             }
-            return identifier.Substring(0,1);
+            return identifier.Substring(0, length);
 
             //if (identifier.Length < 6)
             //    return identifier.Substring(0, identifier.Length - 2);
@@ -404,7 +414,19 @@ namespace Nistec.Messaging
         {
             const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
             return new string(Enumerable.Repeat(chars, length)
-              .Select(s => s[random.Next(s.Length)]).ToArray());
+              .Select(s => s[random.Next(s.Length-1)]).ToArray());
+
+            /*
+             string[] ch= new string[length];
+
+            for(int i=0;i< length;i++)
+            {
+                ch[i] = new string(Enumerable.Repeat(chars, 1)
+              .Select(s => s[s.Length-1]).ToArray());
+            }
+
+            return string.Join("", ch);
+            */
         }
 
         //public static string GetQueueFilename(long UniqueId, Priority priority)

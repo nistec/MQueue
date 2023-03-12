@@ -105,18 +105,39 @@ namespace Nistec.Messaging
             return false;
         }
 
+        protected override IQueueItem GetFirstItem()
+        {
+            IQueueItem item = null;
+            try
+            {
+                item = Dequeue();
+                if (item != null)
+                {
+                    IQueueItem qi;
+
+                    m_db.TryRemove(item.Identifier, out qi);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception("GetFirstItem", ex);
+            }
+            return item;
+        }
+
         protected IQueueItem GetFirstItem()
         {
             IQueueItem item = null;
             try
             {
-                TryDequeue()
+                if(TryDequeue()
                 item = base.Dequeue();
                 if (item != null)
                 {
                     IQueueItem qi;
 
-                    m_db.GetOrAdd.TryRemove(item.Identifier, out qi);
+                    m_db.GetOrAdd(item.Identifier, out qi);
                 }
 
             }

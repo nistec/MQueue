@@ -18,7 +18,7 @@ namespace Nistec.Messaging.Transactions
     {
 
         #region properties
-
+        public object Item { get; private set; }
         /// <summary>
         /// Get ItemId
         /// </summary>
@@ -60,6 +60,7 @@ namespace Nistec.Messaging.Transactions
 
         public TransactionItem(IQueueItem item, string location)
         {
+            this.Item = item;
             this.Identifier = item.Identifier;
             this.Location = location;
             this.ArrivedTime = item.ArrivedTime;

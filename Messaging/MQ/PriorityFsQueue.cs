@@ -25,7 +25,7 @@ namespace Nistec.Messaging
         #region members
 
         FileMessage m_fs;
-        ConcurrentDictionary<Ptr, IQueueItem> QueueList;
+        ConcurrentDictionary<Ptr, IQueueItem> QueueItems;
         PersistCommitMode CommitMode = PersistCommitMode.OnMemory;
         CoverMode CoverMode = CoverMode.FileStream;
         public string RootPath { get; private set; }
@@ -33,15 +33,15 @@ namespace Nistec.Messaging
 
         #region ctor
 
-        public PriorityFsQueue(QueueHost qp)
-            : base(qp.HostName)
+        public PriorityFsQueue(QueueHost qp, int consumeInterval=100)
+            : base(qp.HostName, consumeInterval)
         {
 
             int numProcs = Environment.ProcessorCount;
             int concurrencyLevel = numProcs * 2;
             int initialCapacity = 101;
 
-            QueueList = new ConcurrentDictionary<Ptr, IQueueItem>(concurrencyLevel, initialCapacity);
+            QueueItems = new ConcurrentDictionary<Ptr, IQueueItem>(concurrencyLevel, initialCapacity);
 
             //CommitMode = qp.CommitMode;
             //CoverMode = qp.Mode;
@@ -82,7 +82,7 @@ namespace Nistec.Messaging
                     Logger.Info("PriorityFsQueue will load items to : {0}", qp.HostName);
                     m_fs.ReloadItemsAsync(FolderType.Queue, 0, (IQueueItem item) =>
                     {
-                        this.ReEnqueue(item);
+                        this.Requeue(item);
                     });
                 }
                 else
@@ -188,7 +188,7 @@ namespace Nistec.Messaging
         protected override bool TryAdd(Ptr ptr, IQueueItem item)
         {
             var copy = item.Copy();
-            QueueList[ptr] = copy;
+            QueueItems[ptr] = copy;
 
             if (CoverMode == CoverMode.FileStream)
             {
@@ -230,12 +230,12 @@ namespace Nistec.Messaging
                     //    return true;
                     //}
                 }
-                else if (QueueList.TryGetValue(ptr, out item))
+                else if (QueueItems.TryGetValue(ptr, out item))
                 {
                     return true;
                 }
             }
-            else if (QueueList.TryGetValue(ptr, out item))
+            else if (QueueItems.TryGetValue(ptr, out item))
             {
                 return true;
             }
@@ -249,11 +249,11 @@ namespace Nistec.Messaging
 
             if (CoverMode == CoverMode.FileStream)
             {
-                if (QueueList.TryRemove(ptr, out item))
+                if (QueueItems.TryRemove(ptr, out item))
                 {
                     if (CommitMode == PersistCommitMode.OnDisk)
                     {
-                        IQueueItem item_pers = null;
+                        //IQueueItem item_pers = null;
 
                         if(m_fs.DeleteItem(item))
                         {
@@ -275,7 +275,7 @@ namespace Nistec.Messaging
             }
             else
             {
-                if (QueueList.TryRemove(ptr, out item))
+                if (QueueItems.TryRemove(ptr, out item))
                 {
                     return true;
                 }
@@ -305,10 +305,10 @@ namespace Nistec.Messaging
                 else {
                     if (Count() > 0)
                     {
-                        //var k= QueueList.Keys.FirstOrDefault<Guid>();
+                        //var k= QueueItems.Keys.FirstOrDefault<Guid>();
                         //return Dequeue(k);
 
-                        foreach (var g in QueueList.Keys)
+                        foreach (var g in QueueItems.Keys)
                         {
                             item = Dequeue(g);
                             if (item != null)
@@ -342,7 +342,7 @@ namespace Nistec.Messaging
                     //else
                     //{
                         List<IPersistEntity> list = new List<IPersistEntity>();
-                        foreach (var g in QueueList)
+                        foreach (var g in QueueItems)
                         {
                             list.Add(new PersistEntity() { body = g.Value, key = g.Key.Identifier, name = Name, timestamp = g.Key.ArrivedTime });
                         }
@@ -359,9 +359,26 @@ namespace Nistec.Messaging
 
         }
 
+        public override bool ItemExists(Ptr ptr)
+        {
+            try
+            {
+                if (QueueItems.ContainsKey(ptr))
+                {
+                   return m_fs.ItemExists(ptr.Identifier);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("ItemExists error: " + ex.Message);
+            }
+            return false;
+        }
+
+
         protected override void ClearItems()
         {
-            QueueList.Clear();
+            QueueItems.Clear();
             if (CoverMode == CoverMode.FileStream)
                 m_fs.ClearItems();
         }
@@ -375,7 +392,7 @@ namespace Nistec.Messaging
             if (CoverMode == CoverMode.FileStream)
                 m_fs.ReloadItemsAsync(FolderType.Queue,0, (IQueueItem item) =>
                 {
-                    this.ReEnqueue(item);
+                    this.Requeue(item);
                 });
         }
         protected override int Count()
@@ -385,24 +402,25 @@ namespace Nistec.Messaging
                 if (CommitMode == PersistCommitMode.OnDisk)
                     return m_fs.Count();
                 else
-                    return QueueList.Count;
+                    return QueueItems.Count;
             }
             else
             {
-                return QueueList.Count;
+                return QueueItems.Count;
             }
         }
 
+        /*
         /// <summary>
         /// Enqueue Message
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        internal protected override void ReEnqueue(IQueueItem item)
+        public override void Requeue(IQueueItem item)
         {
-            base.ReEnqueue(item);
+            base.Requeue(item);
 
-            QueueList[item.GetPtr()] = item;
+            QueueItems[item.GetPtr()] = item;
 
             //if (MessageArrived != null)
             //{
@@ -410,6 +428,7 @@ namespace Nistec.Messaging
             //}
             //return new QueueAck(MessageState.Arrived, item);// new Ptr(ptr, PtrState.Arrived);
         }
+        */
         #endregion
 
         #region override events

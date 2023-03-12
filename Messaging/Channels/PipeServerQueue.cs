@@ -91,4 +91,78 @@ namespace Nistec.Messaging.Channels
         #endregion
     }
 
+    public class PipeServerGeneric<T> : PipeServer<T>, IChannelService where T : IHostMessage
+    {
+        QueueChannel QueueChannel = QueueChannel.Consumer;
+        IControllerHandler<T> Controller;
+
+        #region override
+        /// <summary>
+        /// OnStart
+        /// </summary>
+        protected override void OnStart()
+        {
+            base.OnStart();
+            Log.Info("PipeServerQueue started :{0}, QueueChannel:{1}", PipeName, QueueChannel.ToString());
+        }
+        /// <summary>
+        /// OnStop
+        /// </summary>
+        protected override void OnStop()
+        {
+            base.OnStop();
+            Log.Info("PipeServerQueue stoped :{0}, QueueChannel:{1}", PipeName, QueueChannel.ToString());
+        }
+
+        /// <summary>
+        /// OnLoad
+        /// </summary>
+        protected override void OnLoad()
+        {
+            base.OnLoad();
+
+        }
+
+        #endregion
+
+        #region ctor
+
+        /// <summary>
+        /// Constractor using <see cref="PipeSettings"/> settings.
+        /// </summary>
+        /// <param name="controller"></param>
+        /// <param name="settings"></param>
+        public PipeServerGeneric(PipeSettings settings, IControllerHandler<T> controller)
+            : base(settings)
+        {
+            Controller = controller;
+        }
+
+        #endregion
+
+        #region abstract methods
+        /// <summary>
+        /// Execute client request and return response as stream.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        protected override TransStream ExecRequset(T message)
+        {
+            return Controller.OnMessageReceived(message);
+        }
+        /// <summary>
+        /// ReadRequest
+        /// </summary>
+        /// <param name="pipeServer"></param>
+        /// <returns></returns>
+        protected override T ReadRequest(NamedPipeServerStream pipeServer)
+        {
+            return Nistec.Runtime.ActivatorUtil.CreateInstance<T>().Parse<T>(NetStream.CopyStream(pipeServer));
+
+            //return new QueueItem(pipeServer, null);
+        }
+
+
+        #endregion
+    }
 }

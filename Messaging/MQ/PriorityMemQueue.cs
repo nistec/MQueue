@@ -26,16 +26,16 @@ namespace Nistec.Messaging
 
         #region members
 
-        private ConcurrentDictionary<Ptr, IQueueItem> QueueList;
- 
-       
+        private ConcurrentDictionary<Ptr, IQueueItem> QueueItems;
+
+
         #endregion
 
         #region override
 
         protected override bool TryAdd(Ptr ptr, IQueueItem item)
         {
-            QueueList[ptr]=item.Copy();
+            QueueItems[ptr]=item.Copy();
             return true;
         }
 
@@ -43,10 +43,10 @@ namespace Nistec.Messaging
         {
 
             item = null;
-            return QueueList.TryGetValue(ptr, out item);
+            return QueueItems.TryGetValue(ptr, out item);
 
             //IQueueItem copy = null;
-            //if (QueueList.TryGetValue(ptr, out copy))
+            //if (QueueItems.TryGetValue(ptr, out copy))
             //{
             //    item = ((QueueItemStream)copy).Copy();
             //    return true;
@@ -58,7 +58,7 @@ namespace Nistec.Messaging
         protected override bool TryDequeue(Ptr ptr, out IQueueItem item)
         {
             item = null;
-            return QueueList.TryRemove(ptr, out item);
+            return QueueItems.TryRemove(ptr, out item);
         }
 
         protected override IQueueItem GetFirstItem()
@@ -68,10 +68,10 @@ namespace Nistec.Messaging
             {
                 if (Count() > 0)
                 {
-                    //var k= QueueList.Keys.FirstOrDefault<Guid>();
+                    //var k= QueueItems.Keys.FirstOrDefault<Guid>();
                     //return Dequeue(k);
  
-                    foreach (var g in QueueList.Keys)
+                    foreach (var g in QueueItems.Keys)
                     {
                         item = Dequeue(g);
                         if (item != null)
@@ -96,7 +96,7 @@ namespace Nistec.Messaging
             {
                 if (Count() > 0)
                 {
-                    foreach (var g in QueueList)
+                    foreach (var g in QueueItems)
                     {
                         list.Add(new PersistEntity() { body = g.Value, key = g.Key.Identifier, name = Name, timestamp = g.Key.ArrivedTime });
                     }
@@ -111,7 +111,7 @@ namespace Nistec.Messaging
 
         protected override void ClearItems()
         {
-            QueueList.Clear();
+            QueueItems.Clear();
         }
 
         internal void ReloadItemsInternal()
@@ -120,13 +120,17 @@ namespace Nistec.Messaging
         }
         internal protected override void ReloadItems()
         {
-           // QueueList.Clear();
+           // QueueItems.Clear();
         }
         protected override int Count()
         {
-            return QueueList.Count;
+            return QueueItems.Count;
         }
 
+        public override  bool ItemExists(Ptr ptr)
+        {
+            return QueueItems.ContainsKey(ptr);
+        }
 
         #endregion
 
@@ -140,7 +144,7 @@ namespace Nistec.Messaging
             int concurrencyLevel = numProcs * 2;
             int initialCapacity = 101;
 
-            QueueList = new ConcurrentDictionary<Ptr, IQueueItem>(concurrencyLevel, initialCapacity);
+            QueueItems = new ConcurrentDictionary<Ptr, IQueueItem>(concurrencyLevel, initialCapacity);
           
         }
 

@@ -13,6 +13,7 @@ using Nistec.Channels.Tcp;
 using System.Threading;
 using System.Threading.Tasks;
 using Nistec.Threading;
+using Nistec.Logging;
 
 namespace Nistec.Messaging.Remote
 {
@@ -480,6 +481,7 @@ namespace Nistec.Messaging.Remote
             message.MessageState = MessageState.Sending;
             try
             {
+                Logger.Instance.Debug("RemoteApi PublishItem : Host:{0}, Identifier:{1}", message.Host, message.Identifier);
 
                 TransStream ts = ExecDuplexStream(message, ConnectTimeout);
                 return OnItemCompleted(ts, message);

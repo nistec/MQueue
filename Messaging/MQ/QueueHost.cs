@@ -386,6 +386,29 @@ namespace Nistec.Messaging
             }
         }
 
+        //public bool IsPingOk { get; private set; }
+        public bool PingValidate()
+        {
+            try
+            {
+                switch (_HostProtocol)
+                {
+                    case HostProtocol.ipc:
+                        return Nistec.Channels.PipeClient.Ping(ServerName, HostName, 5000);
+                    case HostProtocol.tcp:
+                        return Nistec.Channels.Tcp.TcpClient.Ping(ServerName, Port, 5000);
+                    case HostProtocol.http:
+                        return Nistec.Channels.Http.HttpClient.Ping(HostAddress, Port, 5000);
+                    default:
+                        return false;// NetProtocol.NA;
+                }
+            }
+            catch (Exception ex)
+            {
+               Console.WriteLine("PingValidate error: " + ex.Message);
+            }
+            return false;
+        }
 
         //public static QueueHost Get(HostProtocol protocol, string serverName, string hostPort, string hostName)
         //{

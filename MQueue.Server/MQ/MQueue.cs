@@ -28,7 +28,7 @@ namespace Nistec.Messaging
     /// Provides access to a queue on a McMessage Queuing
     /// </summary>
     [Serializable]
-    public sealed class MQueue : IReceiveCompleted, IQueuePerformance, IDisposable
+    public sealed class MQueue : IQueueReceiver, IQueuePerformance, IDisposable
     {
         #region Members
 
@@ -37,11 +37,12 @@ namespace Nistec.Messaging
         #endregion
 
         #region Topic
-        internal TopicController Topic;
+        //internal TopicController Topic;
 
         public IQueueAck EnqueueTopicItem(QueueItem item)
         {
-            return Topic.AddItem(item);
+            return Enqueue(item);
+            //return Topic.AddItem(item);
         }
 
         #endregion
@@ -208,10 +209,11 @@ namespace Nistec.Messaging
                 //};
                 m_QueuesPath = AgentManager.Settings.QueuesPath;
             }
-            if (IsTopic)
-            {
-                Topic = new TopicController(this);
-            }
+            //if (IsTopic)
+            //{
+                
+            //    Topic = new TopicController(this);
+            //}
 
             resetEvent = new ManualResetEvent(false);
 
@@ -224,8 +226,8 @@ namespace Nistec.Messaging
 
             Q.MessageArrived += new QueueItemEventHandler(Q_MessageArrived);
             Q.MessageReceived += new QueueItemEventHandler(Q_MessageReceived);
-            Q.TransactionBegin += new QueueItemEventHandler(Q_MessageTransBegin);
-            Q.TransactionEnd += new QueueItemEventHandler(Q_MessageTransEnd);
+            //Q.TransactionBegin += new QueueItemEventHandler(Q_MessageTransBegin);
+            //Q.TransactionEnd += new QueueItemEventHandler(Q_MessageTransEnd);
             Q.ErrorOccured += new QueueItemEventHandler(Q_ErrorOccured);
             //InitRecoverQueue(DefaultIntervalMinuteRecover);
 
@@ -338,8 +340,8 @@ namespace Nistec.Messaging
 
                         Q.MessageArrived -= new QueueItemEventHandler(Q_MessageArrived);
                         Q.MessageReceived -= new QueueItemEventHandler(Q_MessageReceived);
-                        Q.TransactionBegin -= new QueueItemEventHandler(Q_MessageTransBegin);
-                        Q.TransactionEnd -= new QueueItemEventHandler(Q_MessageTransEnd);
+                        //Q.TransactionBegin -= new QueueItemEventHandler(Q_MessageTransBegin);
+                        //Q.TransactionEnd -= new QueueItemEventHandler(Q_MessageTransEnd);
                     }
 
                     m_QueueName = null;
@@ -955,20 +957,20 @@ namespace Nistec.Messaging
             OnMessageArraived(e);// OnEnqueueMessage(e); //normalQ.Dequeue();
         }
 
-        void Q_MessageTransBegin(object sender, QueueItemEventArgs e)
-        {
-            //TODO:FIX
-            //TransBegin(e.Item);
-            //base.TransBegin(e.Item);
-        }
-        void Q_MessageTransEnd(object sender, QueueItemEventArgs e)
-        {
-            //TODO:FIX
-            //if (e.State == ItemState.Wait)
-            //{
-            //    ReEnqueue(e.Item);
-            //}
-        }
+        //void Q_MessageTransBegin(object sender, QueueItemEventArgs e)
+        //{
+        //    //TODO:FIX
+        //    //TransBegin(e.Item);
+        //    //base.TransBegin(e.Item);
+        //}
+        //void Q_MessageTransEnd(object sender, QueueItemEventArgs e)
+        //{
+        //    //TODO:FIX
+        //    //if (e.State == ItemState.Wait)
+        //    //{
+        //    //    ReEnqueue(e.Item);
+        //    //}
+        //}
 
         void Q_ErrorOccured(object sender, QueueItemEventArgs e)
         {
@@ -1444,28 +1446,32 @@ namespace Nistec.Messaging
         }
 
 
-        ///// <summary>
-        ///// ReEnqueueMessage
-        ///// </summary>
-        ///// <param name="item"></param>
-        //public override Ptr ReEnqueue(IQueueItem item)
-        //{
+        /// <summary>
+        /// ReEnqueueMessage
+        /// </summary>
+        /// <param name="item"></param>
+        public IQueueAck Requeue(IQueueItem item)
+        {
 
-        //    if (this.HoldEnqueue)
-        //    {
-        //        //OnCoverHoldItem(item, 0, 0);
-        //        return Ptr.Get(PtrState.QueueInHold);
-        //    }
-        //    if (item.Retry > MaxRetry)
-        //    {
-        //        //Thread.Sleep(m_EnqueueWait);
-        //        //TOTDO:REPORT THIS
-        //        return Ptr.Get(PtrState.MaxRetryExceeds);
-        //    }
+            if (this.HoldEnqueue)
+            {
+                //OnCoverHoldItem(item, 0, 0);
+                //return Ptr.Get(PtrState.QueueInHold);
 
-        //    ((IQueueItem)item).DoRetry();//.Retry += 1;
-        //    return Q.Enqueue(item);
-        //}
+                return new QueueAck(MessageState.FailedHoldEnqueue, item);
+            }
+            if (item.Retry > MaxRetry)
+            {
+                //Thread.Sleep(m_EnqueueWait);
+                //TOTDO:REPORT THIS
+                //return Ptr.Get(item, PtrState.RetryExceeds);
+
+                return new QueueAck(MessageState.RetryExceeds, item);
+            }
+
+            //((QueueItem)item).DoRetry();//.Retry += 1;
+            return Q.Requeue(item);
+        }
 
 
         #endregion
@@ -1478,7 +1484,7 @@ namespace Nistec.Messaging
         //private string m_StartupPath = "";
         private string m_QueuesPath = "";
         internal QueueHost RoutHost { get; set; }
-        internal string TargetPath { get; set; }
+        public string TargetPath { get; internal set; }
 
 
         #region sys file

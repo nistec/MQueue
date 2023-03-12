@@ -75,6 +75,7 @@ namespace Nistec.Messaging.Server
             IsStarted = true;
             Logger.Info("QueueController started...");
         }
+  
         public virtual void Stop()
         {
             if (!IsStarted)
@@ -93,6 +94,20 @@ namespace Nistec.Messaging.Server
                 throw new Exception("Queue not exists: " + qname);
             return mq;
         }
+
+        #region static
+
+        public static IQueueAck Requeue(IQueueItem item)
+        {
+            MQueue mq = AgentManager.Queue.Get(item.Host);
+            if (mq == null)
+                throw new Exception("Queue not exists: " + item.Host);
+            return mq.Requeue(item);
+        }
+
+        #endregion
+
+
         #region queue response
 
         public TransStream DoResponse(IQueueItem item, MessageState state)
@@ -255,40 +270,43 @@ namespace Nistec.Messaging.Server
                     case QueueCmd.TopicHold:
                         {
                             MQueue mq = GetValidQ(request.Host);
-                            mq.Topic.HoldTopic();
+                            //mq.Topic.HoldTopic();
+                            TopicDispatcher.Pause( OnOffState.On);
                             return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     case QueueCmd.TopicHoldRelease:
                         {
                             MQueue mq = GetValidQ(request.Host);
-                            mq.Topic.ReleaseHoldTopic();
+                            //mq.Topic.ReleaseHoldTopic();
+                            TopicDispatcher.Pause(OnOffState.Off);
                             return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     case QueueCmd.TopicSubscribeHold:
                         {
                             MQueue mq = GetValidQ(request.Host);
-
-                            mq.Topic.HoldSubscriber(request.Label);
+                            //mq.Topic.HoldSubscriber(request.Label);
+                            LoadTopicSubscribers(mq, request.Label, "remove");
                             return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     case QueueCmd.TopicSubscribeRelease:
                         {
                             MQueue mq = GetValidQ(request.Host);
-                            mq.Topic.ReleaseHoldSubscriber(request.Label);
+                            //mq.Topic.ReleaseHoldSubscriber(request.Label);
+                            LoadTopicSubscribers(mq, request.Label, "remove");
                             return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     case QueueCmd.TopicSubscribeAdd:
                         {
                             MQueue mq = GetValidQ(request.Host);
-                            TopicController tc = new TopicController(mq);
-                            tc.AddSubscriber(TopicSubscriber.Parse(request.Label));
+                            LoadTopicSubscribers(mq, request.Label, "add");
                             return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     case QueueCmd.TopicSubscribeRemove:
                         {
                             MQueue mq = GetValidQ(request.Host);
-                            TopicController tc = new TopicController(mq);
-                            tc.RemoveSubscriber(request.Label);
+                            //TopicController tc = new TopicController(mq);
+                            //tc.RemoveSubscriber(request.Label);
+                            LoadTopicSubscribers(mq, request.Label, "remove");
                             return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     //reports
@@ -381,7 +399,10 @@ namespace Nistec.Messaging.Server
             MQueue Q;
 
             if (MQ.TryGetValue(item.Host, out Q))
+
             {
+                Logger.Debug("QueueController ExecSet : Mode:{0}, {1}", Q.Mode.ToString(), item.Print());
+
                 if (Q.Mode == CoverMode.Rout)
                 {
                     return ExecRout(item, Q.RoutHost);
@@ -839,6 +860,11 @@ namespace Nistec.Messaging.Server
             //LoadQueue(queue,prop);
             MQ[prop.QueueName] = queue;
 
+            if (prop.IsTopic)
+            {
+                TopicDispatcher.TaskAdd(queue, this);
+            }
+
             Logger.Info("AddQueue : {0}", prop.QueueName);
 
             return queue;
@@ -872,6 +898,12 @@ namespace Nistec.Messaging.Server
             //LoadQueue(queue, prop);
             MQ[prop.QueueName] = queue;
             mq = queue;
+
+            if (prop.IsTopic)
+            {
+                TopicDispatcher.TaskAdd(mq, this);
+            }
+
             Logger.Info("AddQueue : {0}", prop.Print());
             //return  MessageState.Ok;
 
@@ -894,6 +926,12 @@ namespace Nistec.Messaging.Server
 
             MQueue queue;
             bool removed = MQ.TryRemove(queueName, out queue);
+
+            if (queue.IsTopic)
+            {
+                TopicDispatcher.TaskRemove(queue);
+            }
+
             Logger.Info("RemoveQueue : {0}, {1}", queueName, removed);
 
             return QueueItem.Ack(removed ? MessageState.Ok : MessageState.OperationFailed, QueueCmd.RemoveQueue, removed ? "Queue was removed" : "Queue was not removed", null);
@@ -955,6 +993,39 @@ namespace Nistec.Messaging.Server
                 return false;
             }
             return true;
+        }
+
+        internal void LoadTopicSubscribers(MQueue mq, string label, string action)
+        {
+            List<string> hosts = new List<string>();
+            if (action=="add")
+                hosts.Add(label);
+
+            if (string.IsNullOrEmpty(mq.TargetPath))
+            {
+                if (action == "add")
+                    mq.TargetPath = label;
+            }
+            else 
+            {
+                string[] args = mq.TargetPath.SplitTrim('|');
+                hosts.AddRange(args);
+
+                if (action == "add") {
+                    if (!hosts.Contains(label))
+                        hosts.Add(label);
+                }
+                else if (action == "remove")
+                {
+                    if (hosts.Contains(label))
+                        hosts.Remove(label);
+                }
+                mq.TargetPath = string.Join("|", hosts);
+            }
+
+            //mq.TargetPath = mq.TargetPath.Replace(request.Label, "");
+            //mq.TargetPath += request.Label;
+            TopicDispatcher.LoadSubscribers(mq);
         }
 
 
