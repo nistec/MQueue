@@ -106,10 +106,11 @@ namespace QueueListenerDemo
                 Source = host,
                 IsAsync = true,
                 IsMultiTask=true,
-                Interval = 10000,
+                Interval = 10,
                 ConnectTimeout = 5000,
                 ReadTimeout = 180000,
-                WorkerCount = 1,
+                WorkerCount = 3,
+                MaxConnection=50,
                 EnableDynamicWait = true,
                 MessageReceivedAction = (message) =>
                 {
