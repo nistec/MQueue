@@ -12,7 +12,7 @@ using Nistec.Messaging.Server;
 
 namespace Nistec.Messaging.Transactions
 {
-    internal class TransactionDispatcher : SyncTimerDispatcher<IQueueItem> //IDisposable
+    internal class TransactionDispatcher : SyncTimerDispatcher<IQueueMessage> //IDisposable
     {
 
         public const int MaxRetry = 3;
@@ -34,25 +34,25 @@ namespace Nistec.Messaging.Transactions
 
         #region Transactional
 
-        //public SyncTimerDispatcher<IQueueItem> TransactionalDispatcher
+        //public SyncTimerDispatcher<IQueueMessage> TransactionalDispatcher
         //{
         //    get
         //    {
         //        if (transactionalItems == null)
         //        {
-        //            transactionalItems = new SyncTimerDispatcher<IQueueItem>();
+        //            transactionalItems = new SyncTimerDispatcher<IQueueMessage>();
         //            transactionalItems.SyncItemCompleted += TransactionalItems_SyncItemCompleted;
         //        }
         //        return transactionalItems;
         //    }
         //}
 
-        //private void TransactionalItems_SyncItemCompleted(object sender, SyncItemEventArgs<IQueueItem> e)
+        //private void TransactionalItems_SyncItemCompleted(object sender, SyncItemEventArgs<IQueueMessage> e)
         //{
         //    OnTransactionExpired(e);
         //}
 
-        protected virtual void OnTransactionExpired(SyncItemEventArgs<IQueueItem> e)
+        protected virtual void OnTransactionExpired(SyncItemEventArgs<IQueueMessage> e)
         {
             //if(e.Item.Retry> MaxRetry)
             //{
@@ -64,24 +64,24 @@ namespace Nistec.Messaging.Transactions
             //}
         }
 
-        public static IQueueAck Requeue(IQueueItem item)
+        public static IQueueAck Requeue(IQueueMessage item)
         {
             return QueueController.Requeue(item);
         }
 
-        //public void Add(IQueueItem item, int expirationMinurs = 1)
+        //public void Add(IQueueMessage item, int expirationMinurs = 1)
         //{
         //    if (this.Initialized)
         //        this.Add(item, expirationMinurs);
         //}
-        public bool Commit(IQueueItem item)
+        public bool Commit(IQueueMessage item)
         {
             return this.Remove(item);
         }
 
-        public void Abort(IQueueItem item)
+        public void Abort(IQueueMessage item)
         {
-            OnTransactionExpired(new SyncItemEventArgs<IQueueItem>(item));
+            OnTransactionExpired(new SyncItemEventArgs<IQueueMessage>(item));
         }
 
 

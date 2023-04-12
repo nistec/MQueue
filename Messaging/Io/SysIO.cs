@@ -10,45 +10,25 @@ namespace Nistec.Messaging.Io
     public class SysIO
     {
 
-        /// <summary>
-        /// Copies <b>source</b> stream data to <b>target</b> stream.
-        /// </summary>
-        /// <param name="source">Source stream. Reading starts from stream current position.</param>
-        /// <param name="target">Target stream. Writing starts from stream current position.</param>
-        /// <param name="blockSize">Specifies transfer block size in bytes.</param>
-        /// <returns>Returns number of bytes copied.</returns>
-        public static long StreamCopy(Stream source, Stream target, int blockSize)
+        public static string EnsureQueueFilename(string QueuePath,string identifier)
         {
-            if (source == null)
-            {
-                throw new ArgumentNullException("source");
-            }
-            if (target == null)
-            {
-                throw new ArgumentNullException("target");
-            }
-            if (blockSize < 1024)
-            {
-                throw new ArgumentException("Argument 'blockSize' value must be >= 1024.");
-            }
-
-            byte[] buffer = new byte[blockSize];
-            long totalReaded = 0;
-            while (true)
-            {
-                int readedCount = source.Read(buffer, 0, buffer.Length);
-                // We reached end of stream, we readed all data sucessfully.
-                if (readedCount == 0)
-                {
-                    return totalReaded;
-                }
-                else
-                {
-                    target.Write(buffer, 0, readedCount);
-                    totalReaded += readedCount;
-                }
-            }
+            string path = Assists.EnsureIdentifierPath(QueuePath, identifier);
+            return Path.Combine(path, Assists.FormatQueueFilename(identifier));
         }
+
+        public static void WriteToFile(string QueuePath, IQueueMessage message)
+        {
+            string filename = EnsureQueueFilename(QueuePath, message.Identifier);
+
+            var stream = message.ToStream();
+            if (stream == null)
+            {
+                throw new Exception("Invalid BodyStream , Can't save body stream to file,");
+            }
+            stream.Copy().SaveToFile(filename);
+        }
+
+
 
         #region static method NormalizeFolder
 
@@ -298,10 +278,50 @@ namespace Nistec.Messaging.Io
         //    //return totalReadedCount;
         //}
 
-    
+
         #endregion
+            
+        #region Stream 
 
+        /// <summary>
+        /// Copies <b>source</b> stream data to <b>target</b> stream.
+        /// </summary>
+        /// <param name="source">Source stream. Reading starts from stream current position.</param>
+        /// <param name="target">Target stream. Writing starts from stream current position.</param>
+        /// <param name="blockSize">Specifies transfer block size in bytes.</param>
+        /// <returns>Returns number of bytes copied.</returns>
+        public static long StreamCopy(Stream source, Stream target, int blockSize)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException("source");
+            }
+            if (target == null)
+            {
+                throw new ArgumentNullException("target");
+            }
+            if (blockSize < 1024)
+            {
+                throw new ArgumentException("Argument 'blockSize' value must be >= 1024.");
+            }
 
+            byte[] buffer = new byte[blockSize];
+            long totalReaded = 0;
+            while (true)
+            {
+                int readedCount = source.Read(buffer, 0, buffer.Length);
+                // We reached end of stream, we readed all data sucessfully.
+                if (readedCount == 0)
+                {
+                    return totalReaded;
+                }
+                else
+                {
+                    target.Write(buffer, 0, readedCount);
+                    totalReaded += readedCount;
+                }
+            }
+        }
 
         /// <summary>
         /// Copies all data from source stream to destination stream.
@@ -422,6 +442,6 @@ namespace Nistec.Messaging.Io
                 }
             }
         }
-
+        #endregion
     }
 }

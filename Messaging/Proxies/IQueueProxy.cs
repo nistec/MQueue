@@ -12,10 +12,10 @@ namespace Nistec.Messaging.Proxies
     {
 
         //[OperationContract]
-        //MessageState EnqueueItem(QueueItem item);
+        //MessageState EnqueueItem(QueueMessage item);
 
         [OperationContract]
-        MessageState EnqueueMessage(QueueItem msg);
+        MessageState EnqueueMessage(QueueMessage msg);
 
         [OperationContract]
         MessageState SendMessage(Stream stream);

@@ -28,7 +28,7 @@ namespace Nistec.Messaging
         //}
 
 
-        //public static void DoRetry(this QueueItem item)
+        //public static void DoRetry(this QueueMessage item)
         //{
         //    item.Retry++;
         //    item.Modified = DateTime.Now;

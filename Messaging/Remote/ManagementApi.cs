@@ -105,7 +105,7 @@ namespace Nistec.Messaging.Remote
         {
             Console.WriteLine("QueueApi Fault: " + message);
         }
-        protected void OnCompleted(QueueItem message)
+        protected void OnCompleted(QueueMessage message)
         {
             Console.WriteLine("QueueApi Completed: " + message.Identifier);
         }
@@ -198,11 +198,11 @@ namespace Nistec.Messaging.Remote
 
         #region Commit/Abort/Report
 
-        public TransStream Report(QueueCmdReport cmd, string queueName)
+        public TransStream Report(QueueCmdReport cmd, string queueName = null)
         {
             QueueRequest request = new QueueRequest()
             {
-                Host = queueName??QueueName,
+                Host = queueName ?? QueueName,
                 QCommand = (QueueCmd)(int)cmd
                 //Command = (QueueCmd)(int)cmd
             };
@@ -229,13 +229,17 @@ namespace Nistec.Messaging.Remote
                 return default(T);
             return res.ReadValue<T>();
         }
-
-        public TransStream OperateQueue(QueueCmdOperation cmd, string queueName)
+        public TransStream OperateQueue(QueueRequest message)
+        {
+            var response = RequestItemStream(message, ConnectTimeout);
+            return response;//==null? null: response.ToMessage();
+        }
+        public TransStream OperateQueue(QueueCmdOperation cmd, string queueName=null)
         {
             QueueRequest message = new QueueRequest()//queueName, (QueueCmd)(int)cmd)
             {
                 Host = queueName??QueueName,
-                QCommand = (QueueCmd)(int)cmd,
+                QCommand = (QueueCmd)(int)cmd
                 //Command = (QueueCmd)(int)cmd
             };
             var response= RequestItemStream(message,ConnectTimeout);
@@ -243,7 +247,19 @@ namespace Nistec.Messaging.Remote
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
             //return (Message)client.Exec(message, (QueueCmd)(int)cmd);
         }
-
+        public TransStream OperateQueue(QueueCmd cmd, string queueName)
+        {
+            QueueRequest message = new QueueRequest()//queueName, (QueueCmd)(int)cmd)
+            {
+                Host = queueName ?? QueueName,
+                QCommand = cmd,
+                //Command = (QueueCmd)(int)cmd
+            };
+            var response = RequestItemStream(message, ConnectTimeout);
+            return response;//==null? null: response.ToMessage();
+            //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, true);
+            //return (Message)client.Exec(message, (QueueCmd)(int)cmd);
+        }
         public TransStream AddQueue(QProperties qp)
         {
             var message = new QueueRequest()
@@ -274,7 +290,7 @@ namespace Nistec.Messaging.Remote
                 IsTopic=false
             };
             return AddQueue(qp);
-            //var message = new QueueItem()
+            //var message = new QueueMessage()
             //{
             //    Host = _QueueName,
             //    Command = QueueCmd.AddQueue,
@@ -330,14 +346,15 @@ namespace Nistec.Messaging.Remote
 
         #endregion
 
-        public string DoHttpJson(string command, string key, string groupId = null, string label = null, object value = null, int expiration = 0, bool pretty = false)
+        public string DoHttpJson(string command, string key, string sessionId = null, string label = null, object value = null, int expiration = 0, bool pretty = false)
         {
 
             if (string.IsNullOrWhiteSpace(key))
             {
                 throw new ArgumentNullException("key is required");
             }
-            var msg = new QueueRequest() { Command = command, Id = key, GroupId = groupId, Expiration = expiration };
+            var msg = new QueueRequest() { Command = command, CustomId = key, SessionId = sessionId, Expiration = expiration };
+            //var msg = new QueueRequest() { Command = command, Identifier = key, GroupId = groupId, Expiration = expiration };
             msg.SetBody(value);
             return SendHttpJsonDuplex(msg, pretty);
 
@@ -367,7 +384,7 @@ namespace Nistec.Messaging.Remote
             //            }
             //            var msg = new CacheMessage() { Command = cmd, Id = key, GroupId = groupId, Expiration = expiration };
             //            msg.SetBody(value);
-            //            msg.Args = MessageStream.CreateArgs(KnowsArgs.Source, label, KnowsArgs.Destination, key);
+            //            msg.Args = MessageStream.CreateArgs(KnownArgs.Source, label, KnownArgs.Destination, key);
             //            return SendHttpJsonDuplex(msg, pretty);
             //        }
             //    case QueueCmd.Fetch:

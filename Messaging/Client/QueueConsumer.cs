@@ -28,20 +28,20 @@ namespace Nistec.Messaging.Client
 
         }
 
-        public void DequeueAsync(QueueRequest item, int connectTimeOut, Action<IQueueItem> action, IDynamicWait dw)
+        public void DequeueAsync(QueueRequest item, int connectTimeOut, Action<IQueueMessage> action, IDynamicWait dw)
         {
             _Api.DequeueAsync(item, connectTimeOut, action, dw);
         }
-        public void DequeueAsync(QueueRequest item, int connectTimeOut, Action<IQueueItem> action)
+        public void DequeueAsync(QueueRequest item, int connectTimeOut, Action<IQueueMessage> action)
         {
             _Api.DequeueAsync(item, connectTimeOut, action, DynamicWait.Empty);
         }
-        public IQueueItem Denqueue(QueueRequest item, int connectTimeOut)
+        public IQueueMessage Denqueue(QueueRequest item, int connectTimeOut)
         {
             return _Api.Dequeue(item, connectTimeOut);
         }
 
-        public QueueListener CreateQueueListener(QueueHost host, int workerCount, int connectTimeOut, int readTimeOut, Action<IQueueItem> received, Action<string> fault)
+        public QueueListener CreateQueueListener(QueueHost host, int workerCount, int connectTimeOut, int readTimeOut, Action<IQueueMessage> received, Action<string> fault)
         {
 
             var adapter = new QueueAdapter()
@@ -68,7 +68,7 @@ namespace Nistec.Messaging.Client
 
         }
 
-        public TopicSbscriberListener CreateSbscriberListener(QueueHost qhost, TcpSettings settings, Func<IQueueItem, TransStream> onItemReceived, Action<string> fault)
+        public TopicSbscriberListener CreateSbscriberListener(QueueHost qhost, TcpSettings settings, Func<IQueueMessage, TransStream> onItemReceived, Action<string> fault)
         {
             var listener = new TopicSbscriberListener(qhost, true)
             {
@@ -89,7 +89,7 @@ namespace Nistec.Messaging.Client
             return listener;
         }
 
-        public static IQueueItem DoGet(QueueHost host, int connectTimeOut)
+        public static IQueueMessage DoGet(QueueHost host, int connectTimeOut)
         {
             QueueApi q = new QueueApi(host);
             q.ConnectTimeout = connectTimeOut;
@@ -174,7 +174,7 @@ namespace Nistec.Messaging.Client
             //Console.ReadLine();
         }
 
-        private static void Listener_MessageReceived(object sender, Nistec.Generic.GenericEventArgs<IQueueItem> e)
+        private static void Listener_MessageReceived(object sender, Nistec.Generic.GenericEventArgs<IQueueMessage> e)
         {
             var message = e.Args;
             Console.WriteLine("State:{0},Arrived:{1},Host:{2},Label:{3}, Identifier:{4}", message.MessageState, message.ArrivedTime, message.Host, message.Label, message.Identifier);
@@ -203,7 +203,7 @@ namespace Nistec.Messaging.Client
 
             var listener = new TopicSbscriberListener(qhost, true)
             {
-                OnItemReceived = (IQueueItem message) =>
+                OnItemReceived = (IQueueMessage message) =>
                 {
 
                     Console.WriteLine("State:{0},Arrived:{1},Host:{2},Label:{3}, Identifier:{4}", message.MessageState, message.ArrivedTime, message.Host, message.Label, message.Identifier);
@@ -242,7 +242,7 @@ namespace Nistec.Messaging.Client
             }
 
 
-            public override TransStream OnMessageReceived(IQueueItem message)
+            public override TransStream OnMessageReceived(IQueueMessage message)
             {
                 Console.WriteLine("State:{0},Arrived:{1},Host:{2},Label:{3}, Identifier:{4}", message.MessageState, message.ArrivedTime, message.Host, message.Label, message.Identifier);
 

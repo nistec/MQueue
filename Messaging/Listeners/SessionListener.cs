@@ -42,6 +42,10 @@ namespace Nistec.Messaging.Listeners
         public bool IsAlive { get { return _isalive; } }
         int _WorkerCount;
         public int WorkerCount { get { return _WorkerCount; } }
+        int _MaxConnection;
+        public int MaxConnection { get { return _MaxConnection; } }
+        bool _IsMultiTask;
+        public bool IsMultiTask { get { return _IsMultiTask; } }
 
         bool _IsAsync;
         public bool IsAsync { get { return _IsAsync; } }
@@ -58,8 +62,8 @@ namespace Nistec.Messaging.Listeners
         //AdapterOperations _AdapterOperation;
         //public AdapterOperations OperationType { get { return _AdapterOperation; } }
 
-        //Action<IQueueItem> _Action;
-        //public Action<IQueueItem> QueueAction { get { return _Action; } }
+        //Action<IQueueMessage> _Action;
+        //public Action<IQueueMessage> QueueAction { get { return _Action; } }
 
         //Action<IQueueAck> _ActionTransfer;
         //public Action<IQueueAck> TransferAction { get { return _ActionTransfer; } }
@@ -106,13 +110,13 @@ namespace Nistec.Messaging.Listeners
         /// </summary>
         public event GenericEventHandler<string> ErrorOcurred;
         /// <summary>
-        /// QueueItem Received
+        /// QueueMessage Received
         /// </summary>
-        public event GenericEventHandler<IQueueItem> MessageReceived;
+        public event GenericEventHandler<IQueueMessage> MessageReceived;
 
-        void DoMessageReceived(IQueueItem message)
+        void DoMessageReceived(IQueueMessage message)
         {
-            OnMessageReceived(new GenericEventArgs<IQueueItem>(message));
+            OnMessageReceived(new GenericEventArgs<IQueueMessage>(message));
         }
 
         void DoErrorOcurred(string message)
@@ -123,7 +127,7 @@ namespace Nistec.Messaging.Listeners
         /// Occured when message received.
         /// </summary>
         /// <param name="e"></param>
-        protected virtual void OnMessageReceived(GenericEventArgs<IQueueItem> e)
+        protected virtual void OnMessageReceived(GenericEventArgs<IQueueMessage> e)
         {
             if (Adapter.MessageReceivedAction != null)
                 Adapter.MessageReceivedAction(e.Args);
@@ -131,7 +135,7 @@ namespace Nistec.Messaging.Listeners
                 MessageReceived(this, e);
         }
 
-        protected virtual void OnMessageReceived(IQueueItem message)
+        protected virtual void OnMessageReceived(IQueueMessage message)
         {
             if (message != null)
             {
@@ -148,7 +152,7 @@ namespace Nistec.Messaging.Listeners
                     ActionWorker.DynamicWaitAck(false);
             }
 
-            OnMessageReceived(new GenericEventArgs<IQueueItem>(message));
+            OnMessageReceived(new GenericEventArgs<IQueueMessage>(message));
         }
         /// <summary>
         /// Occured when operation has error.
@@ -174,7 +178,7 @@ namespace Nistec.Messaging.Listeners
             OnErrorOcurred(new GenericEventArgs<string>(message));
         }
 
-        protected void OnCompleted(IQueueItem item)
+        protected void OnCompleted(IQueueMessage item)
         {
             OnMessageReceived(item);
         }
@@ -210,6 +214,8 @@ namespace Nistec.Messaging.Listeners
             _ConnectTimeout = adapter.ConnectTimeout;
             _ReadTimeout = adapter.ReadTimeout;
             _WorkerCount = adapter.WorkerCount;
+            _MaxConnection = adapter.MaxConnection;
+            _IsMultiTask= adapter.IsMultiTask;
             _IsAsync = adapter.IsAsync;
             //_Action = adapter.QueueAction;
             EnableResetEvent = adapter.EnableResetEvent;
@@ -226,16 +232,16 @@ namespace Nistec.Messaging.Listeners
 
         #region override
 
-        //protected abstract IQueueAck Send(QueueItem message);
+        //protected abstract IQueueAck Send(QueueMessage message);
 
-        protected abstract IQueueItem Receive();
+        protected abstract IQueueMessage Receive();
         protected abstract void ReceiveAsync(IDynamicWait aw);
 
-        //protected abstract IQueueItem ReceiveRound();
+        //protected abstract IQueueMessage ReceiveRound();
 
-        //protected abstract void ReceiveAsync(int connectTimeout, Action<QueueItem> action);
+        //protected abstract void ReceiveAsync(int connectTimeout, Action<QueueMessage> action);
 
-        //protected abstract IQueueAck ReceiveTo();// QueueHost target, int connectTimeout, Action<QueueItem> recieveAction);
+        //protected abstract IQueueAck ReceiveTo();// QueueHost target, int connectTimeout, Action<QueueMessage> recieveAction);
 
         public abstract void Commit(Ptr ptr);
 
@@ -265,7 +271,7 @@ namespace Nistec.Messaging.Listeners
             if (ActionWorker != null)
                 return;
 
-            ActionWorker = new DynamicWorker( DynamicWaitType.DynamicWait)
+            ActionWorker = new DynamicWorker( DynamicWaitType.DynamicWait,WorkerCount,Interval,MaxConnection,IsMultiTask)
             {
                 ActionTask = () =>
                 {

@@ -59,7 +59,7 @@ namespace Nistec.Messaging.Db
 
         #endregion
 
-        public static DbMessage GetEntity(QueueItem msg)
+        public static DbMessage GetEntity(QueueMessage msg)
         {
             return new DbMessage()
             {

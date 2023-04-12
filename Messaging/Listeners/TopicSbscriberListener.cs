@@ -36,7 +36,7 @@ namespace Nistec.Messaging.Listeners
         public ILogger Logger { get { return _Logger; } set { if (value != null) _Logger = value; } }
         public bool EnablePersistQueue { get; private set; }
 
-        public Func<IQueueItem, TransStream> OnItemReceived { get; set; }
+        public Func<IQueueMessage, TransStream> OnItemReceived { get; set; }
         public Action<string> OnError { get; set; }
         public string SbscriberHost { get; private set; }
         public HostProtocol HostProtocol { get; private set; }
@@ -144,7 +144,7 @@ namespace Nistec.Messaging.Listeners
                         {
                             if (OnItemReceived != null)
                             {
-                                IQueueItem item;
+                                IQueueMessage item;
                                 if (TryDequeue(out item))
                                 {
                                     OnItemReceived(item);
@@ -232,7 +232,7 @@ namespace Nistec.Messaging.Listeners
 
         #region override
 
-        public virtual TransStream OnMessageReceived(IQueueItem message)
+        public virtual TransStream OnMessageReceived(IQueueMessage message)
         {
             Enqueue(message);
 
@@ -253,11 +253,11 @@ namespace Nistec.Messaging.Listeners
         #endregion
 
         #region persist queue
-        protected void Enqueue(IQueueItem item)
+        protected void Enqueue(IQueueMessage item)
         {
             Queue.Enqueue(item);
         }
-        protected bool TryDequeue(out IQueueItem item)
+        protected bool TryDequeue(out IQueueMessage item)
         {
             return Queue.TryDequeue(out item);
         }
@@ -265,22 +265,22 @@ namespace Nistec.Messaging.Listeners
 
         #region persist queue
 
-        //protected IQueueAck Enqueue(IQueueItem item)
+        //protected IQueueAck Enqueue(IQueueMessage item)
         //{
         //    return Queue.Enqueue(item);
         //}
 
-        protected IQueueItem Peek()
+        protected IQueueMessage Peek()
         {
             return Queue.Peek();
         }
 
-        protected IQueueItem Dequeue()
+        protected IQueueMessage Dequeue()
         {
             return Queue.Dequeue();
         }
 
-        //protected IQueueItem GetFirstItem()
+        //protected IQueueMessage GetFirstItem()
         //{
         //    return Queue.GetFirstItem();
         //}
@@ -604,7 +604,7 @@ namespace Nistec.Messaging.Listeners
             return item;
         }
 
-        //protected IQueueItem GetFirstItem()
+        //protected IQueueMessage GetFirstItem()
         //{
         //    return Queue.GetFirstItem();
         //}
@@ -642,7 +642,7 @@ namespace Nistec.Messaging.Listeners
         public abstract T Dequeue();
        
 
-        //protected IQueueItem GetFirstItem()
+        //protected IQueueMessage GetFirstItem()
         //{
         //    return Queue.GetFirstItem();
         //}

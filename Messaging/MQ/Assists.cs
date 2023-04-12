@@ -30,15 +30,15 @@ namespace Nistec.Messaging
         {
             return ((int)state < 20);
         }
-        public static bool IsStateOk(this ChannelState state)
-        {
-            return ((int)state < 20);
-        }
+        //public static bool IsStateOk(this ChannelState state)
+        //{
+        //    return ((int)state < 20);
+        //}
 
-        public static bool IsConnectionError(this ChannelState state)
-        {
-            return state == ChannelState.ConnectionError;
-        }
+        //public static bool IsConnectionError(this ChannelState state)
+        //{
+        //    return state == ChannelState.ConnectionError;
+        //}
 
         public static string NewIdentifier()
         {
@@ -115,12 +115,12 @@ namespace Nistec.Messaging
         //    return path;
         //}
         
-        public static TimeSpan GetDuration(this IQueueMessage item)
+        public static TimeSpan GetDuration(this IQueueRequest item)
         {
             return DateTime.Now.Subtract(item.Creation);
         }
        
-        internal static void SetReceived(QueueItem item, QueueCmd cmd)
+        internal static void SetReceived(QueueMessage item, QueueCmd cmd)
         {
             if (item == null)
                 return;
@@ -141,13 +141,13 @@ namespace Nistec.Messaging
                     break;
             }
         }
-        internal static void SetReceived(QueueItem item, MessageState state)
+        internal static void SetReceived(QueueMessage item, MessageState state)
         {
             if (item == null)
                 return;
             item.SetReceived(state);
         }
-        internal static void SetArrived(QueueItem item)
+        internal static void SetArrived(QueueMessage item)
         {
             if (item == null)
                 return;
@@ -160,7 +160,7 @@ namespace Nistec.Messaging
             item.SetArrived();
         }
 
-        internal static void SetState(this QueueItem item, MessageState state)
+        internal static void SetState(this QueueMessage item, MessageState state)
         {
             try
             {
@@ -176,7 +176,7 @@ namespace Nistec.Messaging
             }
         }
 
-        internal static void DoRetry(this QueueItem item)
+        internal static void DoRetry(this QueueMessage item)
         {
             item.Retry++;
             item.Modified = DateTime.Now;
@@ -185,7 +185,7 @@ namespace Nistec.Messaging
             //m_stream.Replace(Modified.Ticks, offset + 44);
         }
 
-        //public static void SetDuration(QueueItem item)
+        //public static void SetDuration(QueueMessage item)
         //{
         //    if (item == null)
         //        return;
@@ -279,7 +279,7 @@ namespace Nistec.Messaging
         //{
         //    System.Messaging.Message msg;
 
-        //    System.Messaging.MessageQueue mq;
+        //    System.Messaging.QueueMessage mq;
 
         //    System.ServiceModel.Channels.Message sm;
         //}

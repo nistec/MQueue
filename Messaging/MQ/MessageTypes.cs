@@ -11,7 +11,7 @@ namespace Nistec.Messaging
     //    /// <summary>
     //    /// A normal Message Queuing message.
     //    /// </summary>
-    //    QueueItem=100,
+    //    QueueMessage=100,
     //    /// <summary>
     //    /// A multiple Messages, Queuing messages.
     //    /// </summary>
@@ -82,6 +82,7 @@ namespace Nistec.Messaging
         EnableQueue = 36,
         DisableQueue = 37,
         ClearQueue = 38,
+        BackupQueue=39,
 
         //publish\subscribe
         TopicAdd = 40,
@@ -99,6 +100,8 @@ namespace Nistec.Messaging
         TopicSubscribeAdd = 51,
         TopicSubscribeRemove = 52,
 
+        BackupAll= 53,
+        LoadFromBackup=54,
         //reports
         Exists = 60,
         QueueProperty = 61,
@@ -107,11 +110,11 @@ namespace Nistec.Messaging
         ReportQueueStatistic = 64,
         PerformanceCounter = 65,
         QueueCount = 66,
-
+        QueueCountAll = 67,
         /// <summary>
         /// A normal Message Queuing message.
         /// </summary>
-        QueueItem = 100,
+        QueueMessage = 100,
         /// <summary>
         /// A multiple Messages, Queuing messages.
         /// </summary>
@@ -147,7 +150,7 @@ namespace Nistec.Messaging
         ReleaseHoldDequeue = 35,
         EnableQueue = 36,
         DisableQueue = 37,
-
+        BackupQueue = 39,
         TopicAdd = 40,
         TopicRemove = 41,
         TopicPublish = 42,
@@ -159,7 +162,8 @@ namespace Nistec.Messaging
         TopicSubscribeRelease = 50,
         TopicSubscribeAdd = 51,
         TopicSubscribeRemove = 52,
-
+        BackupAll = 53,
+        LoadFromBackup = 54,
     };
 
     public enum QueueCmdReport : byte //: byte
@@ -171,6 +175,7 @@ namespace Nistec.Messaging
         ReportQueueStatistic = 64,
         PerformanceCounter = 65,
         QueueCount = 66,
+        QueueCountAll = 67,
     };
 
     //public enum QueueManagerCmd : byte

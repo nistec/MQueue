@@ -39,7 +39,7 @@ namespace Nistec.Messaging
         #region Topic
         //internal TopicController Topic;
 
-        public IQueueAck EnqueueTopicItem(QueueItem item)
+        public IQueueAck EnqueueTopicItem(QueueMessage item)
         {
             return Enqueue(item);
             //return Topic.AddItem(item);
@@ -84,8 +84,8 @@ namespace Nistec.Messaging
         private bool holdDequeue = false;
         private bool holdEnqueue = false;
         internal bool enqueueHoldItems = false;
-        internal bool reEnqueueItems = false;
-
+        //internal bool reEnqueueItems = false;
+        private bool onBackgroundProcess = false;
         //private bool serializeBody = false;
 
         public bool IsTopic { get; private set; }
@@ -845,30 +845,92 @@ namespace Nistec.Messaging
             }
         }
 
-        private void ReEnqueueFiles()
+        public string BackupToFiles()
         {
-            if (reEnqueueItems)
-                return;
+            if (onBackgroundProcess)
+                return null;
             try
             {
-                Console.WriteLine("Start ReEnqueueQueueItems");
+                Console.WriteLine("Start Backup QueueItems");
+                string backupName = Guid.NewGuid().ToString();
+                onBackgroundProcess = true;
+                //string path = GetBackupPath();
 
-                reEnqueueItems = true;
-
-                string path = GetRelayPath();
+                string path =Path.Combine(GetBackupPath(), backupName);
+                if (! Directory.Exists(path))
+                    Directory.CreateDirectory(path);
 
                 if (Directory.Exists(path))
                 {
-                    string[] messages = Directory.GetFiles(path, "*.mcq");
-                    if (messages == null || messages.Length == 0)
+
+                   var items=  Q.GetAllItems();
+
+                    Netlog.InfoFormat("Backup Files: {0} ", items.Count());
+
+                    foreach (var item in items)
                     {
-                        return;
+
+                        string filename = SysIO.EnsureQueueFilename(path, item.Identifier);
+
+                        var stream = item.ToStream();
+                        if (stream != null)
+                        {
+                            stream.Copy().SaveToFile(filename);
+                        }
                     }
 
-                    Console.WriteLine("{0} items found to ReEnqueue", messages.Length);
+                    Netlog.Info("BackupToFiles finished. ");
+                    return path;
+                }
 
-                    Netlog.InfoFormat("ReEnqueueFiles: {0} ", messages.Length);
+            }
+            catch (Exception ex)
+            {
+                string s = ex.Message;
+            }
+            finally
+            {
+                onBackgroundProcess = false;
+            }
+            return null;
+        }
 
+        public void LoadFromBackup(string path, ref MessageState state)
+        {
+            if (onBackgroundProcess)
+                return;
+            try
+            {
+                if (string.IsNullOrEmpty(path))
+                {
+                    state = MessageState.ArgumentsError;
+                    return;
+                }
+                if (!Directory.Exists(path))
+                {
+                    state = MessageState.PathNotFound;
+                    return;
+                }
+
+                Console.WriteLine("Start LoadFromBackup");
+
+                onBackgroundProcess = true;
+
+                //string path = GetRelayPath();
+
+                string[] messages = Directory.GetFiles(path, "*.mcq", SearchOption.AllDirectories);
+                if (messages == null || messages.Length == 0)
+                {
+                    state = MessageState.InvalidMessageAction;
+                    return;
+                }
+
+                Console.WriteLine("{0} items found to ReEnqueue", messages.Length);
+
+                Netlog.InfoFormat("LoadFromBackup: {0} ", messages.Length);
+
+                Task task = Task.Factory.StartNew(() =>
+                {
 
                     foreach (string message in messages)
                     {
@@ -878,44 +940,36 @@ namespace Nistec.Messaging
                         //    Thread.Sleep(1000);
                         //}
 
-                        QueueItem item = QueueItem.ReadFile(message);
+                        QueueMessage item = QueueMessage.ReadFile(message);
                         if (item != null)
                         {
-                            Enqueue(item as IQueueItem);
+                            Enqueue(item as IQueueMessage);
                         }
                         SysUtil.DeleteFile(message);
                         Thread.Sleep(100);
                     }
-                    Netlog.Info("ReEnqueueFiles finished. ");
-                }
+                    Netlog.Info("LoadFromBackup finished. ");
+                });
+                task.Wait();
+                state = MessageState.Ok;
+
 
             }
             catch (Exception ex)
             {
                 string s = ex.Message;
-
+                state = MessageState.OperationFailed;
             }
             finally
             {
-                reEnqueueItems = false;
+                onBackgroundProcess = false;
             }
         }
 
-        private void AsyncReEnqueueItems()
-        {
-            Thread th = null;
-
-            if (IsFileQueue)
-            {
-                th = new Thread(new ThreadStart(ReEnqueueFiles));
-            }
-            else
-            {
-                return;
-                //th= new Thread(new ThreadStart(ReEnqueueDB));
-            }
-            th.Start();
-        }
+        //public void LoadFromBackupAsync(string path, ref MessageState state)
+        //{
+        //    Task.Factory.StartNew(() => LoadFromBackup(path, state));
+        //}
         #endregion
 
 
@@ -1064,7 +1118,7 @@ namespace Nistec.Messaging
         //    OnReceiveCompleted(new ReceiveCompletedEventArgs(this, asyncResult));
         //}
 
-        private IQueueItem ReceiveItemWorker(TimeSpan timeout, object state)
+        private IQueueMessage ReceiveItemWorker(TimeSpan timeout, object state)
         {
             if (this.HoldDequeue)
             {
@@ -1072,7 +1126,7 @@ namespace Nistec.Messaging
             }
             DateTime startReceive = DateTime.Now;
 
-            IQueueItem item=null;
+            IQueueMessage item=null;
 
             
             while (item == null)
@@ -1093,14 +1147,14 @@ namespace Nistec.Messaging
                 state = ReceiveState.Success;
            
             //Console.WriteLine("Dequeue item :{0}", item.ItemId);
-            return item;//.Copy() as IQueueItem;
+            return item;//.Copy() as IQueueMessage;
         }
 
         /// <summary>
         /// AsyncReceive
         /// </summary>
         /// <returns></returns>
-        public IQueueItem AsyncReceive()
+        public IQueueMessage AsyncReceive()
         {
             object state = new object();
             TimeSpan ts = TimeSpan.FromSeconds(QueueDefaults.DefaultRecieveTimeOutInSecond);
@@ -1115,7 +1169,7 @@ namespace Nistec.Messaging
             
             // Call EndInvoke to wait for the asynchronous call to complete,
             // and to retrieve the results.
-            IQueueItem item = caller.EndInvoke(result);
+            IQueueMessage item = caller.EndInvoke(result);
             AsyncCompleted(item);
             return item;
 
@@ -1169,13 +1223,13 @@ namespace Nistec.Messaging
         /// <summary>Completes the specified asynchronous receive operation.</summary>
         /// <param name="asyncResult"></param>
         /// <returns></returns>
-        public IQueueItem EndReceive(IAsyncResult asyncResult)
+        public IQueueMessage EndReceive(IAsyncResult asyncResult)
         {
             // Retrieve the delegate.
             ReceiveItemCallback caller = (ReceiveItemCallback)asyncResult.AsyncState;
 
             // Call EndInvoke to retrieve the results.
-            IQueueItem item = (IQueueItem)caller.EndInvoke(asyncResult);
+            IQueueMessage item = (IQueueMessage)caller.EndInvoke(asyncResult);
 
             AsyncCompleted(item);
             this.resetEvent.WaitOne();
@@ -1191,7 +1245,7 @@ namespace Nistec.Messaging
             return this.onRequestCompleted;
         }
 
-        private void AsyncCompleted(IQueueItem item)
+        private void AsyncCompleted(IQueueMessage item)
         {
             if (item != null)
             {
@@ -1238,7 +1292,7 @@ namespace Nistec.Messaging
         /// Peek Message
         /// </summary>
         /// <returns></returns>
-        public IQueueItem Peek()
+        public IQueueMessage Peek()
         {
             return Q.Peek();
         }
@@ -1248,7 +1302,7 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="priority"></param>
         /// <returns></returns>
-        public IQueueItem Peek(Priority priority)
+        public IQueueMessage Peek(Priority priority)
         {
             return Q.Peek(priority);
         }
@@ -1257,18 +1311,24 @@ namespace Nistec.Messaging
         /// Peek Message
         /// </summary>
         /// <returns></returns>
-        public IQueueItem Peek(Ptr ptr)
+        public IQueueMessage Peek(Ptr ptr)
         {
             return Q.Peek(ptr);
         }
 
-        public bool TryDequeue(out IQueueItem item)
+        public bool TryDequeue(out IQueueMessage item)
         {
+            if (HoldDequeue)
+            {
+                Logger.Warn("This queue in hold - " + QueueName);
+                item = null;
+                return false;
+            }
             return Q.TryDequeue(out item);
         }
 
         /*
-       public bool TryConsume(out IQueueItem item)
+       public bool TryConsume(out IQueueMessage item)
        {
            long waiting = 0;
 
@@ -1317,10 +1377,10 @@ namespace Nistec.Messaging
        readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> memWaiter = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
 
        long waiting = 0;
-       public IQueueItem Consume(string key)//long wait = 60000)
+       public IQueueMessage Consume(string key)//long wait = 60000)
        {
 
-           IQueueItem item = null;
+           IQueueMessage item = null;
 
            memWaiter.TryAdd(key, 0);
 
@@ -1355,9 +1415,13 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="maxSecondWait"></param>
         /// <returns></returns>
-        public IQueueItem Consume(int maxSecondWait)
+        public IQueueMessage Consume(int maxSecondWait)
         {
-
+            if (HoldDequeue)
+            {
+                Logger.Warn("This queue in hold - " + QueueName);
+                return null;
+            }
             return Q.Consume(maxSecondWait);
         }
 
@@ -1365,18 +1429,14 @@ namespace Nistec.Messaging
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        public IQueueItem Dequeue()
+        public IQueueMessage Dequeue()
         {
 
-            //if (m_UseDuration)
-            //{
-            //    if (ShouldWait())
-            //    {
-            //        Thread.Sleep(100);
-            //        return null;
-            //    }
-            //}
-
+            if (HoldDequeue)
+            {
+                Logger.Warn("This queue in hold - "+QueueName);
+                return null;
+            }
             return Q.Dequeue();
         }
 
@@ -1385,17 +1445,13 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="priority"></param>
         /// <returns></returns>
-        public IQueueItem Dequeue(Priority priority)
+        public IQueueMessage Dequeue(Priority priority)
         {
-
-            //if (m_UseDuration)
-            //{
-            //    if (ShouldWait())
-            //    {
-            //        Thread.Sleep(100);
-            //        return null;
-            //    }
-            //}
+            if (HoldDequeue)
+            {
+                Logger.Warn("This queue in hold - " + QueueName);
+                return null;
+            }
 
             return Q.Dequeue(priority);
         }
@@ -1404,8 +1460,13 @@ namespace Nistec.Messaging
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        public IQueueItem Dequeue(Ptr ptr)
+        public IQueueMessage Dequeue(Ptr ptr)
         {
+            if (HoldDequeue)
+            {
+                Logger.Warn("This queue in hold - " + QueueName);
+                return null;
+            }
             return Q.Dequeue(ptr);
         }
 
@@ -1413,16 +1474,10 @@ namespace Nistec.Messaging
         /// Enqueue Message
         /// </summary>
         /// <param name="item"></param>
-        public IQueueAck Enqueue(IQueueItem item)
+        public IQueueAck Enqueue(IQueueMessage item)
         {
             if (this.HoldEnqueue || IsCapacityExceeds())
             {
-                //if (CoverMode > CoverMode.None)
-                //{
-                //    OnCoverHoldItem(item, 0, 0);
-                //}
-                //Thread.Sleep(m_EnqueueWait);
-
                 return new QueueAck(MessageState.QueueInHold, item);// Ptr.Get(item,PtrState.QueueInHold);
             }
 
@@ -1450,7 +1505,7 @@ namespace Nistec.Messaging
         /// ReEnqueueMessage
         /// </summary>
         /// <param name="item"></param>
-        public IQueueAck Requeue(IQueueItem item)
+        public IQueueAck Requeue(IQueueMessage item)
         {
 
             if (this.HoldEnqueue)
@@ -1469,7 +1524,7 @@ namespace Nistec.Messaging
                 return new QueueAck(MessageState.RetryExceeds, item);
             }
 
-            //((QueueItem)item).DoRetry();//.Retry += 1;
+            //((QueueMessage)item).DoRetry();//.Retry += 1;
             return Q.Requeue(item);
         }
 
@@ -1519,7 +1574,7 @@ namespace Nistec.Messaging
         /// GetQueueItems
         /// </summary>
         /// <returns></returns>
-        public IQueueItem[] GetQueueItems()
+        public IQueueMessage[] GetQueueItems()
         {
             if (Q.TotalCount == 0)
                 return null;
@@ -1536,9 +1591,9 @@ namespace Nistec.Messaging
                 return null;
 
             DataTable dt = QueueManager.QueueItemSchema();
-            IQueueItem[] items = Q.Items.ToArray();
+            IQueueMessage[] items = Q.Items.ToArray();
 
-            foreach (QueueItem item in items)
+            foreach (QueueMessage item in items)
             {
                 dt.Rows.Add(item.ItemArray());
             }

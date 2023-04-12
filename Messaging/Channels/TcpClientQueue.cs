@@ -20,12 +20,12 @@ namespace Nistec.Messaging.Channels
     /// <summary>
     /// Represent tcp client channel
     /// </summary>
-    public class TcpClientQueue : TcpClient<IQueueMessage>, IDisposable
+    public class TcpClientQueue : TcpClient<IQueueRequest>, IDisposable
     {
 
         #region static send methods
 
-        public static QueueAck Enqueue(QueueItem request, string hostAddress, int port, int ProcessTimeout, bool IsAsync, bool enableException = false)
+        public static QueueAck Enqueue(QueueMessage request, string hostAddress, int port, int ProcessTimeout, bool IsAsync, bool enableException = false)
         {
             //Type type = request.BodyType;
             using (TcpClientQueue client = new TcpClientQueue(hostAddress, port, ProcessTimeout, IsAsync))
@@ -34,7 +34,7 @@ namespace Nistec.Messaging.Channels
             }
         }
         
-        // public static QueueAck Management(IQueueMessage request, string hostAddress, int port, int ProcessTimeout, bool IsAsync, bool enableException = false)
+        // public static QueueAck Management(IQueueRequest request, string hostAddress, int port, int ProcessTimeout, bool IsAsync, bool enableException = false)
         //{
         //    //Type type = request.BodyType;
         //    using (TcpClientQueue client = new TcpClientQueue(hostAddress, port, ProcessTimeout, IsAsync))
@@ -42,7 +42,7 @@ namespace Nistec.Messaging.Channels
         //        return client.Management(request, enableException);
         //    }
         //}
-        public static QueueItem SendDuplex(IQueueMessage request, string hostAddress, int port, int ProcessTimeout, bool IsAsync, bool enableException = false)
+        public static QueueMessage SendDuplex(IQueueRequest request, string hostAddress, int port, int ProcessTimeout, bool IsAsync, bool enableException = false)
         {
             //Type type = request.BodyType;
             using (TcpClientQueue client = new TcpClientQueue(hostAddress, port,ProcessTimeout,IsAsync))
@@ -51,7 +51,7 @@ namespace Nistec.Messaging.Channels
             }
         }
 
-        public static void SendOut(IQueueMessage request, string hostAddress, int port, int ProcessTimeout, bool IsAsync, bool enableException = false)
+        public static void SendOut(IQueueRequest request, string hostAddress, int port, int ProcessTimeout, bool IsAsync, bool enableException = false)
         {
             //request.IsDuplex = false;
             using (TcpClientQueue client = new TcpClientQueue(hostAddress, port, ProcessTimeout, IsAsync))
@@ -132,7 +132,7 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="message"></param>
-        protected override void ExecuteOneWay(NetworkStream stream, IQueueMessage message)
+        protected override void ExecuteOneWay(NetworkStream stream, IQueueRequest message)
         {
             // Send a request from client to server
             message.EntityWrite(stream, null);
@@ -154,7 +154,7 @@ namespace Nistec.Messaging.Channels
         /// <param name="stream"></param>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override object ExecuteMessage(NetworkStream stream, IQueueMessage message)//, Type type)
+        protected override object ExecuteMessage(NetworkStream stream, IQueueRequest message)//, Type type)
         {
             object response = null;
 
@@ -180,7 +180,7 @@ namespace Nistec.Messaging.Channels
         /// <param name="stream"></param>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override TResponse ExecuteMessage<TResponse>(NetworkStream stream, IQueueMessage message)
+        protected override TResponse ExecuteMessage<TResponse>(NetworkStream stream, IQueueRequest message)
         {
             TResponse response = default(TResponse);
 
@@ -218,15 +218,15 @@ namespace Nistec.Messaging.Channels
         /// <param name="message"></param>
         /// <param name="enableException"></param>
         /// <returns></returns>
-        public new QueueItem Execute(IQueueMessage message, bool enableException = false)
+        public new QueueMessage Execute(IQueueRequest message, bool enableException = false)
         {
-            return Execute<QueueItem>(message, enableException);
+            return Execute<QueueMessage>(message, enableException);
         }
-        public new QueueAck Enqueue(QueueItem message, bool enableException = false)
+        public new QueueAck Enqueue(QueueMessage message, bool enableException = false)
         {
             return Execute<QueueAck>(message, enableException);
         }
-        //public new QueueAck Management(IQueueMessage message, bool enableException = false)
+        //public new QueueAck Management(IQueueRequest message, bool enableException = false)
         //{
         //    return Execute<QueueAck>(message, enableException);
         //}

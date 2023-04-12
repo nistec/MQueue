@@ -17,7 +17,7 @@ namespace Nistec.Messaging.Server
     /// <summary>
     /// Represent a queue Http server listner.
     /// </summary>
-    public class HttpServerChannel : HttpServer<IQueueMessage>
+    public class HttpServerChannel : HttpServer<IQueueRequest>
     {
 
         QueueChannel QueueChannel;
@@ -80,14 +80,14 @@ namespace Nistec.Messaging.Server
 
         #region abstract methods
 
-        protected override string ExecString(IQueueMessage request)
+        protected override string ExecString(IQueueRequest request)
         {
             //throw new NotImplementedException();
             var ms = AgentManager.Queue.ExecRequset(request);
-            return ms.ReadJson();
+            return ms.ReadToJson();
         }
 
-        protected override TransStream ExecTransStream(IQueueMessage request)
+        protected override TransStream ExecTransStream(IQueueRequest request)
         {
             return AgentManager.Queue.ExecRequset(request);
         }
@@ -97,15 +97,15 @@ namespace Nistec.Messaging.Server
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        protected override IQueueMessage ReadRequest(HttpRequestInfo request)
+        protected override IQueueRequest ReadRequest(HttpRequestInfo request)
         {
 
 
             if (QueueChannel == QueueChannel.Producer)
             {
                 if (request.BodyType == HttpBodyType.QueryString)
-                    return QueueItem.Create(request.QueryString);
-                return QueueItem.Create(request.BodyStream);
+                    return QueueMessage.Create(request.QueryString);
+                return QueueMessage.Create(request.BodyStream);
             }
             else
             {
@@ -137,12 +137,12 @@ namespace Nistec.Messaging.Server
                 stream = message;
             }
 
-            //return QueueItem.Create(stream.GetStream());
+            //return QueueMessage.Create(stream.GetStream());
 
 
 
             if (QueueChannel == QueueChannel.Producer)
-                return QueueItem.Create(stream.GetStream());
+                return QueueMessage.Create(stream.GetStream());
             else
                 return new QueueRequest(stream.GetStream());
 

@@ -11,6 +11,9 @@ using Nistec.Logging;
 using Nistec.Messaging.Remote;
 using Nistec.Messaging;
 using Nistec.Channels.Tcp;
+using System.Threading;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Nistec.QueueConsole
 {
@@ -28,8 +31,8 @@ namespace Nistec.QueueConsole
         internal static bool EnableJsonController = false;
         public static void Run(string[] args)
         {
-            NetProtocol cmdProtocol = NetProtocol.Pipe;
-            string protocol = "http";
+            NetProtocol cmdProtocol = NetProtocol.Tcp;
+            string protocol = "tcp";
             string cmd = "";
             string sectionType = SectionType.queue;
             string transform = "binary";
@@ -41,36 +44,21 @@ namespace Nistec.QueueConsole
 
             //"QueueName=|ServerPath=|Mode=[Memory,Persistent,FileStream,Db,Rout]|IsTrans=false|MaxRetry=3|ReloadOnStart=true|ConnectTimeout=0|TargetPath=|IsTopic=false|CommitMode=|[OnDisk,OnMemory1,None]"
 
-                //"[Memory,Persistent,FileStream,Db,Rout]"
+            //"[Memory,Persistent,FileStream,Db,Rout]"
 
 
-                // "[OnDisk,OnMemory1,None]"
-
-                //"[true,false]"
-
-                //"[default:0]"
-
-            //QueueName = _QueueName,
-            //    ServerPath = "localhost",
-            //    Mode = mode,
-            //    IsTrans = isTrans,
-            //    MaxRetry = QueueDefaults.DefaultMaxRetry,
-            //    ReloadOnStart = false,
-            //    ConnectTimeout = 0,
-            //    TargetPath = "",
-            //    IsTopic = false
-
-
-            DisplayMenu("menu", "", "");
-            DisplaySectionTypeMenu();
-            sectionType = GetSectionType(Console.ReadLine().ToLower(), sectionType);
+            //DisplayMenu("menu", "", "");
+            //DisplaySectionTypeMenu();
+            //sectionType = GetSectionType(Console.ReadLine().ToLower(), sectionType);
 
             if (sectionType == "quit")
             {
                 return;
             }
-            Console.WriteLine("Current section type : {0}.", sectionType);
-            SetCommands();
+            //Console.WriteLine("Current section type : {0}.", sectionType);
+            //SetCommands();
+            Console.WriteLine("Welcome to MQueue cli");
+
 
             while (cmd != "quit")
             {
@@ -92,79 +80,60 @@ namespace Nistec.QueueConsole
                     switch (cmdName.ToLower())
                     {
                         case "menu":
-                            DisplayMenu("menu", "", "");
+                            CmdController.DisplayMenu();
+                            //DisplayMenu("menu", "", "");
                             break;
-                        case "menu-items":
-                            DisplayMenu("menu-items", sectionType, "");
-                            break;
-                        case "section-type":
-                            DisplaySectionTypeMenu();
-                            sectionType = GetSectionType(Console.ReadLine().ToLower(), sectionType);
-                            Console.WriteLine("Current section type : {0}.", sectionType);
-                            break;
+                        //case "menu-items":
+                        //    DisplayMenu("menu-items", sectionType, "");
+                        //    break;
+                        //case "section-type":
+                        //    DisplaySectionTypeMenu();
+                        //    sectionType = GetSectionType(Console.ReadLine().ToLower(), sectionType);
+                        //    Console.WriteLine("Current section type : {0}.", sectionType);
+                        //    break;
                         case "transform":
-                            DisplayTransformTypeMenu();
-                            transform= GetTransformType(Console.ReadLine().ToLower(), transform);
+                            if (cmdKey == "binary" || cmdKey == "json")
+                                transform = cmdKey;
+                            else
+                                Console.WriteLine("Wrong command");
+                            //DisplayTransformTypeMenu();
+                            //transform= GetTransformType(Console.ReadLine().ToLower(), transform);
                             Console.WriteLine("Current transform type : {0}.", transform);
                             break;
                         case "protocol":
-                            Console.WriteLine("Choose protocol : tcp , pipe, http");
-                            protocol = EnsureProtocol(Console.ReadLine().ToLower(), protocol);
-                            cmdProtocol = GetProtocol(protocol, cmdProtocol);
+                            if (cmdKey == "tcp" || cmdKey == "pipe" || cmdKey == "http")
+                                protocol = cmdKey;
+                            else
+                                Console.WriteLine("Wrong command");
+                            //Console.WriteLine("Choose protocol : tcp , pipe, http");
+                            //protocol = EnsureProtocol(Console.ReadLine().ToLower(), protocol);
+                            //cmdProtocol = GetProtocol(protocol, cmdProtocol);
                             Console.WriteLine("Current protocol : {0}.", protocol);
                             break;
+                        case "commands":
+                        case "?":
+                            CmdController.DisplayCommands();
+                            break;
+                        case "all":
+                            CmdController.DisplayMenu();
+                            CmdController.DisplayCommands();
+                            break;
                         case "args":
-                            DisplayMenu("args", sectionType, cmdKey);
+                            CmdController.DisplayArgs();
+                            //DisplayMenu("args", sectionType, cmdKey);
                             break;
                         case "report":
                             //CmdController.DoCommandManager(cmdArg1, sectionType);
+                            break;
+                        case "stop":
+                        case "/stop":
+                            CmdController.MonitorState = false;
                             break;
                         case "quit":
 
                             break;
                         default:
-
                             CmdController.DoCommand(cmdProtocol, transform, cmdName, cmdKey, cmdValue);
-
-                            if (EnableJsonController)
-                            {
-                                //switch (sectionType)
-                                //{
-                                //    case SectionType.queue:
-                                //        CmdController.DoCommandQueueJson(cmdProtocol, cmdName, cmdArg1, cmdArg2);
-                                //        break;
-                                //    case SectionType.sync:
-                                //        CmdController.DoCommandSyncJson(cmdProtocol, cmdName, cmdArg1, cmdArg2, cmdArg3);
-                                //        break;
-                                //    case SectionType.session:
-                                //        CmdController.DoCommandSessionJson(cmdProtocol, cmdName, cmdArg1, cmdArg2, cmdArg3);
-                                //        break;
-                                //    default:
-                                //        Console.WriteLine("Unknown command!");
-                                //        break;
-                                //}
-                            }
-                            else
-                            {
-                                //switch (sectionType)
-                                //{
-                                //    case SectionType.queue:
-                                //        CmdController.DoCommandQueue(cmdProtocol, transform,cmdName, cmdArg1, cmdArg2);
-                                //        break;
-                                //    case SectionType.sync:
-                                //        CmdController.DoCommandSync(cmdProtocol, transform, cmdName, cmdArg1, cmdArg2, cmdArg3);
-                                //        break;
-                                //    case SectionType.session:
-                                //        CmdController.DoCommandSession(cmdProtocol, transform, cmdName, cmdArg1, cmdArg2, cmdArg3);
-                                //        break;
-                                //    case SectionType.data:
-                                //        CmdController.DoCommandData(cmdProtocol, transform, cmdName, cmdArg1, cmdArg2, cmdArg3, cmdArg4);
-                                //        break;
-                                //    default:
-                                //        Console.WriteLine("Unknown command!");
-                                //        break;
-                                //}
-                            }
                             break;
                     }
                 }
@@ -175,7 +144,22 @@ namespace Nistec.QueueConsole
                 Console.WriteLine();
             }
         }
+        static string EnsureArg(string arg)
+        {
+            if (arg == null)
+                return "";
+            return arg.Replace("/", "");//.ToLower();
+        }
+        static string[] SplitCommand(string cmd)
+        {
+            //string[] cmdargs = cmd.SplitTrim('/');
+            string[] cmdargs = cmd.SplitTrim(' ');
+            for (int i = 0; i < cmdargs.Length; i++)
+                cmdargs[i] = cmdargs[i].Trim();
 
+            return cmdargs;
+        }
+        /*
         static Dictionary<string, string> cmdQueue = new Dictionary<string, string>();
         static Dictionary<string, string> cmdOperation = new Dictionary<string, string>();
         //static Dictionary<string, string> cmdSession = new Dictionary<string, string>();
@@ -256,12 +240,6 @@ namespace Nistec.QueueConsole
             cmdManager.Add("PrintLog", "");
         }
 
-        static string EnsureArg(string arg)
-        {
-            if (arg == null)
-                return "";
-            return arg.Replace("/", "");//.ToLower();
-        }
         static void DisplaySectionTypeMenu()
         {
             Console.WriteLine("Choose section type : remote-queue, remote-operation, remote-report, remote-manager");
@@ -309,6 +287,7 @@ namespace Nistec.QueueConsole
                     Console.WriteLine("Enter: transform, To change transform type (binary, json)");
                     Console.WriteLine("Enter: menu, To display menu");
                     Console.WriteLine("Enter: menu-items, To display menu items for current queue-type");
+                    Console.WriteLine("Enter: all, to display all commands");
                     Console.WriteLine("Enter: args, and /command to display command argument");
                     Console.WriteLine("Enter: report, and /command to display queue report");
 
@@ -373,15 +352,7 @@ namespace Nistec.QueueConsole
             Console.WriteLine();
 
         }
-
-        static string[] SplitCommand(string cmd)
-        {
-            string[] cmdargs = cmd.SplitTrim('/');
-            for (int i = 0; i < cmdargs.Length; i++)
-                cmdargs[i] = cmdargs[i].Trim();
-
-            return cmdargs;
-        }
+ 
         static string[] SplitCmd(string cmd, int maxArgs = 0)
         {
             string[] cmdargs = cmd.SplitTrim(' ');
@@ -424,7 +395,7 @@ namespace Nistec.QueueConsole
             }
             return list.ToArray();
         }
-
+        */
         static string GetSectionType(string cmd, string curItem)
         {
             switch (cmd.ToLower())
@@ -439,24 +410,6 @@ namespace Nistec.QueueConsole
                     return curItem;
             }
         }
-        static string GetTransformType(string cmd, string curItem)
-        {
-            switch (cmd.ToLower())
-            {
-                case "json":
-                case "binary":
-                    return cmd.ToLower();
-                default:
-                    Console.WriteLine("Invalid transform-type {0}", cmd);
-                    return curItem;
-            }
-        }
-        //static string GetCommandType(string cmd, string curItem)
-        //{
-        //    if (cmd == "..")
-        //        return curItem;
-        //    return cmd;
-        //}
         static string GetCommandType(string[] args, string curItem, int i)
         {
             string cmd = curItem;
@@ -478,6 +431,18 @@ namespace Nistec.QueueConsole
                     return protocol.ToLower();
                 default:
                     return curProtocol;
+            }
+        }
+        static string EnsureTransform(string cmd, string curItem)
+        {
+            switch (cmd.ToLower())
+            {
+                case "json":
+                case "binary":
+                    return cmd.ToLower();
+                default:
+                    Console.WriteLine("Invalid transform-type {0}", cmd);
+                    return curItem;
             }
         }
 
@@ -514,8 +479,13 @@ namespace Nistec.QueueConsole
     }
 
     #region Cmd Controller
+
+    
+
     class CmdController
     {
+        public static bool MonitorState = false;
+
         public static void DoCommand(NetProtocol cmdProtocol, string transform, string cmd, string key, string value)
         {
 
@@ -528,7 +498,7 @@ namespace Nistec.QueueConsole
             var api = ManagementApi.Get(hostAddress,cmdProtocol);
             bool ok = true;
             string json = null;
-            IQueueItem qi = null;
+            IQueueMessage qi = null;
             TransStream ts = null;
             Stopwatch watch = Stopwatch.StartNew();
             try
@@ -551,7 +521,180 @@ namespace Nistec.QueueConsole
                 }
                 else
                 {
-                    switch (cmd)
+                    
+                    switch (cmd.ToLower().Replace("-", ""))
+                    {
+                        case "addqueue":
+                            ts = api.AddQueue(QProperties.ByCommaPipe(value));
+                            Display(cmd, ts);
+                            break;
+                        case "removequeue":
+                            ts = api.RemoveQueue(key);
+                            Display(cmd, ts);
+                            break;
+                        case "queueexists":
+                            ts = api.QueueExists(key);
+                            Display(cmd, ts);
+                            break;
+                        case "backupqueue":
+                            ts = api.OperateQueue(QueueCmdOperation.BackupQueue, key);
+                            Display(cmd, ts);
+                            break;
+                        case "backupall":
+                            ts = api.OperateQueue(QueueCmdOperation.BackupAll);
+                            Display(cmd, ts);
+                            break;
+                        case "loadfrombackup":
+                            {
+                                if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(value))
+                                {
+                                    Console.WriteLine("Queue name or path missing");
+                                    return;
+                                }
+                                QueueRequest message = new QueueRequest()
+                                {
+                                    Host = key,
+                                    QCommand = QueueCmd.LoadFromBackup,
+                                    Args = NameValueArgs.Create("path", value)
+                                };
+                                ts = api.OperateQueue(message);
+                                Display(cmd, ts);
+                            }
+                            break;
+                        case "holdenqueue":
+                            ts = api.OperateQueue(QueueCmdOperation.HoldEnqueue, key);
+                            Display(cmd, ts);
+                            break;
+                        case "releaseholdenqueue":
+                            ts = api.OperateQueue(QueueCmdOperation.ReleaseHoldEnqueue, key);
+                            Display(cmd, ts);
+                            break;
+                        case "holddequeue":
+                            ts = api.OperateQueue(QueueCmdOperation.HoldDequeue, key);
+                            Display(cmd, ts);
+                            break;
+                        case "releaseholddequeue":
+                            ts = api.OperateQueue(QueueCmdOperation.ReleaseHoldDequeue, key);
+                            Display(cmd, ts);
+                            break;
+                        case "enablequeue":
+                            ts = api.OperateQueue(QueueCmdOperation.EnableQueue, key);
+                            Display(cmd, ts);
+                            break;
+                        case "disablequeue":
+                            ts = api.OperateQueue(QueueCmdOperation.DisableQueue, key);
+                            Display(cmd, ts);
+                            break;
+                        case "topicadd":
+                            ts = api.OperateQueue(QueueCmdOperation.TopicAdd, key);
+                            Display(cmd, ts);
+                            break;
+                        case "topicremove":
+                            ts = api.OperateQueue(QueueCmdOperation.TopicRemove, key);
+                            Display(cmd, ts);
+                            break;
+                        case "topicpublish":
+                            ts = api.OperateQueue(QueueCmdOperation.TopicPublish, key);
+                            Display(cmd, ts);
+                            break;
+                        case "topicsubscribe":
+                            ts = api.OperateQueue(QueueCmdOperation.TopicSubscribe, key);
+                            Display(cmd, ts);
+                            break;
+                        case "topicremoveItem":
+                            ts = api.OperateQueue(QueueCmdOperation.TopicRemoveItem, key);
+                            Display(cmd, ts);
+                            break;
+                        case "topichold":
+                            ts = api.OperateQueue(QueueCmdOperation.TopicHold, key);
+                            Display(cmd, ts);
+                            break;
+                        case "topicholdrelease":
+                            ts = api.OperateQueue(QueueCmdOperation.TopicHoldRelease, key);
+                            Display(cmd, ts);
+                            break;
+                        case "topicsubscribehold":
+                            ts = api.OperateQueue(QueueCmdOperation.TopicSubscribeHold, key);
+                            Display(cmd, ts);
+                            break;
+                        case "topicsubscriberelease":
+                            ts = api.OperateQueue(QueueCmdOperation.TopicSubscribeRelease, key);
+                            Display(cmd, ts);
+                            break;
+                        case "topicsubscribeadd":
+                            ts = api.OperateQueue(QueueCmdOperation.TopicSubscribeAdd, key);
+                            Display(cmd, ts);
+                            break;
+                        case "topicsubscriberemove":
+                            ts = api.OperateQueue(QueueCmdOperation.TopicSubscribeRemove, key);
+                            Display(cmd, ts);
+                            break;
+                        case "exists":
+                            ts = api.Report(QueueCmdReport.Exists, key);
+                            Display(cmd, ts);
+                            break;
+                        case "queueproperty":
+                            ts = api.Report(QueueCmdReport.QueueProperty, key);
+                            Display(cmd, ts);
+                            break;
+                        case "reportqueuelist":
+                            ts = api.Report(QueueCmdReport.ReportQueueList, key);
+                            Display(cmd, ts);
+                            break;
+                        case "reportqueueitems":
+                            ts = api.Report(QueueCmdReport.ReportQueueItems, key);
+                            Display(cmd, ts);
+                            break;
+                        case "reportqueuestatistic":
+                            ts = api.Report(QueueCmdReport.ReportQueueStatistic, key);
+                            Display(cmd, ts);
+                            break;
+                        case "performancecounter":
+                            ts = api.Report(QueueCmdReport.PerformanceCounter, key);
+                            Display(cmd, ts);
+                            break;
+                        case "queuecount":
+                            if (value == "/start")
+                            {
+                                StartMonitor(() => {
+                                    ts = api.Report(QueueCmdReport.QueueCount, key);
+                                    Display(cmd, ts);
+                                });
+                            }
+                            else
+                            {
+                                ts = api.Report(QueueCmdReport.QueueCount, key);
+                                Display(cmd, ts);
+                            }
+                            break;
+                        case "queuecountall":
+                            if (key == "/start" || value == "/start")
+                            {
+                                StartMonitor(() => {
+                                    ts = api.Report(QueueCmdReport.QueueCountAll);
+                                    Display(cmd, ts);
+                                });
+                            }
+                            else
+                            {
+                                ts = api.Report(QueueCmdReport.QueueCountAll);
+                                Display(cmd, ts);
+                            }
+                            break;
+                        case "usage":
+                            ConsoleController.GetUsage();
+                            break;
+                        case "reply":
+                            ts = api.Reply();
+                            Display(cmd, ts);
+                            break;
+                        default:
+                            ok = false;
+                            Display(cmd, "Unknown command");
+                            break;
+                    }
+                    /*
+                    switch (cmd.ToLower().Replace("",""))
                     {
                         case "AddQueue":
                                 ts = api.AddQueue(QProperties.ByCommaPipe(value));
@@ -604,6 +747,7 @@ namespace Nistec.QueueConsole
                             Display(cmd, "Unknown command");
                             break;
                     }
+                    */
                 }
             }
             catch (Exception ex)
@@ -621,7 +765,7 @@ namespace Nistec.QueueConsole
 
 
         #region Display
-        static void Display(string cmd, IQueueItem item)
+        static void Display(string cmd, IQueueMessage item)
         {
             if (item == null)
             {
@@ -643,11 +787,13 @@ namespace Nistec.QueueConsole
                 return;
             }
             Console.WriteLine("command - {0} response - :", cmd);
-            Console.WriteLine(item.ReadJson());
+
+            Console.WriteLine(Strings.ReflatJson(item.ReadToJson(),true));//.ReadJson());
             if (ConsoleController.EnableLog)
             {
-                Netlog.InfoFormat("command - {0} counter - {1} :", cmd, item.ReadJson());
+                Netlog.InfoFormat("command - {0} counter - {1} :", cmd, item.ReadToJson());
             }
+
         }
         static void Display(string cmd, string val, int counter)
         {
@@ -693,9 +839,100 @@ namespace Nistec.QueueConsole
             }
 
         }
+
+        internal static void DisplayArgs()
+        {
+            Console.WriteLine("add-queue        value: QueueName =| ServerPath =| Mode =[Memory, Persistent, FileStream, Db, Rout] | IsTrans = false | MaxRetry = 3 | ReloadOnStart = true | ConnectTimeout = 0 | TargetPath =| IsTopic = false | CommitMode =|[OnDisk, OnMemory1, None]");
+            Console.WriteLine("transform        value:(binary, json)");
+            Console.WriteLine("protocol         value:(tcp , pipe, http)");
+
+        }
+
+        internal static void DisplayMenu()
+        {
+            Console.WriteLine("?");
+            Console.WriteLine("all");
+            Console.WriteLine("commands");
+            Console.WriteLine("quit");
+            Console.WriteLine("transform        (binary, json)");
+            Console.WriteLine("protocol         (tcp , pipe, http)");
+
+        }
+        internal static void DisplayCommands()
+        {
+
+            Console.WriteLine("QueueCmdOperation");
+            Console.WriteLine("=================");
+            Console.WriteLine("add-queue");
+            Console.WriteLine("remove-queue");
+            Console.WriteLine("queue-exists");
+
+            Console.WriteLine("QueueCmdOperation");
+            Console.WriteLine("=================");
+            Console.WriteLine("backup-queue");
+            Console.WriteLine("backup-all");
+            Console.WriteLine("load-from-backup");
+            Console.WriteLine("hold-enqueue");
+            Console.WriteLine("release-hold-enqueue");
+            Console.WriteLine("hold-dequeue");
+            Console.WriteLine("release-hold-dequeue");
+            Console.WriteLine("enable-queue");
+            Console.WriteLine("disable-queue");
+            Console.WriteLine("topic-add");
+            Console.WriteLine("topic-remove");
+            Console.WriteLine("topic-publish");
+            Console.WriteLine("topic-subscribe");
+            Console.WriteLine("topic-removeItem");
+            Console.WriteLine("topic-hold");
+            Console.WriteLine("topic-hold-release");
+            Console.WriteLine("topic-subscribe-hold");
+            Console.WriteLine("topic-subscribe-release");
+            Console.WriteLine("topic-subscribe-add");
+            Console.WriteLine("topic-subscribe-remove");
+
+            Console.WriteLine("QueueCmdReport");
+            Console.WriteLine("==============");
+            Console.WriteLine("exists");
+            Console.WriteLine("queue-property");
+            Console.WriteLine("report-queuelist");
+            Console.WriteLine("report-queueitems");
+            Console.WriteLine("report-queuestatistic");
+            Console.WriteLine("performance-counter");
+            Console.WriteLine("queue-count  [/start monitor]");
+            Console.WriteLine("queue-count-all  [/start monitor]");
+            Console.WriteLine("usage    [/start monitor]");
+            Console.WriteLine("reply");
+        }
+
         #endregion
 
+        #region monitor
 
+        static void StartMonitor(Action action)
+        {
+            Console.WriteLine("Monitor start... to stop enter /stop");
+            MonitorState = true;
+            int count = 0;
+            do
+            {
+                if (count > 5)
+                {
+                    Console.WriteLine("continue ? y\\n");
+                    if(Console.ReadKey().Key == ConsoleKey.N)
+                    {
+                        MonitorState = false;
+                        break;
+                    }
+                    count=0;
+                }
+                count++;
+                action();
+                Thread.Sleep(7000);
+            } while (MonitorState);
+            Console.WriteLine("Monitor stoped");
+        }
+
+        #endregion
 
         /*
                 public static void DoCommandSync(NetProtocol cmdProtocol, string transform, string cmd, string name, string keys, string field)
@@ -1812,5 +2049,104 @@ namespace Nistec.QueueConsole
     //    //    }
     //    //}
     //}
+    #endregion
+
+
+    #region Backup
+
+    class BackupHandler
+    {
+        bool onBackgroundProcess=false;
+
+        QueueApi api;
+        public BackupHandler(string hostAddress)
+        {
+            var host = QueueHost.Parse(hostAddress);// ("tcp:127.0.0.1:15000?Netcell");
+            api =  new QueueApi(host);
+        }
+              
+        public void LoadFromBackup(string path, Action report)
+        {
+            if (onBackgroundProcess)
+                return;
+            try
+            {
+                Console.WriteLine("Start LoadFromBackup");
+
+                onBackgroundProcess = true;
+
+                //string path = GetRelayPath();
+
+                if (Directory.Exists(path))
+                {
+                    string[] messages = Directory.GetFiles(path, "*.mcq", SearchOption.AllDirectories);
+                    if (messages == null || messages.Length == 0)
+                    {
+                        return;
+                    }
+
+                    Console.WriteLine("{0} items found to ReEnqueue", messages.Length);
+
+                    Netlog.InfoFormat("LoadFromBackup: {0} ", messages.Length);
+
+
+                    foreach (string message in messages)
+                    {
+                        //while (this.Count > 1000)
+                        //{
+
+                        //    Thread.Sleep(1000);
+                        //}
+
+                        QueueMessage item = QueueMessage.ReadFile(message);
+                        if (item != null)
+                        {
+                            api.EnqueueAsync(item, 5000, (ack)=> {
+                                Console.WriteLine(ack.Print());
+                            });
+                        }
+                        DeleteFile(message);
+                        Thread.Sleep(100);
+                    }
+                    Netlog.Info("LoadFromBackup finished. ");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                string s = ex.Message;
+
+            }
+            finally
+            {
+                onBackgroundProcess = false;
+            }
+        }
+
+        public void AsyncLoadFromBackup(string path, Action report)
+        {
+            Task.Factory.StartNew(() => LoadFromBackup(path, report));
+        }
+
+        #region IO
+
+        public static void DeleteFile(string filename)
+        {
+            if (File.Exists(filename))
+            {
+                try
+                {
+                    File.Delete(filename);
+                }
+                catch (Exception ex)
+                {
+                    Netlog.ErrorFormat("Error DeleteFile: {0}, {1} ", filename, ex.Message);
+                }
+            }
+        }
+
+        #endregion
+    }
+
     #endregion
 }

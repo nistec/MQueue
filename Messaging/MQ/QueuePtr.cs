@@ -33,7 +33,10 @@ namespace Nistec.Messaging
         {
             return UUID.NewUuid().ToString();
         }
-
+        public static string NewIdentifier(Guid itemId)
+        {
+            return itemId.ToString();
+        }
         //public Ptr(string identifier, int timeout)
         //{
         //    m_Identifier = identifier;
@@ -56,7 +59,7 @@ namespace Nistec.Messaging
             m_Retry = 0;
         }
 
-        public Ptr(IQueueItem item, string hostName)
+        public Ptr(IQueueMessage item, string hostName)
         {
             m_Identifier = item.Identifier;
             m_ArrivedTime = item.ArrivedTime;
@@ -101,7 +104,7 @@ namespace Nistec.Messaging
             get { return new  Ptr(); }
         }
 
-        public static Ptr Get(IQueueItem item, PtrState state)
+        public static Ptr Get(IQueueMessage item, PtrState state)
         {
             return new Ptr()
             {
@@ -162,6 +165,8 @@ namespace Nistec.Messaging
         {
             get { return TimeOut == 0 ? false : TimeSpan.FromSeconds(TimeOut) < DateTime.Now.Subtract(ArrivedTime); }
         }
+
+        public Guid ItemId { get { return new Guid(Identifier); } }
 
         ///// <summary>
         ///// Get UniqueId
@@ -352,7 +357,7 @@ namespace Nistec.Messaging
         //    return string.Format("{0}\\{1}", fpath, Assists.GetFilename(identifier));
         //}
 
-        //internal static string GetPtrLocation(IQueueItem item, string host)
+        //internal static string GetPtrLocation(IQueueMessage item, string host)
         //{
         //    return GetPtrLocation(host, item.FolderId, item.Identifier);
         //}

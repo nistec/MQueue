@@ -126,7 +126,7 @@
     <Compile Include="MQ\IPersistQueueItem.cs" />
     <Compile Include="MQ\MessageHeader.cs" />
     <Compile Include="MQ\QProperties.cs" />
-    <Compile Include="MQ\QueueItem.cs" />
+    <Compile Include="MQ\QueueMessage.cs" />
     <Compile Include="MQ\QueueAck.cs" />
     <Compile Include="MQ\QueueRequest.cs" />
     <Compile Include="MQ\TopicItem.cs" />
@@ -151,7 +151,7 @@
     <Compile Include="MQ\Delegates.cs" />
     <Compile Include="MQ\Enums.cs" />
     <Compile Include="MQ\Interfaces.cs" />
-    <Compile Include="MQ\IQueueItem.cs" />
+    <Compile Include="MQ\IQueueMessage.cs" />
     <Compile Include="MQ\QExtension.cs" />
     <Compile Include="MQ\MessageTypes.cs" />
     <Compile Include="MQ\QueueDefaults.cs" />
@@ -177,6 +177,14 @@
     <Compile Include="Io\SysIO.cs" />
     <Compile Include="MQ\TimeOut.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="_Legacy\Componnent.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="_Legacy\Deligate.cs" />
+    <Compile Include="_Legacy\Enums.cs" />
+    <Compile Include="_Legacy\Interfaces.cs" />
+    <Compile Include="_Legacy\QueueItem.cs" />
+    <Compile Include="_Legacy\SQLCMD.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Proxies\MailerSettings.xml" />
@@ -220,6 +228,7 @@
     <Folder Include="Remote\_MControl\" />
     <Folder Include="Transactions\_exc\" />
     <Folder Include="_exc\" />
+    <Folder Include="_Legacy\exclude\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Nistec.Channels\Nistec.Channels\Nistec.Channels.csproj">

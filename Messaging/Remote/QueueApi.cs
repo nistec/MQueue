@@ -128,7 +128,7 @@ namespace Nistec.Messaging.Remote
 
             QueueName = queueName;
             HostProtocol = qh.Protocol;
-            RemoteHostAddress = qh.Endpoint;
+            RemoteHostAddress = qh.HostAddress;
             RemoteHostPort = qh.Port;
             Protocol = qh.Protocol.GetProtocol();
         }
@@ -173,7 +173,7 @@ namespace Nistec.Messaging.Remote
         #region publish/subscribe
 
 
-        //public IQueueAck Publish(QueueItem message)
+        //public IQueueAck Publish(QueueMessage message)
         //{
 
         //    var ack = base.Enqueue(message, OnFault);
@@ -183,7 +183,7 @@ namespace Nistec.Messaging.Remote
         //}
 
 
-        //public IEnumerable<IQueueAck> Publish(QueueItem message, TopicPublisher publisher)
+        //public IEnumerable<IQueueAck> Publish(QueueMessage message, TopicPublisher publisher)
         //{
         //    List<IQueueAck> acks = new List<IQueueAck>();
         //    foreach (var sub in publisher.Subscribers.Values)
@@ -204,12 +204,12 @@ namespace Nistec.Messaging.Remote
 
         
 
-        //public IQueueAck Enqueue(QueueItem message)
+        //public IQueueAck Enqueue(QueueMessage message)
         //{
         //    return Enqueue(message, ConnectTimeout);
         //}
 
-        //public IQueueAck Enqueue(QueueItem message, int connectTimeout)
+        //public IQueueAck Enqueue(QueueMessage message, int connectTimeout)
         //{
         //    //EnqueueApi client = new EnqueueApi(QueueDefaults.EnqueuePipeName, true);
         //    message.QCommand = QueueCmd.Enqueue;
@@ -241,7 +241,7 @@ namespace Nistec.Messaging.Remote
         //    return ack;
         //}
 
-        public IQueueAck Enqueue(QueueItem message, int connectTimeout=0)
+        public IQueueAck Enqueue(QueueMessage message, int connectTimeout=0)
         {
             message.QCommand = QueueCmd.Enqueue;
             //message.Host = this._QueueName;
@@ -266,7 +266,7 @@ namespace Nistec.Messaging.Remote
             //return ack;
         }
 
-        public void EnqueueAsync(QueueItem message, int connectTimeout, Action<IQueueAck> onCompleted)
+        public void EnqueueAsync(QueueMessage message, int connectTimeout, Action<IQueueAck> onCompleted)
         {
             message.QCommand = QueueCmd.Enqueue;
             //message.Host = this._QueueName;
@@ -297,12 +297,12 @@ namespace Nistec.Messaging.Remote
 
         #region Dequeue
 
-        //public IQueueItem Dequeue(QueueRequest message)
+        //public IQueueMessage Dequeue(QueueRequest message)
         //{
         //    return Dequeue(message, ConnectTimeout);
         //}
 
-        public IQueueItem Dequeue(int connectTimeout = 0)
+        public IQueueMessage Dequeue(int connectTimeout = 0)
         {
             QueueRequest message = new QueueRequest()
             {
@@ -315,7 +315,7 @@ namespace Nistec.Messaging.Remote
 
         }
 
-        public IQueueItem Dequeue(QueueRequest message, int connectTimeout=0)
+        public IQueueMessage Dequeue(QueueRequest message, int connectTimeout=0)
         {
             message.QCommand = QueueCmd.Dequeue;
             //message.Host = this._QueueName;
@@ -324,7 +324,7 @@ namespace Nistec.Messaging.Remote
 
         }
  
-        public void DequeueAsync(QueueRequest message, int connectTimeout, Action<IQueueItem> onCompleted, IDynamicWait aw)
+        public void DequeueAsync(QueueRequest message, int connectTimeout, Action<IQueueMessage> onCompleted, IDynamicWait aw)
         {
             message.QCommand = QueueCmd.Dequeue;
             //message.Host = this._QueueName;
@@ -333,7 +333,7 @@ namespace Nistec.Messaging.Remote
             RequestItem(message, connectTimeout, onCompleted, aw);
 
         }
-        //public void DequeueAsync(QueueRequest message, int connectTimeout, Action<IQueueItem> onCompleted, Action<bool> onAck, AutoResetEvent resetEvenet)
+        //public void DequeueAsync(QueueRequest message, int connectTimeout, Action<IQueueMessage> onCompleted, Action<bool> onAck, AutoResetEvent resetEvenet)
         //{
         //    message.QCommand = QueueCmd.Dequeue;
         //    //message.Host = this._QueueName;
@@ -342,7 +342,7 @@ namespace Nistec.Messaging.Remote
         //    ConsumItem(message, connectTimeout, onCompleted, onAck, resetEvenet);
 
         //}
-        public IQueueItem Dequeue(Priority priority)
+        public IQueueMessage Dequeue(Priority priority)
         {
             QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.DequeuePriority, null);
             {
@@ -354,7 +354,7 @@ namespace Nistec.Messaging.Remote
             return Dequeue(request);
         }
 
-        //public IQueueItem Dequeue(DuplexTypes DuplexType = DuplexTypes.WaitOne)
+        //public IQueueMessage Dequeue(DuplexTypes DuplexType = DuplexTypes.WaitOne)
         //{
         //    QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
         //    {
@@ -368,7 +368,7 @@ namespace Nistec.Messaging.Remote
         #endregion
 
         #region Consume
-        public IQueueItem Consume(int maxWaitSecond)
+        public IQueueMessage Consume(int maxWaitSecond)
         {
             QueueRequest message = new QueueRequest()
             {
@@ -384,12 +384,12 @@ namespace Nistec.Messaging.Remote
 
         #region Peek
 
-        //public IQueueItem Peek(QueueRequest message)
+        //public IQueueMessage Peek(QueueRequest message)
         //{
         //    return Peek(message, ConnectTimeout);
         //}
 
-        public IQueueItem Peek(int connectTimeout = 0)
+        public IQueueMessage Peek(int connectTimeout = 0)
         {
             QueueRequest message = new QueueRequest()
             {
@@ -401,7 +401,7 @@ namespace Nistec.Messaging.Remote
 
         }
 
-        public IQueueItem Peek(QueueRequest message, int connectTimeout=0)
+        public IQueueMessage Peek(QueueRequest message, int connectTimeout=0)
         {
             message.QCommand = QueueCmd.Peek;
             //message.Host = this._QueueName;
@@ -410,7 +410,7 @@ namespace Nistec.Messaging.Remote
 
         }
 
-        public void PeekAsync(QueueRequest message, int connectTimeout, Action<IQueueItem> onCompleted)
+        public void PeekAsync(QueueRequest message, int connectTimeout, Action<IQueueMessage> onCompleted)
         {
             message.QCommand = QueueCmd.Peek;
             //message.Host = this._QueueName;
@@ -425,7 +425,7 @@ namespace Nistec.Messaging.Remote
 
         #region Send
 
-        public IQueueAck SendAsync(QueueItem message, int connectTimeout)
+        public IQueueAck SendAsync(QueueMessage message, int connectTimeout)
         {
             using (
 
@@ -457,7 +457,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public void SendAsync(QueueItem message, int connectTimeout, Action<IQueueAck> action)
+        public void SendAsync(QueueMessage message, int connectTimeout, Action<IQueueAck> action)
         {
             using (
 
@@ -498,7 +498,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public Task<IQueueAck> SendAsyncTask(QueueItem message, int connectTimeout)
+        public Task<IQueueAck> SendAsyncTask(QueueMessage message, int connectTimeout)
         {
             Task<IQueueAck> task = Task<IQueueAck>.Factory.StartNew(() =>
                 PublishItem(message, EnsureConnectTimeout(connectTimeout))
@@ -524,7 +524,7 @@ namespace Nistec.Messaging.Remote
         //{
         //    KeepAlive = false;
         //}
-        //public void Listener(int connectTimeout, Action<IQueueItem> action)
+        //public void Listener(int connectTimeout, Action<IQueueMessage> action)
         //{
         //    KeepAlive = true;
         //    ConnectTimeout = connectTimeout;
@@ -537,7 +537,7 @@ namespace Nistec.Messaging.Remote
         //    }
         //}
 
-        //public void ReceiveAsync(Action<string> onFault, Action<QueueItem> onCompleted,DuplexTypes DuplexType, AutoResetEvent resetEvent)// = DuplexTypes.WaitOne)
+        //public void ReceiveAsync(Action<string> onFault, Action<QueueMessage> onCompleted,DuplexTypes DuplexType, AutoResetEvent resetEvent)// = DuplexTypes.WaitOne)
         //{
         //    QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
         //    {
@@ -557,7 +557,7 @@ namespace Nistec.Messaging.Remote
         //    //return client.Exec(request, QueueCmd.Dequeue);
         //}
 
-        public IQueueItem Receive(DuplexTypes DuplexType= DuplexTypes.WaitOne)
+        public IQueueMessage Receive(DuplexTypes DuplexType= DuplexTypes.WaitOne)
         {
             QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
             {
@@ -574,7 +574,7 @@ namespace Nistec.Messaging.Remote
             //DequeueApi client = new DequeueApi(QueueDefaults.DequeuePipeName, true);
             //return client.Exec(request, QueueCmd.Dequeue);
         }
-        public IQueueItem Receive(QueueRequest request)
+        public IQueueMessage Receive(QueueRequest request)
         {
             var response = base.SendDuplex(request, OnFault);
             Assists.SetReceived(response, MessageState.Received);
@@ -582,7 +582,7 @@ namespace Nistec.Messaging.Remote
             //DequeueApi client = new DequeueApi(QueueDefaults.DequeuePipeName, true);
             //return client.Exec(request, QueueCmd.Dequeue, _ServerName, connectTimeout);
         }
-        //public IQueueItem Receive(int connectTimeout)
+        //public IQueueMessage Receive(int connectTimeout)
         //{
         //    QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
         //    {
@@ -597,7 +597,7 @@ namespace Nistec.Messaging.Remote
         //    //return client.Exec(request, QueueCmd.Dequeue, _ServerName, connectTimeout);
         //}
 
-        public IQueueItem Receive(Priority priority)
+        public IQueueMessage Receive(Priority priority)
         {
             QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.DequeuePriority, null);
             {
@@ -612,7 +612,7 @@ namespace Nistec.Messaging.Remote
             //return client.Exec(request, QueueCmd.DequeuePriority);
         }
 
-        public int Receive(int connectTimeout, Action<IQueueItem> action)
+        public int Receive(int connectTimeout, Action<IQueueMessage> action)
         {
             ConnectTimeout = connectTimeout;
             var message = Receive();
@@ -622,7 +622,7 @@ namespace Nistec.Messaging.Remote
             return 1;
         }
 
-        public IQueueItem Peek()
+        public IQueueMessage Peek()
         {
             QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Peek, null);
             {
@@ -636,7 +636,7 @@ namespace Nistec.Messaging.Remote
             //return client.Exec(request, QueueCmd.Peek);
         }
 
-        public IQueueItem Peek(Priority priority)
+        public IQueueMessage Peek(Priority priority)
         {
             QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.PeekPriority, null);
             {
@@ -655,7 +655,7 @@ namespace Nistec.Messaging.Remote
 
         #region Recieve async
         /*        
-        public void ReceiveAsync(int connectTimeout, Action<IQueueItem> action)
+        public void ReceiveAsync(int connectTimeout, Action<IQueueMessage> action)
         {
             if (action == null)
             {
@@ -665,7 +665,7 @@ namespace Nistec.Messaging.Remote
             ConnectTimeout = connectTimeout;
             using (
                 
-                    Task<IQueueItem> task = Task<IQueueItem>.Factory.StartNew(()=>
+                    Task<IQueueMessage> task = Task<IQueueMessage>.Factory.StartNew(()=>
                         Receive()
                     ,
                     canceller.Token,
@@ -675,7 +675,7 @@ namespace Nistec.Messaging.Remote
                 task.Wait();
                 if (task.IsCompleted)
                 {
-                    IQueueItem item = task.Result;
+                    IQueueMessage item = task.Result;
                     if (item != null)
                     {
                         Task.Factory.StartNew(() => action(item));
@@ -692,12 +692,12 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public bool ReceiveAsync(int connectTimeout, out IQueueItem message)
+        public bool ReceiveAsync(int connectTimeout, out IQueueMessage message)
         {
             ConnectTimeout = connectTimeout;
             using (
 
-                    Task<IQueueItem> task = Task<IQueueItem>.Factory.StartNew(() =>
+                    Task<IQueueMessage> task = Task<IQueueMessage>.Factory.StartNew(() =>
                         Receive()
                     ,
                     canceller.Token,
@@ -719,7 +719,7 @@ namespace Nistec.Messaging.Remote
 
         #region Report
 
-        public IQueueItem Report(QueueCmdReport command, string host)
+        public IQueueMessage Report(QueueCmdReport command, string host)
         {
             QueueRequest request = new QueueRequest()
             {
@@ -730,7 +730,7 @@ namespace Nistec.Messaging.Remote
             var ack = ConsumeItem(request, ConnectTimeout);
             if (ack == null)
             {
-                ack = new QueueItem()//MessageState.UnExpectedError, "Server was not responsed for this message", command.ToString(), host);
+                ack = new QueueMessage()//MessageState.UnExpectedError, "Server was not responsed for this message", command.ToString(), host);
                 {
                     MessageState = MessageState.UnExpectedError,
                     Label = "Server was not responsed for this message",
@@ -740,11 +740,11 @@ namespace Nistec.Messaging.Remote
             return ack;
         }
 
-        public void ReportAsync(QueueCmdReport command, string host, Action<IQueueItem> action)
+        public void ReportAsync(QueueCmdReport command, string host, Action<IQueueMessage> action)
         {
             using (
 
-                    Task<IQueueItem> task = Task<IQueueItem>.Factory.StartNew(() =>
+                    Task<IQueueMessage> task = Task<IQueueMessage>.Factory.StartNew(() =>
                         Report(command, host)
                     ,
                     canceller.Token,
@@ -754,7 +754,7 @@ namespace Nistec.Messaging.Remote
                 task.Wait();
                 if (task.IsCompleted)
                 {
-                    IQueueItem item = task.Result;
+                    IQueueMessage item = task.Result;
                     if (item != null)
                     {
                         if (action != null)
@@ -779,12 +779,12 @@ namespace Nistec.Messaging.Remote
         {
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, false);
 
-            var message = new QueueItem()
+            var message = new QueueMessage(ptr)
             {
                 Host = ptr.Host,
                 QCommand = QueueCmd.Commit,
                 MessageState= MessageState.TransCommited,
-                Identifier=ptr.Identifier,
+                //Identifier=ptr.Identifier,
                 Retry = (byte)ptr.Retry
             };
 
@@ -796,12 +796,12 @@ namespace Nistec.Messaging.Remote
         public void Abort(Ptr ptr)
         {
             //ReportApi client = new ReportApi(QueueDefaults.QueueManagerPipeName, false);
-            var message = new QueueItem()
+            var message = new QueueMessage(ptr)
             {
                 Host = ptr.Host,
                 QCommand = QueueCmd.Abort,
                 MessageState = MessageState.TransAborted,
-                Identifier = ptr.Identifier,
+                //Identifier = ptr.Identifier,
                 Retry=(byte)ptr.Retry
             };
             //client.Exec(message, QueueCmd.Abort);
@@ -809,7 +809,7 @@ namespace Nistec.Messaging.Remote
         }
 
 
-        public IQueueItem Report(QueueCmdReport cmd)
+        public IQueueMessage Report(QueueCmdReport cmd)
         {
             QueueRequest request = new QueueRequest()
             {
@@ -841,7 +841,7 @@ namespace Nistec.Messaging.Remote
             return res.GetBody<T>();
         }
 
-        public IQueueItem OperateQueue(QueueCmdOperation cmd)
+        public IQueueMessage OperateQueue(QueueCmdOperation cmd)
         {
             QueueRequest message = new QueueRequest()//queueName, (QueueCmd)(int)cmd)
             {
@@ -855,7 +855,7 @@ namespace Nistec.Messaging.Remote
             //return (Message)client.Exec(message, (QueueCmd)(int)cmd);
         }
 
-        public IQueueItem AddQueue(QProperties qp)
+        public IQueueMessage AddQueue(QProperties qp)
         {
             var message = new QueueRequest()
             {
@@ -868,7 +868,7 @@ namespace Nistec.Messaging.Remote
             return response;// == null ? null : response.ToMessage();
         }
 
-        public IQueueItem AddQueue(CoverMode mode, bool isTrans, bool isTopic)
+        public IQueueMessage AddQueue(CoverMode mode, bool isTrans, bool isTopic)
         {
            
 
@@ -885,7 +885,7 @@ namespace Nistec.Messaging.Remote
                 IsTopic=isTopic
             } ;
             return AddQueue(qp);
-            //var message = new QueueItem()
+            //var message = new QueueMessage()
             //{
             //    Host = _QueueName,
             //    Command = QueueCmd.AddQueue,
@@ -911,7 +911,7 @@ namespace Nistec.Messaging.Remote
             //return (Message)res;// client.Exec(message, QueueCmd.AddQueue);
         }
 
-        public IQueueItem RemoveQueue()
+        public IQueueMessage RemoveQueue()
         {
             QueueRequest message = new QueueRequest()
             {
@@ -925,7 +925,7 @@ namespace Nistec.Messaging.Remote
             //return (Message)client.Exec(message, QueueCmd.RemoveQueue);
         }
 
-        public IQueueItem QueueExists()
+        public IQueueMessage QueueExists()
         {
             QueueRequest message = new QueueRequest()
             {
@@ -943,13 +943,13 @@ namespace Nistec.Messaging.Remote
         
         #region Recieve to
 
-        //public IQueueAck ReceiveTo(QueueHost target, int connectTimeout, Action<IQueueItem> recieveAction)
+        //public IQueueAck ReceiveTo(QueueHost target, int connectTimeout, Action<IQueueMessage> recieveAction)
         //{
         //    IQueueAck ack = null;
 
         //    using (
 
-        //            Task<IQueueItem> task = Task<IQueueItem>.Factory.StartNew(() =>
+        //            Task<IQueueMessage> task = Task<IQueueMessage>.Factory.StartNew(() =>
         //                Receive(connectTimeout)
         //            ,
         //            canceller.Token,
@@ -959,7 +959,7 @@ namespace Nistec.Messaging.Remote
         //        task.Wait();
         //        if (task.IsCompleted)
         //        {
-        //            var message =(QueueItem) task.Result;//.ToMessage();
+        //            var message =(QueueMessage) task.Result;//.ToMessage();
 
         //            if (message != null)
         //            {
@@ -1005,9 +1005,9 @@ namespace Nistec.Messaging.Remote
         }
 
 
-        private IQueueItem ReceiveItemWorker(TimeSpan timeout, object state)
+        private IQueueMessage ReceiveItemWorker(TimeSpan timeout, object state)
         {
-            IQueueItem item = null;
+            IQueueMessage item = null;
             TimeOut to = new TimeOut(timeout);
             while (item == null)
             {
@@ -1030,12 +1030,12 @@ namespace Nistec.Messaging.Remote
             return item;
         }
 
-        public IQueueItem AsyncReceive()
+        public IQueueMessage AsyncReceive()
         {
             return AsyncReceive(null);
         }
 
-        public IQueueItem AsyncReceive(object state)
+        public IQueueMessage AsyncReceive(object state)
         {
             if (state == null)
             {
@@ -1051,7 +1051,7 @@ namespace Nistec.Messaging.Remote
 
             // Call EndInvoke to wait for the asynchronous call to complete,
             // and to retrieve the results.
-            IQueueItem item = caller.EndInvoke(result);
+            IQueueMessage item = caller.EndInvoke(result);
             AsyncCompleted(item);
             return item;
 
@@ -1100,14 +1100,14 @@ namespace Nistec.Messaging.Remote
 
         // Callback method must have the same signature as the
         // AsyncCallback delegate.
-        public IQueueItem EndReceive(IAsyncResult asyncResult)
+        public IQueueMessage EndReceive(IAsyncResult asyncResult)
         {
 
             // Retrieve the delegate.
             ReceiveMessageCallback caller = (ReceiveMessageCallback)asyncResult.AsyncState;
 
             // Call EndInvoke to retrieve the results.
-            IQueueItem item = (IQueueItem)caller.EndInvoke(asyncResult);
+            IQueueMessage item = (IQueueMessage)caller.EndInvoke(asyncResult);
 
             AsyncCompleted(item);
             this.ResetEvent.WaitOne();
@@ -1123,7 +1123,7 @@ namespace Nistec.Messaging.Remote
             return this.onRequestCompleted;
         }
 
-        private void AsyncCompleted(IQueueItem item)
+        private void AsyncCompleted(IQueueMessage item)
         {
             //if (item != null)
             //{
@@ -1382,7 +1382,7 @@ namespace Nistec.Messaging.Remote
             using (var message = new QueueMessage()
             {
                 Command = QueueCmd.CopyItem,
-                Args = MessageStream.CreateArgs(KnowsArgs.Source, source, KnowsArgs.Host, dest),
+                Args = MessageStream.CreateArgs(KnownArgs.Source, source, KnownArgs.Host, dest),
                 Expiration = expiration,
                 IsDuplex = false,
                 Key = dest
@@ -1416,7 +1416,7 @@ namespace Nistec.Messaging.Remote
             using (var message = new QueueMessage()
             {
                 Command = QueueCmd.CutItem,
-                Args = MessageStream.CreateArgs(KnowsArgs.Source, source, KnowsArgs.Host, dest),
+                Args = MessageStream.CreateArgs(KnownArgs.Source, source, KnownArgs.Host, dest),
                 Expiration = expiration,
                 IsDuplex = false,
                 Key = dest

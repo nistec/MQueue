@@ -207,7 +207,7 @@ namespace Nistec.Messaging.Server
         /// </summary>
         /// <param name="pipeServer"></param>
         /// <returns></returns>
-        protected abstract QueueItem ReadRequest(NamedPipeServerStream pipeServer);
+        protected abstract QueueMessage ReadRequest(NamedPipeServerStream pipeServer);
 
 
         // protected abstract void WriteResponse(NamedPipeServerStream pipeServer, NetStream bResponse, TRequest message);
@@ -238,7 +238,7 @@ namespace Nistec.Messaging.Server
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        protected abstract TransStream ExecRequset(QueueItem request);
+        protected abstract TransStream ExecRequset(QueueMessage request);
 
         /// <summary>
         /// Occured when client is connected.
@@ -318,10 +318,11 @@ namespace Nistec.Messaging.Server
         private void Run()
         {
             NamedPipeServerStream pipeServer = null;
-            QueueItem message = null;
+            QueueMessage message = null;
             bool connected = false;
             //const string ResponseMessage = "Default response from server\0";
-            Console.WriteLine("{0} Pipe server start listen Thread<{1}>", PipeName, Thread.CurrentThread.ManagedThreadId);
+            //Console.WriteLine("{0} Pipe server start listen Thread<{1}>", PipeName, Thread.CurrentThread.ManagedThreadId);
+            Log.Debug("{0} Pipe server start listen Thread<{1}>", PipeName, Thread.CurrentThread.ManagedThreadId);
 
             while (Listen)
             {
@@ -377,7 +378,7 @@ namespace Nistec.Messaging.Server
                     }
                 }
             }
-            Console.WriteLine("{0} Pipe server stope listen Thread<{1}>", PipeName, Thread.CurrentThread.ManagedThreadId);
+            Log.Warn("{0} Pipe server stope listen Thread<{1}>", PipeName, Thread.CurrentThread.ManagedThreadId);
 
         }
 
@@ -392,7 +393,7 @@ namespace Nistec.Messaging.Server
             NamedPipeServerStream pipeServerAsync = null;
             bool connected = false;
             //const string ResponseMessage = "Default response from server\0";
-            Console.WriteLine("{0} Pipe server async start listen Thread<{1}>", PipeName, Thread.CurrentThread.ManagedThreadId);
+            Log.Debug("{0} Pipe server async start listen Thread<{1}>", PipeName, Thread.CurrentThread.ManagedThreadId);
 
             while (Listen)
             {
@@ -441,13 +442,13 @@ namespace Nistec.Messaging.Server
                     }
                 }
             }
-            Console.WriteLine("{0} Pipe server async stop listen Thread<{1}>", PipeName, Thread.CurrentThread.ManagedThreadId);
+            Log.Warn("{0} Pipe server async stop listen Thread<{1}>", PipeName, Thread.CurrentThread.ManagedThreadId);
         }
 
 
         private void WaitForConnectionAsyncCallback(IAsyncResult result)
         {
-            QueueItem message = null;
+            QueueMessage message = null;
             try
             {
                 NamedPipeServerStream pipeServerAsync = (NamedPipeServerStream)result.AsyncState;

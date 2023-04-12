@@ -12,7 +12,7 @@ namespace Nistec.Messaging.Proxies
 
     public class MQueueProxy
     {
-        public MessageState Send(QueueItem msg)
+        public MessageState Send(QueueMessage msg)
         {
             MessageQueueProxy proxy = new MessageQueueProxy();
             return proxy.Invoke(msg, true);
@@ -24,7 +24,7 @@ namespace Nistec.Messaging.Proxies
         //    return proxy.Invoke(msg, true);
         //}
 
-        public MessageState SendBatch(QueueItem msg)
+        public MessageState SendBatch(QueueMessage msg)
         {
             QueueBatchProxy proxy = new QueueBatchProxy();
             return proxy.Invoke(msg, true);
@@ -33,7 +33,7 @@ namespace Nistec.Messaging.Proxies
 
 
 
-    public class MessageQueueProxy : ServiceProxy<IQueueProxy, QueueItem>
+    public class MessageQueueProxy : ServiceProxy<IQueueProxy, QueueMessage>
     {
 
         public MessageQueueProxy()
@@ -41,13 +41,13 @@ namespace Nistec.Messaging.Proxies
         {
         }
 
-        protected override MessageState Send(QueueItem msg)
+        protected override MessageState Send(QueueMessage msg)
         {
             return Proxy.SendMessage(msg.Serialize(true));//.GetEntityStream(true));
         }
     }
 
-    public class QueueItemProxy : ServiceProxy<IQueueProxy, QueueItem>
+    public class QueueItemProxy : ServiceProxy<IQueueProxy, QueueMessage>
     {
 
         public QueueItemProxy()
@@ -55,13 +55,13 @@ namespace Nistec.Messaging.Proxies
         {
         }
 
-        protected override MessageState Send(QueueItem item)
+        protected override MessageState Send(QueueMessage item)
         {
             return Proxy.SendMessage(item.BodyStream);
         }
     }
 
-    public class QueueBatchProxy : ServiceProxy<IQueueProxy, QueueItem>
+    public class QueueBatchProxy : ServiceProxy<IQueueProxy, QueueMessage>
     {
 
         public QueueBatchProxy()
@@ -69,7 +69,7 @@ namespace Nistec.Messaging.Proxies
         {
         }
 
-        protected override MessageState Send(QueueItem item)
+        protected override MessageState Send(QueueMessage item)
         {
             return Proxy.SendMessage(item.BodyStream);
         }

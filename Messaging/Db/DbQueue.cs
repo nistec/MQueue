@@ -65,14 +65,14 @@ namespace Nistec.Messaging.Db
         #region db operation
 
 
-        public static DataTable MessageToDataTable(QueueItem message)
+        public static DataTable MessageToDataTable(QueueMessage message)
         {
             DataTable dt = QueueSchema();
             dt.Rows.Add(message.ItemArray());
             return dt;
         }
 
-        public static DataTable MessageToDataTable(QueueItem[] messages)
+        public static DataTable MessageToDataTable(QueueMessage[] messages)
         {
             DataTable dt = QueueSchema();
             foreach (var m in messages)
@@ -82,14 +82,14 @@ namespace Nistec.Messaging.Db
             return dt;
         }
 
-        //public static DataTable MessageToDataTable(QueueItem message)
+        //public static DataTable MessageToDataTable(QueueMessage message)
         //{
         //    DataTable dt = QueueSchema();
         //    dt.Rows.Add(message.MessageItemArray());
         //    return dt;
         //}
 
-        //public static DataTable MessageToDataTable(QueueItem[] messages)
+        //public static DataTable MessageToDataTable(QueueMessage[] messages)
         //{
         //    DataTable dt = QueueSchema();
         //    foreach (var m in messages)
@@ -107,7 +107,7 @@ namespace Nistec.Messaging.Db
             }
         }
 
-        public void ExecEnqueue(QueueItem message)
+        public void ExecEnqueue(QueueMessage message)
         {
             var dt = MessageToDataTable(message);
 
@@ -117,7 +117,7 @@ namespace Nistec.Messaging.Db
             }
         }
 
-        public void ExecEnqueue(QueueItem[] messages)
+        public void ExecEnqueue(QueueMessage[] messages)
         {
             var dt = MessageToDataTable(messages);
 
@@ -152,7 +152,7 @@ namespace Nistec.Messaging.Db
 
         #endregion
 
-        public QueueItem Dequeue(string host, string identifier, bool isTrans)
+        public QueueMessage Dequeue(string host, string identifier, bool isTrans)
         {
             using (DbMessageContext context = new DbMessageContext())
             {
@@ -160,7 +160,7 @@ namespace Nistec.Messaging.Db
             }
         }
 
-        public QueueItem Dequeue(string host, bool isTrans)
+        public QueueMessage Dequeue(string host, bool isTrans)
         {
             using (DbMessageContext context = new DbMessageContext())
             {
@@ -168,7 +168,7 @@ namespace Nistec.Messaging.Db
             }
         }
 
-        public int Enqueue(QueueItem message)
+        public int Enqueue(QueueMessage message)
         {
             using (DbMessageContext context = new DbMessageContext())
             {

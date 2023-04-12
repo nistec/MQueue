@@ -78,7 +78,7 @@ namespace Nistec.Messaging
         #region override
 
         /// <summary>
-        /// Peek IQueueItem from queue
+        /// Peek IQueueMessage from queue
         /// </summary>
         /// <returns></returns>
         public T Peek()
@@ -90,7 +90,7 @@ namespace Nistec.Messaging
 
         
         /// <summary>
-        /// Dequeue IQueueItem from queue
+        /// Dequeue IQueueMessage from queue
         /// </summary>
         /// <returns></returns>
         public T Dequeue()
@@ -125,7 +125,7 @@ namespace Nistec.Messaging
         }
 
         /// <summary>
-        /// Enqueue IQueueItem in queue
+        /// Enqueue IQueueMessage in queue
         /// </summary>
         /// <param name="item"></param>
         public new void Enqueue(T item)
@@ -138,7 +138,7 @@ namespace Nistec.Messaging
         }
 
         /// <summary>
-        /// ReEnqueue IQueueItem in queue
+        /// ReEnqueue IQueueMessage in queue
         /// </summary>
         /// <param name="item"></param>
         internal void ReEnqueue(T item)
@@ -200,7 +200,7 @@ namespace Nistec.Messaging
         }
 
         /// <summary>
-        /// Find IQueueItem
+        /// Find IQueueMessage
         /// </summary>
         /// <param name="itemId"></param>
         /// <returns></returns>

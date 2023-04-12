@@ -64,7 +64,7 @@ namespace Nistec.Messaging.Db
             return this.ExecuteNonQuery("sp_enqueue_fifo", this.EntityProperties.ToInsertParameters(), CommandType.StoredProcedure);
         }
 
-        public int Enqueue(QueueItem message)
+        public int Enqueue(QueueMessage message)
         {
             return this.ExecuteNonQuery("sp_enqueue_fifo", message.MessageDataParameters(), CommandType.StoredProcedure);
         }
@@ -99,25 +99,25 @@ namespace Nistec.Messaging.Db
             return this.ExecuteCommand<byte[]>("sp_dequeue_fifo_trans_item", DataParameter.GetSql("Host", host, "Identifier", identifier, "Expiration", transTimeout), CommandType.StoredProcedure);
         }
 
-        public QueueItem Peek(string host)
+        public QueueMessage Peek(string host)
         {
             byte[] bytes = PeekStream(host);
             if (bytes == null)
                 return null;
-            var msg = new QueueItem(new NetStream(bytes), null, MessageState.Peeked);
+            var msg = new QueueMessage(new NetStream(bytes), null, MessageState.Peeked);
             return msg;
         }
 
-        public QueueItem PeekItem(string host, string identifier)
+        public QueueMessage PeekItem(string host, string identifier)
         {
             byte[] bytes = PeekStream(host, identifier);
             if (bytes == null)
                 return null;
-            var msg = new QueueItem(new NetStream(bytes), null, MessageState.Peeked);
+            var msg = new QueueMessage(new NetStream(bytes), null, MessageState.Peeked);
             return msg;
         }
 
-        public QueueItem Dequeue(string host, bool isTrans = false)
+        public QueueMessage Dequeue(string host, bool isTrans = false)
         {
             byte[] bytes = null;
             if (isTrans)
@@ -126,12 +126,12 @@ namespace Nistec.Messaging.Db
                 bytes = DequeueStream(host);
             if (bytes == null)
                 return null;
-            var msg = new QueueItem(new NetStream(bytes), null, MessageState.Received);
+            var msg = new QueueMessage(new NetStream(bytes), null, MessageState.Received);
             //msg.SetMessageState(MessageState.Received);
             return msg;
         }
 
-        public QueueItem Dequeue(string host, string identifier, bool isTrans = false)
+        public QueueMessage Dequeue(string host, string identifier, bool isTrans = false)
         {
             byte[] bytes = null;
             if (isTrans)
@@ -140,7 +140,7 @@ namespace Nistec.Messaging.Db
                 bytes = DequeueStream(host,identifier);
             if (bytes == null)
                 return null;
-            var msg = new QueueItem(new NetStream(bytes), null, MessageState.Received);
+            var msg = new QueueMessage(new NetStream(bytes), null, MessageState.Received);
             //msg.SetMessageState(MessageState.Received);
             return msg;
         }
@@ -186,7 +186,7 @@ namespace Nistec.Messaging.Db
         //    }
         //}
 
-        public static QueueItem DequeueItem(string host, bool isTrans = false)
+        public static QueueMessage DequeueItem(string host, bool isTrans = false)
         {
             byte[] bytes = null;
             using (DbMessageContext context = new DbMessageContext())
@@ -198,12 +198,12 @@ namespace Nistec.Messaging.Db
             }
             if (bytes == null)
                 return null;
-            var msg = new QueueItem(new NetStream(bytes), null, MessageState.Received);
+            var msg = new QueueMessage(new NetStream(bytes), null, MessageState.Received);
             //msg.SetMessageState(MessageState.Received);
             return msg;
         }
 
-        public static QueueItem DequeueItem(string host, string identifier, bool isTrans = false)
+        public static QueueMessage DequeueItem(string host, string identifier, bool isTrans = false)
         {
             byte[] bytes = null;
             using (DbMessageContext context = new DbMessageContext())
@@ -215,7 +215,7 @@ namespace Nistec.Messaging.Db
             }
             if (bytes == null)
                 return null;
-            var msg = new QueueItem(new NetStream(bytes), null, MessageState.Received);
+            var msg = new QueueMessage(new NetStream(bytes), null, MessageState.Received);
             //msg.SetMessageState(MessageState.Received);
             return msg;
         }

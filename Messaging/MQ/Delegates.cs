@@ -18,14 +18,14 @@ namespace Nistec.Messaging
     /// </summary>
     /// <param name="timeout"></param>
     /// <returns></returns>
-    public delegate IQueueItem ReceiveMessageCallback(TimeSpan timeout, object state);
+    public delegate IQueueMessage ReceiveMessageCallback(TimeSpan timeout, object state);
 
     public delegate void ReceiveMessageCompletedEventHandler(object sender, ReceiveMessageCompletedEventArgs e);
 
     public class ReceiveMessageCompletedEventArgs : EventArgs
     {
         // Fields
-        private IQueueItem item;
+        private IQueueMessage item;
         private IAsyncResult result;
         private IQueueClient sender;
         //private object state;
@@ -52,7 +52,7 @@ namespace Nistec.Messaging
         }
 
 
-        public IQueueItem Item
+        public IQueueMessage Item
         {
             get
             {
@@ -89,14 +89,14 @@ namespace Nistec.Messaging
     /// </summary>
     /// <param name="timeout"></param>
     /// <returns></returns>
-    public delegate IQueueItem ReceiveItemCallback(TimeSpan timeout, object state);
+    public delegate IQueueMessage ReceiveItemCallback(TimeSpan timeout, object state);
 
     public delegate void ReceiveItemCompletedEventHandler(object sender, ReceiveItemCompletedEventArgs e);
 
     public class ReceiveItemCompletedEventArgs : EventArgs
     {
         // Fields
-        private IQueueItem item;
+        private IQueueMessage item;
         private IAsyncResult result;
         private IReceiveCompleted sender;
         //private object state;
@@ -123,7 +123,7 @@ namespace Nistec.Messaging
         }
 
 
-        public IQueueItem Item
+        public IQueueMessage Item
         {
             get
             {
@@ -160,17 +160,17 @@ namespace Nistec.Messaging
 
     public class QueueItemEventArgs : EventArgs
     {
-        private IQueueItem item;
+        private IQueueMessage item;
         private MessageState state;
         private string message;
 
-        public QueueItemEventArgs(IQueueItem itm, MessageState state)
+        public QueueItemEventArgs(IQueueMessage itm, MessageState state)
         {
             this.item = itm;
             this.state = state;
         }
 
-        public QueueItemEventArgs(IQueueItem itm, MessageState state, string message)
+        public QueueItemEventArgs(IQueueMessage itm, MessageState state, string message)
         {
             this.item = itm;
             this.state = state;
@@ -180,9 +180,9 @@ namespace Nistec.Messaging
         #region Properties 
 
         /// <summary>
-        /// Get QueueItem
+        /// Get QueueMessage
         /// </summary>
-        public IQueueItem Item
+        public IQueueMessage Item
         {
             get { return this.item; }
         }
@@ -237,7 +237,7 @@ namespace Nistec.Messaging
         #region Properties 
 
         /// <summary>
-        /// Get QueueItem
+        /// Get QueueMessage
         /// </summary>
         public Ptr Item
         {
@@ -285,7 +285,7 @@ namespace Nistec.Messaging
         #region Properties 
 
         /// <summary>
-        /// Get QueueItem
+        /// Get QueueMessage
         /// </summary>
         public T Item
         {

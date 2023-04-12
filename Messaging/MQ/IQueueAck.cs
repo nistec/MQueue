@@ -10,6 +10,7 @@ using Nistec.Channels;
 
 namespace Nistec.Messaging
 {
+
     public interface IQueueAck
     {
         #region property
@@ -22,10 +23,10 @@ namespace Nistec.Messaging
         /// Get the message state
         /// </summary>
         MessageState MessageState { get; }
-        /// <summary>
-        /// Get or Set the arrived time.
-        /// </summary>
-        DateTime ArrivedTime { get; }
+        ///// <summary>
+        ///// Get or Set the arrived time.
+        ///// </summary>
+        //DateTime ArrivedTime { get; }
         /// <summary>
         /// Get or Set the send time.
         /// </summary>
@@ -62,4 +63,5 @@ namespace Nistec.Messaging
         /// <param name="streamer"></param>
         void EntityRead(Stream stream, IBinaryStreamer streamer);
     }
+    
 }

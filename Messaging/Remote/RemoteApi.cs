@@ -173,14 +173,14 @@ namespace Nistec.Messaging.Remote
 
         protected void OnFault(string message)
         {
-            Console.WriteLine("QueueApi Fault: " + message);
+           Logger.Instance.Debug("QueueApi OnFault: " + message);
         }
-        //protected void OnCompleted(QueueItem message)
+        //protected void OnCompleted(QueueMessage message)
         //{
         //    Console.WriteLine("QueueApi Completed: " + message.Identifier);
         //}
 
-        protected void OnItemCompleted(TransStream ts, IQueueMessage message, Action<IQueueAck> onCompleted) {
+        protected void OnItemCompleted(TransStream ts, IQueueRequest message, Action<IQueueAck> onCompleted) {
 
             //QueueAck ack = (ts == null) ? null : ts.ReadValue<QueueAck>(OnFault);
 
@@ -202,7 +202,7 @@ namespace Nistec.Messaging.Remote
             onCompleted(ack);
         }
 
-        protected IQueueAck OnItemCompleted(TransStream ts, IQueueMessage message)
+        protected IQueueAck OnItemCompleted(TransStream ts, IQueueRequest message)
         {
 
             QueueAck ack = (ts == null || ts.IsEmpty) ? null : ts.ReadValue<QueueAck>(OnFault);
@@ -222,10 +222,10 @@ namespace Nistec.Messaging.Remote
             return ack;
         }
 
-        protected bool OnQItemCompleted(TransStream ts, Action<IQueueItem> onCompleted)
+        protected bool OnQItemCompleted(TransStream ts, Action<IQueueMessage> onCompleted)
         {
 
-            IQueueItem item = OnQItemCompleted(ts);
+            IQueueMessage item = OnQItemCompleted(ts);
             if (item != null)
             {
                 onCompleted(item);
@@ -234,19 +234,19 @@ namespace Nistec.Messaging.Remote
             return false;
         }
 
-        protected IQueueItem OnQItemCompleted(TransStream ts)//, IQueueMessage message)
+        protected IQueueMessage OnQItemCompleted(TransStream ts)//, IQueueRequest message)
         {
 
-            QueueItem item = (ts == null || ts.IsEmpty) ? null : ts.ReadValue<QueueItem>(OnFault);
+            QueueMessage item = (ts == null || ts.IsEmpty) ? null : ts.ReadValue<QueueMessage>(OnFault);
 
             if (item == null)
             {
 
                 return null;
                 //if (message.IsDuplex)
-                //    item = new QueueItem() { MessageState = MessageState.UnExpectedError, Label = "Server was not responsed for this message", Identifier = message.Identifier, Host = message.Host };
+                //    item = new QueueMessage() { MessageState = MessageState.UnExpectedError, Label = "Server was not responsed for this message", Identifier = message.Identifier, Host = message.Host };
                 //else
-                //    item = new QueueItem() { MessageState = MessageState.Arrived, Label = "Message Arrived on way", Identifier = message.Identifier, Host = message.Host };
+                //    item = new QueueMessage() { MessageState = MessageState.Arrived, Label = "Message Arrived on way", Identifier = message.Identifier, Host = message.Host };
 
                 ////ack.HostAddress = message.HostAddress;
             }
@@ -259,10 +259,10 @@ namespace Nistec.Messaging.Remote
 
         #region internal
         /*
-        internal QueueAck Enqueue(QueueItem message, int timeout = 0)
+        internal QueueAck Enqueue(QueueMessage message, int timeout = 0)
         {
             message.Host = this._QueueName;
-            //QueueItem qs = new QueueItem(message);
+            //QueueMessage qs = new QueueMessage(message);
 
             switch (Protocol)
             {
@@ -278,10 +278,10 @@ namespace Nistec.Messaging.Remote
             return TcpClientQueue.Enqueue(message, RemoteHostAddress, RemoteHostPort, GetTimeout(timeout, ChannelSettings.TcpTimeout), ChannelSettings.IsAsync, EnableRemoteException);
         }
 
-        internal QueueItem SendDuplex(IQueueMessage message, int timeout = 0)
+        internal QueueMessage SendDuplex(IQueueRequest message, int timeout = 0)
         {
             message.Host = this._QueueName;
-            //QueueItem qs = new QueueItem(message);
+            //QueueMessage qs = new QueueMessage(message);
 
             switch (Protocol)
             {
@@ -297,10 +297,10 @@ namespace Nistec.Messaging.Remote
             return TcpClientQueue.SendDuplex(message, RemoteHostAddress, RemoteHostPort, GetTimeout(timeout, ChannelSettings.TcpTimeout), ChannelSettings.IsAsync, EnableRemoteException);
         }
         
-        internal void SendOut(QueueItem message, int timeout = 0)
+        internal void SendOut(QueueMessage message, int timeout = 0)
         {
             //message.Host = this._QueueName;
-            //QueueItem qs = new QueueItem(message);
+            //QueueMessage qs = new QueueMessage(message);
 
             switch (Protocol)
             {
@@ -317,10 +317,10 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        //internal QueueItem Management(QueueRequest message, int timeout = 0)
+        //internal QueueMessage Management(QueueRequest message, int timeout = 0)
         //{
         //    message.Host = this._QueueName;
-        //    //QueueItem qs = new QueueItem(message);
+        //    //QueueMessage qs = new QueueMessage(message);
 
         //    switch (Protocol)
         //    {
@@ -336,10 +336,10 @@ namespace Nistec.Messaging.Remote
         //    return TcpClientQueue.Management(message, RemoteHostAddress, ChannelSettings.TcpPort, GetTimeout(timeout, ChannelSettings.TcpTimeout), ChannelSettings.IsAsync, EnableRemoteException);
         //}
 
-        //internal QueueItem SendDuplex(QueueRequest message, int timeout = 0)
+        //internal QueueMessage SendDuplex(QueueRequest message, int timeout = 0)
         //{
         //    message.Host = this._QueueName;
-        //    //QueueItem qs = new QueueItem(message);
+        //    //QueueMessage qs = new QueueMessage(message);
 
         //    switch (Protocol)
         //    {
@@ -358,7 +358,7 @@ namespace Nistec.Messaging.Remote
         //internal void SendOut(QueueRequest message, int timeout = 0)
         //{
         //    message.Host = this._QueueName;
-        //    //QueueItem qs = new QueueItem(message);
+        //    //QueueMessage qs = new QueueMessage(message);
 
         //    switch (Protocol)
         //    {
@@ -380,7 +380,7 @@ namespace Nistec.Messaging.Remote
 
             /*
 
-        internal QueueAck Enqueue(QueueItem message, Action<string> onFault)
+        internal QueueAck Enqueue(QueueMessage message, Action<string> onFault)
         {
             message.Host = this._QueueName;
 
@@ -397,7 +397,7 @@ namespace Nistec.Messaging.Remote
             return ts.ReadValue<QueueAck>(onFault);
         }
 
-        internal QueueAck Enqueue(QueueItem message, int timeout, Action<string> onFault)
+        internal QueueAck Enqueue(QueueMessage message, int timeout, Action<string> onFault)
         {
             message.Host = this._QueueName;
 
@@ -415,7 +415,7 @@ namespace Nistec.Messaging.Remote
             return ts.ReadValue<QueueAck>(onFault);
         }
         */
-        //internal void EnqueueAsync(QueueItem message, int timeout, Action<string> onFault, Action<TransStream> onCompleted)
+        //internal void EnqueueAsync(QueueMessage message, int timeout, Action<string> onFault, Action<TransStream> onCompleted)
         //{
         //    message.Host = this._QueueName;
 
@@ -439,7 +439,7 @@ namespace Nistec.Messaging.Remote
         {
             message.Host = this._QueueName;
             QueueCmd cmd = message.QCommand;
-            //QueueItem qs = new QueueItem(message);
+            //QueueMessage qs = new QueueMessage(message);
             TransStream ts = null;
 
             //Task.Factory.StartNew(() => SendItem(q, counter));
@@ -458,14 +458,14 @@ namespace Nistec.Messaging.Remote
 
 
 
-            return ts;//.ReadValue<QueueItem>(onFault);
+            return ts;//.ReadValue<QueueMessage>(onFault);
 
         }
         */
 
         #region Publish
 
-        public TransStream PublishItemStream(QueueItem message, int timeout)
+        public TransStream PublishItemStream(QueueMessage message, int timeout)
         {
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Sending;
@@ -475,7 +475,7 @@ namespace Nistec.Messaging.Remote
             return ts;
         }
 
-        public IQueueAck PublishItem(QueueItem message)
+        public IQueueAck PublishItem(QueueMessage message)
         {
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Sending;
@@ -493,7 +493,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public IQueueAck PublishItem(QueueItem message, int timeout)
+        public IQueueAck PublishItem(QueueMessage message, int timeout)
         {
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Sending;
@@ -510,7 +510,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public void PublishItemStream(QueueItem message, int timeout, Action<TransStream> onCompleted)
+        public void PublishItemStream(QueueMessage message, int timeout, Action<TransStream> onCompleted)
         {
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Sending;
@@ -536,7 +536,7 @@ namespace Nistec.Messaging.Remote
             task.Wait(WaitTimeout);
         }
 
-        public void PublishItem(QueueItem message, int timeout, Action<IQueueAck> onCompleted)
+        public void PublishItem(QueueMessage message, int timeout, Action<IQueueAck> onCompleted)
         {
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Sending;
@@ -570,7 +570,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public void PublishItemStream(QueueItem message, int timeout, Action<string> onFault, Action<TransStream> onCompleted)
+        public void PublishItemStream(QueueMessage message, int timeout, Action<string> onFault, Action<TransStream> onCompleted)
         {
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Sending;
@@ -603,7 +603,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public void PublishItemStream(QueueItem message, int timeout, Action<string> onFault, Action<TransStream> onCompleted, CancellationTokenSource cts)
+        public void PublishItemStream(QueueMessage message, int timeout, Action<string> onFault, Action<TransStream> onCompleted, CancellationTokenSource cts)
         {
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Sending;
@@ -662,7 +662,7 @@ namespace Nistec.Messaging.Remote
 
         #region Consume
 
-        public IQueueAck __ConsumItem(QueueItem message, int timeout)
+        public IQueueAck __ConsumItem(QueueMessage message, int timeout)
         {
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Receiving;
@@ -681,7 +681,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public IQueueItem ConsumeItem(QueueRequest message, int maxWaitSecond)
+        public IQueueMessage ConsumeItem(QueueRequest message, int maxWaitSecond)
         {
             message.Host = EnsureHost(message.Host);
             message.Expiration = maxWaitSecond;
@@ -700,7 +700,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public void ConsumeItem(QueueRequest message, int maxWaitSecond, Action<IQueueItem> onCompleted)//, IDynamicWait dw)//Action<bool> onAck)
+        public void ConsumeItem(QueueRequest message, int maxWaitSecond, Action<IQueueMessage> onCompleted)//, IDynamicWait dw)//Action<bool> onAck)
         {
             message.Host = EnsureHost(message.Host);
             message.Expiration = maxWaitSecond;
@@ -752,7 +752,7 @@ namespace Nistec.Messaging.Remote
 
         #region RequestItem
 
-        public IQueueItem RequestItem(QueueRequest message, int timeout)
+        public IQueueMessage RequestItem(QueueRequest message, int timeout)
         {
             message.Host = EnsureHost(message.Host);
             //message.MessageState = MessageState.Receiving;
@@ -765,13 +765,13 @@ namespace Nistec.Messaging.Remote
             }
             catch (Exception ex)
             {
-                OnFault("RequestItem error:" + ex.Message);
+                 OnFault("RequestItem error:" + ex.Message);
                 return null;// OnQItemCompleted(null, message);
             }
         }
 
         //Dequeue DynamicWait was ConsumItem
-        public void RequestItem(QueueRequest message, int timeout, Action<IQueueItem> onCompleted, IDynamicWait dw)//Action<bool> onAck)
+        public void RequestItem(QueueRequest message, int timeout, Action<IQueueMessage> onCompleted, IDynamicWait dw)//Action<bool> onAck)
         {
             message.Host = EnsureHost(message.Host);
             //message.MessageState = MessageState.Receiving;
@@ -818,7 +818,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        //public void ConsumItem(QueueRequest message, int timeout, Action<IQueueItem> onCompleted, Action<bool> onAck, AutoResetEvent resetEvent)
+        //public void ConsumItem(QueueRequest message, int timeout, Action<IQueueMessage> onCompleted, Action<bool> onAck, AutoResetEvent resetEvent)
         //{
         //    message.Host = EnsureHost(message.Host);
         //    //message.MessageState = MessageState.Receiving;
@@ -861,7 +861,7 @@ namespace Nistec.Messaging.Remote
         //}
 
 
-        public void RequestItem(QueueRequest message, Action<string> onFault, Action<IQueueItem> onCompleted)
+        public void RequestItem(QueueRequest message, Action<string> onFault, Action<IQueueMessage> onCompleted)
         {
             message.Host = EnsureHost(message.Host);
             bool isCompleted = false;
@@ -997,7 +997,7 @@ namespace Nistec.Messaging.Remote
         }
 
         /*
-        public IQueueItem ConsumWaitOne(QueueRequest message, Action<string> onFault)
+        public IQueueMessage ConsumWaitOne(QueueRequest message, Action<string> onFault)
         {
             //message.Host = this._QueueName;
             //int timeout = -1;
@@ -1030,7 +1030,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public void ConsumWaitOne(QueueRequest message, Action<string> onFault, Action<IQueueItem> onCompleted, AutoResetEvent resetEvent)
+        public void ConsumWaitOne(QueueRequest message, Action<string> onFault, Action<IQueueMessage> onCompleted, AutoResetEvent resetEvent)
         {
             //message.Host = this._QueueName;
             //int timeout = -1;
@@ -1092,7 +1092,7 @@ namespace Nistec.Messaging.Remote
         #endregion
 
         /*
-        internal void b_SendDuplexStreamAsync(QueueItem message, int timeout, Action<string> onFault, Action<TransStream> onCompleted, AutoResetEvent resetEvent)
+        internal void b_SendDuplexStreamAsync(QueueMessage message, int timeout, Action<string> onFault, Action<TransStream> onCompleted, AutoResetEvent resetEvent)
         {
             message.Host = this._QueueName;
             QueueCmd cmd = message.QCommand;
@@ -1123,7 +1123,7 @@ namespace Nistec.Messaging.Remote
                             Console.WriteLine(ok);
                             if (ok)
                             {
-                                //var res = ts.ReadValue<QueueItem>(onFault);
+                                //var res = ts.ReadValue<QueueMessage>(onFault);
                                 //Assists.SetReceived(res, cmd);
                                 //Assists.SetArrived(res);
                                 onCompleted(ts);
@@ -1157,7 +1157,7 @@ namespace Nistec.Messaging.Remote
                        Console.WriteLine(ok);
                        if (ok)
                        {
-                           //var res =ts.ReadValue<QueueItem>(onFault);
+                           //var res =ts.ReadValue<QueueMessage>(onFault);
                            //Assists.SetReceived(res, cmd);
                            //Assists.SetArrived(res);
                            onCompleted(ts);
@@ -1200,7 +1200,7 @@ namespace Nistec.Messaging.Remote
                             Console.WriteLine(ok);
                             if (ok)
                             {
-                                //var res = ts.ReadValue<QueueItem>(onFault);
+                                //var res = ts.ReadValue<QueueMessage>(onFault);
                                 //Assists.SetReceived(res, cmd);
                                 //Assists.SetArrived(res);
                                 onCompleted(ts);
@@ -1234,7 +1234,7 @@ namespace Nistec.Messaging.Remote
                        Console.WriteLine(ok);
                        if (ok)
                        {
-                           //var res =ts.ReadValue<QueueItem>(onFault);
+                           //var res =ts.ReadValue<QueueMessage>(onFault);
                            //Assists.SetReceived(res, cmd);
                            //Assists.SetArrived(res);
                            onCompleted(ts);
@@ -1247,7 +1247,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        internal void b_SendDuplexAsync(QueueRequest message, Action<string> onFault, Action<QueueItem> onCompleted, AutoResetEvent resetEvent)
+        internal void b_SendDuplexAsync(QueueRequest message, Action<string> onFault, Action<QueueMessage> onCompleted, AutoResetEvent resetEvent)
         {
             message.Host = this._QueueName;
             QueueCmd cmd = message.QCommand;
@@ -1277,7 +1277,7 @@ namespace Nistec.Messaging.Remote
                             //Console.WriteLine(ok);
                             if (ok)
                             {
-                                var res = ts.ReadValue<QueueItem>(onFault);
+                                var res = ts.ReadValue<QueueMessage>(onFault);
                                 Assists.SetReceived(res, cmd);
                                 //Assists.SetArrived(res);
                                 onCompleted(res);
@@ -1316,7 +1316,7 @@ namespace Nistec.Messaging.Remote
                 //}
 
 
-                //return ts.ReadValue<QueueItem>(onFault);
+                //return ts.ReadValue<QueueMessage>(onFault);
             }
             else
             {
@@ -1340,7 +1340,7 @@ namespace Nistec.Messaging.Remote
                        //Console.WriteLine(ok);
                        if (ok)
                        {
-                           var res = ts.ReadValue<QueueItem>(onFault);
+                           var res = ts.ReadValue<QueueMessage>(onFault);
                            Assists.SetReceived(res, cmd);
                            //Assists.SetArrived(res);
                            onCompleted(res);
@@ -1354,21 +1354,21 @@ namespace Nistec.Messaging.Remote
                 //ts = SendDuplexStream(message, ConnectTimeout, IsAsync);
                 //if (ts == null)
                 //    onFault(message.QCommand.ToString() + " return null");
-                ////return ts.ReadValue<QueueItem>(onFault);
+                ////return ts.ReadValue<QueueMessage>(onFault);
 
-                //var item = ts.ReadValue<QueueItem>(onFault);
+                //var item = ts.ReadValue<QueueMessage>(onFault);
                 //Assists.SetReceived(item, cmd);
                 //onCompleted(item);
             }
         }
         
-        internal QueueItem SendDuplex(QueueRequest message, Action<string> onFault)
+        internal QueueMessage SendDuplex(QueueRequest message, Action<string> onFault)
         {
             message.Host = this._QueueName;
             QueueCmd cmd = message.QCommand;
-            //QueueItem qs = new QueueItem(message);
+            //QueueMessage qs = new QueueMessage(message);
             TransStream ts = null;
-            QueueItem qitem = null;
+            QueueMessage qitem = null;
 
             if (message.DuplexType == DuplexTypes.WaitOne)
             {
@@ -1389,7 +1389,7 @@ namespace Nistec.Messaging.Remote
                 //    //    {
                 //    //        ok = (ts != null && ts.GetLength() > 0);
                 //    //        if (ok)
-                //    //            return ts.ReadValue<QueueItem>(onFault);
+                //    //            return ts.ReadValue<QueueMessage>(onFault);
                 //    //    }
                 //    //}
                 //    //task.TryDispose();
@@ -1410,7 +1410,7 @@ namespace Nistec.Messaging.Remote
                 //}
                 else
                 {
-                    qitem = ts.ReadValue<QueueItem>(onFault);
+                    qitem = ts.ReadValue<QueueMessage>(onFault);
                     Assists.SetReceived(qitem, cmd);
                 }
                 return qitem;
@@ -1423,17 +1423,17 @@ namespace Nistec.Messaging.Remote
                     onFault(message.QCommand.ToString() + " return null");
                 else
                 {
-                    qitem = ts.ReadValue<QueueItem>(onFault);
+                    qitem = ts.ReadValue<QueueMessage>(onFault);
                     Assists.SetReceived(qitem, cmd);
                 }
                 return qitem;
             }
         }
         */
-        internal void SendOut(QueueItem message)
+        internal void SendOut(QueueMessage message)
         {
             //message.Host = this._QueueName;
-            //QueueItem qs = new QueueItem(message);
+            //QueueMessage qs = new QueueMessage(message);
 
             switch (Protocol)
             {
@@ -1479,17 +1479,17 @@ namespace Nistec.Messaging.Remote
         #endregion
 
 
-        #region Exec QueueItem Stream 
+        #region Exec QueueMessage Stream 
 
 
-        //public T SendDuplexStream<T>(QueueItem message, Action<string> onFault)
+        //public T SendDuplexStream<T>(QueueMessage message, Action<string> onFault)
         //{
         //    TransStream ts = SendDuplexStream(message);
         //    if (ts == null)
         //        onFault(message.Command + " return null");
         //    return ts.ReadValue<T>(onFault);
         //}
-        //public object SendDuplexStreamValue(QueueItem message, Action<string> onFault, int timeout = 0, bool isAsync = false)
+        //public object SendDuplexStreamValue(QueueMessage message, Action<string> onFault, int timeout = 0, bool isAsync = false)
         //{
         //    TransStream ts = SendDuplexStream(message, timeout, isAsync);
         //    if (ts == null)
@@ -1504,7 +1504,7 @@ namespace Nistec.Messaging.Remote
         //    return (CacheState)ts.ReadState();
         //}
 
-        public void ExecDuplexStreamAsync(QueueItem message, int connectTimeout,  Action<TransStream> onCompleted, bool isChannelAsync = false)
+        public void ExecDuplexStreamAsync(QueueMessage message, int connectTimeout,  Action<TransStream> onCompleted, bool isChannelAsync = false)
         {
             message.TransformType = TransformType.Stream;
 
@@ -1523,7 +1523,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public TransStream ExecDuplexStream(QueueItem message, int connectTimeout, bool isAsync = false)
+        public TransStream ExecDuplexStream(QueueMessage message, int connectTimeout, bool isAsync = false)
         {
             message.TransformType = TransformType.Stream;
 

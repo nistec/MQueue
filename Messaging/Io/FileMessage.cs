@@ -12,6 +12,7 @@ using System.Transactions;
 using Nistec.Messaging.Listeners;
 using System.Collections;
 using Nistec.Logging;
+using Nistec.Channels;
 
 namespace Nistec.Messaging.Io
 {
@@ -22,22 +23,22 @@ namespace Nistec.Messaging.Io
 
         public const int DefaultConnectTimeout = 5000;
 
-        //QueueItem CurrentItem = null;
+        //QueueMessage CurrentItem = null;
 
-        List<QueueItem> m_Items;
-        List<QueueItem> Items
+        List<QueueMessage> m_Items;
+        List<QueueMessage> Items
         {
             get
             {
                 if (m_Items == null)
                 {
-                    m_Items = new List<QueueItem>();
+                    m_Items = new List<QueueMessage>();
                 }
                 return m_Items;
             }
         }
 
-        public QueueItem[] ItemsArray
+        public QueueMessage[] ItemsArray
         {
             get
             {
@@ -48,7 +49,7 @@ namespace Nistec.Messaging.Io
                         return m_Items.ToArray();
                     }
                 }
-                return new List<QueueItem>().ToArray();
+                return new List<QueueMessage>().ToArray();
             }
         }
 
@@ -109,7 +110,7 @@ namespace Nistec.Messaging.Io
             m_host = host;
             m_host.EnsureHost();
             HostName = host.HostName;
-            RootPath = host.ServerName;
+            RootPath = host.HostAddress;
             InitFolders();
         }
 
@@ -137,7 +138,7 @@ namespace Nistec.Messaging.Io
         /// </summary>
         /// <param name="host"></param>
         /// <param name="action"></param>
-        public FileMessage(QueueHost host, Action<IQueueItem> action)
+        public FileMessage(QueueHost host, Action<IQueueMessage> action)
             : this()
         {
             if (host == null)
@@ -147,7 +148,7 @@ namespace Nistec.Messaging.Io
             m_host = host;
             m_host.EnsureHost();
             HostName = host.HostName;
-            RootPath = host.ServerName;
+            RootPath = host.HostAddress;
             QueueAction = action;
             InitFolders();
             EnsureRecieve();
@@ -168,7 +169,7 @@ namespace Nistec.Messaging.Io
             m_host = host;
             m_host.EnsureHost();
             HostName = host.HostName;
-            RootPath = host.ServerName;
+            RootPath = host.HostAddress;
             Destination = destination;
             TransferAction = action;
             InitFolders();
@@ -258,7 +259,7 @@ namespace Nistec.Messaging.Io
         ///// </summary>
         //public Action<IQueueAck> AckAction { get; set; }
 
-        public Action<IQueueItem> QueueAction { get; set; }
+        public Action<IQueueMessage> QueueAction { get; set; }
 
         public Action<IQueueAck> TransferAction { get; set; }
 
@@ -315,7 +316,7 @@ namespace Nistec.Messaging.Io
 
         #region Paths
 
-        public string FormatQueueItemFilename(IQueueItem item)
+        public string FormatQueueItemFilename(IQueueMessage item)
         {
             return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", RootPath, HostName, Assists.FolderQueue, Assists.GetFolderId(item.Identifier), item.Identifier, Assists.FileExt);
         }
@@ -453,7 +454,7 @@ namespace Nistec.Messaging.Io
 
         #region write/read file
 
-        public void WriteToFile(IQueueItem message)
+        public void WriteToFile(IQueueMessage message)
         {
             string filename = EnsureQueueFilename(message.Identifier);
 
@@ -494,27 +495,27 @@ namespace Nistec.Messaging.Io
             return File.Exists(filename);
         }
 
-        public QueueItem ReadItemExt(string identifier, bool checkRetry)
+        public QueueMessage ReadItemExt(string identifier, bool checkRetry)
         {
             string filename = GetQueueFilenameExt(identifier);
             return ReadFile(filename, checkRetry);
         }
 
-        public QueueItem ReadItem(string identifier, bool checkRetry)
+        public QueueMessage ReadItem(string identifier, bool checkRetry)
         {
             string filename = GetQueueFilename(identifier);
             return ReadFile(filename, checkRetry);
         }
 
-        public QueueItem ReadFile(string filename, bool checkRetry)
+        public QueueMessage ReadFile(string filename, bool checkRetry)
         {
 
-            QueueItem item = null;
+            QueueMessage item = null;
 
-            item = QueueItem.ReadFile(filename);
+            item = QueueMessage.ReadFile(filename);
             if (item == null)
             {
-                throw new MessageException(MessageState.PathNotFound, "item not found in QueueItem.ReadFile " + filename);
+                throw new MessageException(MessageState.PathNotFound, "item not found in QueueMessage.ReadFile " + filename);
             }
 
             if (checkRetry && item.Retry >= Assists.MaxRetry)
@@ -529,15 +530,15 @@ namespace Nistec.Messaging.Io
             }
         }
 
-        public bool ReadFile(string filename, bool checkRetry, Action<IQueueItem> onTake)
+        public bool ReadFile(string filename, bool checkRetry, Action<IQueueMessage> onTake)
         {
 
-            QueueItem item = null;
+            QueueMessage item = null;
 
-            item = QueueItem.ReadFile(filename);
+            item = QueueMessage.ReadFile(filename);
             if (item == null)
             {
-                throw new MessageException(MessageState.PathNotFound, "item not found in QueueItem.ReadFile " + filename);
+                throw new MessageException(MessageState.PathNotFound, "item not found in QueueMessage.ReadFile " + filename);
             }
 
             if (checkRetry && item.Retry >= Assists.MaxRetry)
@@ -553,14 +554,14 @@ namespace Nistec.Messaging.Io
             }
         }
 
-        public static ReadFileState DequeueFile(Ptr ptr, string rootPath, bool isCoverable, out IQueueItem item)
+        public static ReadFileState DequeueFile(Ptr ptr, string rootPath, bool isCoverable, out IQueueMessage item)
         {
             string filename = Assists.GetFilename(rootPath, ptr.Host, ptr.Identifier, isCoverable); //string.Format("{0}\\{1}", rootPath, ptr.Location);
             return DequeueFile(filename, isCoverable, out item);
         }
 
 
-        public static ReadFileState DequeueFile(string filename, bool isCoverable, out IQueueItem item)
+        public static ReadFileState DequeueFile(string filename, bool isCoverable, out IQueueMessage item)
         {
             if (!File.Exists(filename))
             {
@@ -577,7 +578,7 @@ namespace Nistec.Messaging.Io
                     input.CopyTo(memoryStream);
                 }
                 memoryStream.Position = 0;
-                QueueItem qitem = new QueueItem(memoryStream, null);// QueueItem.Create(memoryStream);
+                QueueMessage qitem = new QueueMessage(memoryStream, null);// QueueMessage.Create(memoryStream);
 
                 if (isCoverable)
                 {
@@ -588,7 +589,7 @@ namespace Nistec.Messaging.Io
                     Task.Factory.StartNew(() => File.Delete(filename));
                 }
 
-                item = qitem as IQueueItem;
+                item = qitem as IQueueMessage;
                 return ReadFileState.Completed;
             }
             catch (IOException ioex)
@@ -611,7 +612,7 @@ namespace Nistec.Messaging.Io
             }
 
             //FileStream fStream = File.OpenRead(filename);
-            //return new QueueItem(fStream, null);
+            //return new QueueMessage(fStream, null);
 
             //return Deserialize(File.ReadAllBytes(filename));
 
@@ -654,7 +655,7 @@ namespace Nistec.Messaging.Io
             }
         }
 
-        public bool DeleteItem(IQueueItem item)
+        public bool DeleteItem(IQueueMessage item)
         {
             try
             {
@@ -699,9 +700,9 @@ namespace Nistec.Messaging.Io
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        public IQueueAck Enqueue(IQueueItem message)
+        public IQueueAck Enqueue(IQueueMessage message)
         {
-            Ptr ptr = ((QueueItem)message).SetArrivedPtr(HostName);
+            Ptr ptr = ((QueueMessage)message).SetArrivedPtr(HostName);
             //string qfile = GetQueueFilename(message.Identifier);
             //message.SaveToFile(qfile);
             WriteToFile(message);
@@ -715,7 +716,7 @@ namespace Nistec.Messaging.Io
             //message.SetState(MessageState.Received);
             //return message.GetMessage();
 
-            //var item= QueueItem.ReadFile(qfile);
+            //var item= QueueMessage.ReadFile(qfile);
             //Console.WriteLine(item.Print());
 
             return new QueueAck(MessageState.Received, message.Label, message.Identifier, message.Host);
@@ -726,13 +727,13 @@ namespace Nistec.Messaging.Io
 
         #region Dequeue
 
-        public QueueItem DequeueItem(string identifier)
+        public QueueMessage DequeueItem(string identifier)
         {
             string filename = GetQueueFilename(identifier);
             return DequeueFile(filename);
         }
 
-        public bool DequeueItem(string identifier, Action<IQueueItem> onTake)
+        public bool DequeueItem(string identifier, Action<IQueueMessage> onTake)
         {
             try
             {
@@ -762,7 +763,7 @@ namespace Nistec.Messaging.Io
         }
 
 
-        internal void DequeueInfo(string filename, ref QueueItem item)
+        internal void DequeueInfo(string filename, ref QueueMessage item)
         {
             Ptr ptr = ReadInfoFile(filename, false);
             //string coverPath = Assists.EnsureQueueSectionPath(RootPath, Assists.FolderCovered, HostName);
@@ -777,9 +778,9 @@ namespace Nistec.Messaging.Io
             }
         }
 
-        public QueueItem DequeueFile(string filename)
+        public QueueMessage DequeueFile(string filename)
         {
-            QueueItem item = null;
+            QueueMessage item = null;
             try
             {
 
@@ -816,7 +817,7 @@ namespace Nistec.Messaging.Io
         {
             int count = 0;
 
-            QueueItem item = null;
+            QueueMessage item = null;
 
             //if (IsCoverable)
             //{
@@ -843,7 +844,7 @@ namespace Nistec.Messaging.Io
         public int DequeueFileAsync(string filename)
         {
             int count = 0;
-            QueueItem item = null;
+            QueueMessage item = null;
             try
             {
                 item = DequeueFile(filename);
@@ -886,7 +887,7 @@ namespace Nistec.Messaging.Io
         public int DequeueFileTransfer(string filename)
         {
             int count = 0;
-            QueueItem item = null;
+            QueueMessage item = null;
             try
             {
                 item = DequeueFile(filename);
@@ -937,17 +938,17 @@ namespace Nistec.Messaging.Io
             return count;
         }
       
-        public int DequeueFirstItem(Action<IQueueItem> onTake)
+        public int DequeueFirstItem(Action<IQueueMessage> onTake)
         {
             return DequeueFolder(1, onTake);
         }
 
         /// <summary>
-        /// Get an instance of <see cref="QueueItem"/> from file.
+        /// Get an instance of <see cref="QueueMessage"/> from file.
         /// </summary>
         /// <param name="filename"></param>
         /// <returns></returns>
-        public static ReadFileState DequeueFileWithScop(QueueItem itemstream, string filename, bool isTrans, out IQueueItem item)
+        public static ReadFileState DequeueFileWithScop(QueueMessage itemstream, string filename, bool isTrans, out IQueueMessage item)
         {
             if (!File.Exists(filename))
             {
@@ -973,7 +974,7 @@ namespace Nistec.Messaging.Io
                         input.CopyTo(memoryStream);
                     }
                     memoryStream.Position = 0;
-                    QueueItem qitem = new QueueItem(memoryStream, null);// QueueItem.Create(memoryStream);
+                    QueueMessage qitem = new QueueMessage(memoryStream, null);// QueueMessage.Create(memoryStream);
 
                     if (isTrans)
                     {
@@ -984,7 +985,7 @@ namespace Nistec.Messaging.Io
                         Task.Factory.StartNew(() => File.Delete(filename));
                     }
 
-                    item = qitem as IQueueItem;
+                    item = qitem as IQueueMessage;
                     scope.Complete();
                 }
                 return ReadFileState.Completed;
@@ -1009,7 +1010,7 @@ namespace Nistec.Messaging.Io
             }
 
             //FileStream fStream = File.OpenRead(filename);
-            //return new QueueItem(fStream, null);
+            //return new QueueMessage(fStream, null);
 
             //return Deserialize(File.ReadAllBytes(filename));
 
@@ -1019,7 +1020,7 @@ namespace Nistec.Messaging.Io
 
         #region DequeueFolder
 
-        public int DequeueFolder(int maxItemsPerSession, Action<QueueItem> onTake)
+        public int DequeueFolder(int maxItemsPerSession, Action<QueueMessage> onTake)
         {
             int count = 0;
             bool completed = false;
@@ -1082,11 +1083,11 @@ namespace Nistec.Messaging.Io
             return count;
         }
         
-        public IQueueItem[] DequeueFolder(int maxItemsPerSession)
+        public IQueueMessage[] DequeueFolder(int maxItemsPerSession)
         {
             int count = 0;
             bool completed = false;
-            List<IQueueItem> list = new List<IQueueItem>();
+            List<IQueueMessage> list = new List<IQueueMessage>();
             try
             {
 
@@ -1210,13 +1211,13 @@ namespace Nistec.Messaging.Io
 
         #region Dequeue list items
 
-        public IQueueItem[] DequeueItems(int maxItemsPerSession)
+        public IQueueMessage[] DequeueItems(int maxItemsPerSession)
         {
 
             bool completed = false;
             bool isEmpty = false;
             int count = 0;
-            List<IQueueItem> list = new List<IQueueItem>();
+            List<IQueueMessage> list = new List<IQueueMessage>();
             try
             {
                 if (!CanQueue())
@@ -1281,7 +1282,7 @@ namespace Nistec.Messaging.Io
             return list.ToArray();
         }
 
-        public int DequeueItems(int maxItemsPerSession, Action<IQueueItem> onTake)
+        public int DequeueItems(int maxItemsPerSession, Action<IQueueMessage> onTake)
         {
 
             bool completed = false;
@@ -1354,11 +1355,11 @@ namespace Nistec.Messaging.Io
 
         #region reload items
 
-        public QueueItem[] ReloadItems(int maxItemsPerSession)
+        public QueueMessage[] ReloadItems(int maxItemsPerSession)
         {
 
             bool completed = false;
-            List<QueueItem> list = new List<QueueItem>();
+            List<QueueMessage> list = new List<QueueMessage>();
 
             try
             {
@@ -1420,7 +1421,7 @@ namespace Nistec.Messaging.Io
             return list.ToArray();
         }
 
-        public int ReloadItems(string path,int maxItemsPerSession, Action<IQueueItem> onTake)
+        public int ReloadItems(string path,int maxItemsPerSession, Action<IQueueMessage> onTake)
         {
 
             bool completed = false;
@@ -1457,7 +1458,7 @@ namespace Nistec.Messaging.Io
                     {
                         identifier = GetFilename(message);
                         filename = message;// GetQueueFilenameExt(message);
-                        var item = QueueItem.ReadFile(filename);
+                        var item = QueueMessage.ReadFile(filename);
 
                         //var item = ReadItemExt(message, true);
                         if (item != null)
@@ -1509,7 +1510,7 @@ namespace Nistec.Messaging.Io
             return count;
         }
 
-        public int ReloadItemsAsync(FolderType folder,int maxItemsPerSession, Action<IQueueItem> onTake)
+        public int ReloadItemsAsync(FolderType folder,int maxItemsPerSession, Action<IQueueMessage> onTake)
         {
             string path = GetFolderPath(folder);
             Task<int> task = Task<int>.Factory.StartNew(() => ReloadItems(path,maxItemsPerSession, onTake));
@@ -1518,7 +1519,7 @@ namespace Nistec.Messaging.Io
             return task.Result;
         }
 
-        public int ReloadItemsCovered(int maxItemsPerSession, Action<IQueueItem> onTake)
+        public int ReloadItemsCovered(int maxItemsPerSession, Action<IQueueMessage> onTake)
         {
             MoveQueueItemsToCovered();
             Task<int> task = Task<int>.Factory.StartNew(() => ReloadItems(Assists.FolderCovered, maxItemsPerSession, onTake));
@@ -1660,7 +1661,7 @@ namespace Nistec.Messaging.Io
             File.Delete(infocovered);
         }
 
-        internal void DoRery(QueueItem item, string filename)
+        internal void DoRery(QueueMessage item, string filename)
         {
             string covered = Assists.QueueToCovered(filename);
             item.SetRetryInternal();
@@ -1684,7 +1685,7 @@ namespace Nistec.Messaging.Io
             }
         }
 
-        internal void AbortRery(QueueItem item, string filename)
+        internal void AbortRery(QueueMessage item, string filename)
         {
             //string suspendPath = Assists.EnsureQueueSectionPath(RootPath, Assists.FolderSuspend, HostName);
             string suspendfile = Assists.QueueToSuspend(filename);
@@ -1775,22 +1776,22 @@ namespace Nistec.Messaging.Io
  
         public const int DefaultConnectTimeout = 5000;
 
-        //QueueItem CurrentItem = null;
+        //QueueMessage CurrentItem = null;
 
-        List<QueueItem> m_Items;
-        List<QueueItem> Items
+        List<QueueMessage> m_Items;
+        List<QueueMessage> Items
         {
             get
             {
                 if (m_Items == null)
                 {
-                    m_Items = new List<QueueItem>();
+                    m_Items = new List<QueueMessage>();
                 }
                 return m_Items;
             }
         }
 
-        public QueueItem[] ItemsArray
+        public QueueMessage[] ItemsArray
         {
             get
             {
@@ -1801,7 +1802,7 @@ namespace Nistec.Messaging.Io
                         return m_Items.ToArray();
                     }
                 }
-                return new List<QueueItem>().ToArray();
+                return new List<QueueMessage>().ToArray();
             }
         }
 
@@ -1823,7 +1824,7 @@ namespace Nistec.Messaging.Io
         /// </summary>
         public string RootPath { get; private set; }
 
-        public string FormatQueueItemFilename(IQueueItem item)
+        public string FormatQueueItemFilename(IQueueMessage item)
         {
             return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", RootPath, HostName, Assists.FolderQueue, item.Identifier[0], item.Identifier, Assists.FileExt);
         }
@@ -1910,7 +1911,7 @@ namespace Nistec.Messaging.Io
         ///// </summary>
         //public Action<IQueueAck> AckAction { get; set; }
 
-        public Action<IQueueItem> QueueAction { get; set; }
+        public Action<IQueueMessage> QueueAction { get; set; }
 
         public Action<IQueueAck> TransferAction { get; set; }
 
@@ -2067,7 +2068,7 @@ namespace Nistec.Messaging.Io
         /// </summary>
         /// <param name="host"></param>
         /// <param name="action"></param>
-        public FileMessage(QueueHost host, Action<IQueueItem> action)
+        public FileMessage(QueueHost host, Action<IQueueMessage> action)
             : this()
        {
             if (host == null)
@@ -2222,7 +2223,7 @@ namespace Nistec.Messaging.Io
 
         //        //return new MessageAck(message, MessageState.Arrived, message.Label);
 
-        //        //QueueItem item = new QueueItem(message, true, QueueCmd.Ack);
+        //        //QueueMessage item = new QueueMessage(message, true, QueueCmd.Ack);
         //        ////string filename = Ptr.GetPtrLocation(m_host.QueuePath, message.Identifier);
         //        //var copy = message.Copy(false, false);
         //        //copy.SetMessageState(MessageState.Ok);
@@ -2233,7 +2234,7 @@ namespace Nistec.Messaging.Io
         //    }
         //}
 
-        public void SaveToFile(IQueueItem message)
+        public void SaveToFile(IQueueMessage message)
         {
             string filename = GetQueueFilename(message.Identifier);
 
@@ -2256,9 +2257,9 @@ namespace Nistec.Messaging.Io
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        public IQueueAck Enqueue(IQueueItem message)
+        public IQueueAck Enqueue(IQueueMessage message)
         {
-            Ptr ptr = ((QueueItem)message).SetArrivedPtr(HostName);
+            Ptr ptr = ((QueueMessage)message).SetArrivedPtr(HostName);
             //string qfile = GetQueueFilename(message.Identifier);
             //message.SaveToFile(qfile);
             SaveToFile(message);
@@ -2272,7 +2273,7 @@ namespace Nistec.Messaging.Io
             //message.SetState(MessageState.Received);
             //return message.GetMessage();
 
-            //var item= QueueItem.ReadFile(qfile);
+            //var item= QueueMessage.ReadFile(qfile);
             //Console.WriteLine(item.Print());
 
             return new QueueAck(MessageState.Received,message.Label, message.Identifier, message.Host);
@@ -2338,21 +2339,21 @@ namespace Nistec.Messaging.Io
             }
         }
 
-        public QueueItem ReadItem(string identifier, bool checkRetry)
+        public QueueMessage ReadItem(string identifier, bool checkRetry)
         {
             string filename = GetQueueFilename(identifier);
             return ReadFile(filename, checkRetry);
         }
 
-        public QueueItem ReadFile(string filename, bool checkRetry)
+        public QueueMessage ReadFile(string filename, bool checkRetry)
         {
             
-            QueueItem item = null;
+            QueueMessage item = null;
 
-            item = QueueItem.ReadFile(filename);
+            item = QueueMessage.ReadFile(filename);
             if (item == null)
             {
-                throw new MessageException(MessageState.PathNotFound, "item not found in QueueItem.ReadFile " + filename);
+                throw new MessageException(MessageState.PathNotFound, "item not found in QueueMessage.ReadFile " + filename);
             }
 
             if (checkRetry && item.Retry >= Assists.MaxRetry)
@@ -2430,7 +2431,7 @@ namespace Nistec.Messaging.Io
             File.Delete(infocovered);
         }
 
-        internal void DoRery(QueueItem item, string filename)
+        internal void DoRery(QueueMessage item, string filename)
         {
             string covered = Assists.QueueToCovered(filename);
             item.DoRetryInternal();
@@ -2454,7 +2455,7 @@ namespace Nistec.Messaging.Io
             }
         }
 
-        internal void AbortRery(QueueItem item, string filename)
+        internal void AbortRery(QueueMessage item, string filename)
         {
             string suspendPath = Assists.EnsureQueueSectionPath(RootPath, Assists.FolderSuspend, HostName);
             string suspendfile = Assists.QueueToSuspend(filename);
@@ -2472,7 +2473,7 @@ namespace Nistec.Messaging.Io
             File.Delete(infocoverfile);
         }
 
-        internal void DequeueInfo(string filename, ref QueueItem item)
+        internal void DequeueInfo(string filename, ref QueueMessage item)
         {
             Ptr ptr = ReadInfoFile(filename,false);
             string coverPath = Assists.EnsureQueueSectionPath(RootPath, Assists.FolderCovered, HostName);
@@ -2487,15 +2488,15 @@ namespace Nistec.Messaging.Io
             }
         }
 
-        public QueueItem DequeueItem(string identifier)
+        public QueueMessage DequeueItem(string identifier)
         {
             string filename = GetQueueFilename(identifier);
             return DequeueFile(filename);
         }
 
-        public QueueItem DequeueFile(string filename)
+        public QueueMessage DequeueFile(string filename)
         {
-            QueueItem item = null;
+            QueueMessage item = null;
             try
             {
 
@@ -2532,7 +2533,7 @@ namespace Nistec.Messaging.Io
         {
             int count = 0;
 
-            QueueItem item = null;
+            QueueMessage item = null;
 
             //if (IsCoverable)
             //{
@@ -2559,7 +2560,7 @@ namespace Nistec.Messaging.Io
         public int DequeueFileAsync(string filename)
         {
             int count = 0;
-            QueueItem item = null;
+            QueueMessage item = null;
             try
             {
                 item = DequeueFile(filename);
@@ -2602,7 +2603,7 @@ namespace Nistec.Messaging.Io
         public int DequeueFileTransfer(string filename)
         {
             int count = 0;
-            QueueItem item = null;
+            QueueMessage item = null;
             try
             {
                 item = DequeueFile(filename);
@@ -2825,7 +2826,7 @@ namespace Nistec.Messaging.Io
             return count;
         }
 
-        public QueueItem[] DequeueItems(FileOrderTypes fileOrderType, int maxItemsPerSession)
+        public QueueMessage[] DequeueItems(FileOrderTypes fileOrderType, int maxItemsPerSession)
         {
 
             string path = GetFirstBatchFolder(fileOrderType);
@@ -2834,7 +2835,7 @@ namespace Nistec.Messaging.Io
 
         }
 
-        public QueueItem[] LoadAllItems(string path, int maxItemsPerSession)
+        public QueueMessage[] LoadAllItems(string path, int maxItemsPerSession)
         {
 
             bool completed = false;
@@ -2864,7 +2865,7 @@ namespace Nistec.Messaging.Io
                 Interlocked.Exchange(ref InProcess, 0);
                 return null;
             }
-            List<QueueItem> list = new List<QueueItem>();
+            List<QueueMessage> list = new List<QueueMessage>();
 
             //maxItems = messages == null ? 0 : messages.Length;
             //if (maxItems == 0)
@@ -2922,7 +2923,7 @@ namespace Nistec.Messaging.Io
             return list.ToArray();
         }
 
-        public int ReloadItemsTo(int maxItemsPerSession, Action<IQueueItem> onTake)
+        public int ReloadItemsTo(int maxItemsPerSession, Action<IQueueMessage> onTake)
         {
 
             bool completed = false;
@@ -2955,7 +2956,7 @@ namespace Nistec.Messaging.Io
                 return count;
             }
 
-            //List<QueueItem> list = new List<QueueItem>();
+            //List<QueueMessage> list = new List<QueueMessage>();
 
 
             //maxItems = messages == null ? 0 : messages.Length;
@@ -3015,7 +3016,7 @@ namespace Nistec.Messaging.Io
             return count;
         }
 
-        public int ReloadItemsAsync(int maxItemsPerSession, Action<IQueueItem> onLoad)
+        public int ReloadItemsAsync(int maxItemsPerSession, Action<IQueueMessage> onLoad)
         {
 
             Task<int> task = Task<int>.Factory.StartNew(() => ReloadItemsTo(maxItemsPerSession, onLoad));
@@ -3024,7 +3025,7 @@ namespace Nistec.Messaging.Io
             return task.Result;
         }
 
-        public QueueItem DequeueFirstItem(FileOrderTypes fileOrderType)
+        public QueueMessage DequeueFirstItem(FileOrderTypes fileOrderType)
         {
 
             bool completed = false;
@@ -3059,7 +3060,7 @@ namespace Nistec.Messaging.Io
             //    return null;
             //}
 
-            QueueItem item = null;
+            QueueMessage item = null;
 
             //maxItems = messages == null ? 0 : messages.Length;
             //if (maxItems == 0)
@@ -3112,7 +3113,7 @@ namespace Nistec.Messaging.Io
 
             state = 0;
             isDeleted = false;
-            QueueItem item = null;
+            QueueMessage item = null;
             try
             {
                 if (Thread.VolatileRead(ref InProcess) == 0)
@@ -3123,10 +3124,10 @@ namespace Nistec.Messaging.Io
                 state = 1;
                 //if (Logger != null)Logger.Debug("current message: {0}", message);
                
-                item = QueueItem.ReadFile(filename);
+                item = QueueMessage.ReadFile(filename);
                 if (item == null)
                 {
-                    throw new Exception("item not found in QueueItem.ReadFile " + filename);
+                    throw new Exception("item not found in QueueMessage.ReadFile " + filename);
                 }
 
                 if (item.Retry >= 3)
@@ -3313,7 +3314,7 @@ namespace Nistec.Messaging.Io
             }
         }
 
-        public bool DeleteItem(IQueueItem item)
+        public bool DeleteItem(IQueueMessage item)
         {
             try
             {
@@ -3431,16 +3432,16 @@ namespace Nistec.Messaging.Io
 
         #region Dequeue file
 
-        //public static QueueItem DequeueFile(string filename)
+        //public static QueueMessage DequeueFile(string filename)
         //{
-        //    QueueItem item = null;
+        //    QueueMessage item = null;
         //    try
         //    {
-        //        item = QueueItem.ReadFile(filename);
+        //        item = QueueMessage.ReadFile(filename);
 
         //        if (item == null)
         //        {
-        //            throw new MessageException(MessageState.RetryExceeds, "item not found in QueueItem.ReadFile " + filename);
+        //            throw new MessageException(MessageState.RetryExceeds, "item not found in QueueMessage.ReadFile " + filename);
         //        }
 
         //        if (item.Retry >= 3)
@@ -3485,7 +3486,7 @@ namespace Nistec.Messaging.Io
         //    return item;
         //}
 
-        //public static QueueItem[] DequeueFolder(string path, AdapterOperations operation, int maxItemsPerSession)
+        //public static QueueMessage[] DequeueFolder(string path, AdapterOperations operation, int maxItemsPerSession)
         //{
         //    int count = 0;
         //    bool completed = false;
@@ -3496,7 +3497,7 @@ namespace Nistec.Messaging.Io
         //        return null;// throw new MessageException(MessageState.PathNotFound, "Folder not exists :" + path);
         //    }
 
-        //    List<QueueItem> list = new List<QueueItem>();
+        //    List<QueueMessage> list = new List<QueueMessage>();
 
         //    string[] messages = Directory.GetFiles(path, "*" + FileExt);
 
@@ -3573,14 +3574,14 @@ namespace Nistec.Messaging.Io
 
 
 
-        public static ReadFileState DequeueFile(Ptr ptr, string rootPath, bool isCoverable, out IQueueItem item)
+        public static ReadFileState DequeueFile(Ptr ptr, string rootPath, bool isCoverable, out IQueueMessage item)
         {
             string filename = Assists.GetFilename(rootPath, ptr.Host, ptr.Identifier, isCoverable); //string.Format("{0}\\{1}", rootPath, ptr.Location);
             return DequeueFile(filename, isCoverable, out item);
         }
 
         
-        public static ReadFileState DequeueFile(string filename, bool isCoverable, out IQueueItem item)
+        public static ReadFileState DequeueFile(string filename, bool isCoverable, out IQueueMessage item)
         {
             if (!File.Exists(filename))
             {
@@ -3597,7 +3598,7 @@ namespace Nistec.Messaging.Io
                     input.CopyTo(memoryStream);
                 }
                 memoryStream.Position = 0;
-                QueueItem qitem = new QueueItem(memoryStream,null);// QueueItem.Create(memoryStream);
+                QueueMessage qitem = new QueueMessage(memoryStream,null);// QueueMessage.Create(memoryStream);
 
                 if (isCoverable)
                 {
@@ -3608,7 +3609,7 @@ namespace Nistec.Messaging.Io
                     Task.Factory.StartNew(() => File.Delete(filename));
                 }
 
-                item = qitem as IQueueItem;
+                item = qitem as IQueueMessage;
                 return ReadFileState.Completed;
             }
             catch (IOException ioex)
@@ -3631,20 +3632,20 @@ namespace Nistec.Messaging.Io
             }
 
             //FileStream fStream = File.OpenRead(filename);
-            //return new QueueItem(fStream, null);
+            //return new QueueMessage(fStream, null);
 
             //return Deserialize(File.ReadAllBytes(filename));
 
         }
 
-        //public static string SaveFile(QueueItem itemstream, string rootPath,string location)
+        //public static string SaveFile(QueueMessage itemstream, string rootPath,string location)
         //{
         //    string filename = FormatQueueFilename(rootPath,location);
         //    itemstream.BodyStream.SaveToFile(filename);
         //    return filename;
         //}
 
-        //public static string SaveFile(QueueItem itemstream, string rootPath,Ptr ptr)
+        //public static string SaveFile(QueueMessage itemstream, string rootPath,Ptr ptr)
         //{
         //    string filename = FormatQueueFilename(rootPath,ptr.Location);
         //    itemstream.BodyStream.SaveToFile(filename);
@@ -3652,22 +3653,22 @@ namespace Nistec.Messaging.Io
         //}
 
         ///// <summary>
-        ///// Get an instance of <see cref="QueueItem"/> from file.
+        ///// Get an instance of <see cref="QueueMessage"/> from file.
         ///// </summary>
         ///// <param name="ptr"></param>
         ///// <returns></returns>
-        //public static ReadFileState ReadFile(string rootPath,Ptr ptr, out IQueueItem item)
+        //public static ReadFileState ReadFile(string rootPath,Ptr ptr, out IQueueMessage item)
         //{
         //    string filename = FormatQueueFilename(rootPath,ptr.Location);
-        //    return QueueItem.ReadFile(filename, out item);
+        //    return QueueMessage.ReadFile(filename, out item);
         //}
 
         /// <summary>
-        /// Get an instance of <see cref="QueueItem"/> from file.
+        /// Get an instance of <see cref="QueueMessage"/> from file.
         /// </summary>
         /// <param name="filename"></param>
         /// <returns></returns>
-        public static ReadFileState DequeueFileWithScop(QueueItem itemstream, string filename, bool isTrans, out IQueueItem item)
+        public static ReadFileState DequeueFileWithScop(QueueMessage itemstream, string filename, bool isTrans, out IQueueMessage item)
         {
             if (!File.Exists(filename))
             {
@@ -3693,7 +3694,7 @@ namespace Nistec.Messaging.Io
                         input.CopyTo(memoryStream);
                     }
                     memoryStream.Position = 0;
-                    QueueItem qitem = new QueueItem(memoryStream,null);// QueueItem.Create(memoryStream);
+                    QueueMessage qitem = new QueueMessage(memoryStream,null);// QueueMessage.Create(memoryStream);
 
                     if (isTrans)
                     {
@@ -3704,7 +3705,7 @@ namespace Nistec.Messaging.Io
                         Task.Factory.StartNew(() => File.Delete(filename));
                     }
 
-                    item = qitem as IQueueItem;
+                    item = qitem as IQueueMessage;
                     scope.Complete();
                 }
                 return ReadFileState.Completed;
@@ -3729,7 +3730,7 @@ namespace Nistec.Messaging.Io
             }
 
             //FileStream fStream = File.OpenRead(filename);
-            //return new QueueItem(fStream, null);
+            //return new QueueMessage(fStream, null);
 
             //return Deserialize(File.ReadAllBytes(filename));
 
@@ -3744,7 +3745,7 @@ namespace Nistec.Messaging.Io
         //{
         //    return string.Format(@"{0}\{1}\{2}\{3}\{4}.{5}", rootPath, hostName, Assists.FolderQueue, Identifier[0], Identifier, Assists.FileExt);
         //}
-        public static string FormatQueueItemFilename(IQueueItem item, string rootPath, string hostName)
+        public static string FormatQueueItemFilename(IQueueMessage item, string rootPath, string hostName)
         {
             return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", rootPath, hostName, Assists.FolderQueue, item.Identifier[0], item.Identifier,Assists.FileExt);
         }
@@ -3752,11 +3753,11 @@ namespace Nistec.Messaging.Io
         {
             return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", rootPath, hostName, Assists.FolderInfo, item.Identifier[0], item.Identifier, Assists.FileInfoExt);
         }
-        public static string FormatSuspendItemFilename(IQueueItem item, string rootPath, string hostName)
+        public static string FormatSuspendItemFilename(IQueueMessage item, string rootPath, string hostName)
         {
             return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", rootPath, hostName, Assists.FolderSuspend, item.Identifier[0], item.Identifier, Assists.FileExt);
         }
-        public static string FormatCoveredItemFilename(IQueueItem item, string rootPath, string hostName)
+        public static string FormatCoveredItemFilename(IQueueMessage item, string rootPath, string hostName)
         {
             return string.Format(@"{0}\{1}\{2}\{3}\{4}{5}", rootPath, hostName, Assists.FolderCovered, item.Identifier[0], item.Identifier, Assists.FileExt);
         }

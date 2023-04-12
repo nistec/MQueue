@@ -77,7 +77,7 @@ namespace Nistec.Messaging.UI
 
                 foreach (DataRow dr in dt.Rows)
                 {
-                    Client.Enqueue(QueueItem.Create(dr));
+                    Client.Enqueue(QueueMessage.Create(dr));
                     this.ProgressBar1.Increment(1);
                 }
 

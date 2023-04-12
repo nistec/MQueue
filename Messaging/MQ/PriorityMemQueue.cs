@@ -26,26 +26,26 @@ namespace Nistec.Messaging
 
         #region members
 
-        private ConcurrentDictionary<Ptr, IQueueItem> QueueItems;
+        private ConcurrentDictionary<Ptr, IQueueMessage> QueueItems;
 
 
         #endregion
 
         #region override
 
-        protected override bool TryAdd(Ptr ptr, IQueueItem item)
+        protected override bool TryAdd(Ptr ptr, IQueueMessage item)
         {
             QueueItems[ptr]=item.Copy();
             return true;
         }
 
-        protected override bool TryPeek(Ptr ptr, out IQueueItem item)
+        protected override bool TryPeek(Ptr ptr, out IQueueMessage item)
         {
 
             item = null;
             return QueueItems.TryGetValue(ptr, out item);
 
-            //IQueueItem copy = null;
+            //IQueueMessage copy = null;
             //if (QueueItems.TryGetValue(ptr, out copy))
             //{
             //    item = ((QueueItemStream)copy).Copy();
@@ -55,15 +55,15 @@ namespace Nistec.Messaging
             //return false;
         }
 
-        protected override bool TryDequeue(Ptr ptr, out IQueueItem item)
+        protected override bool TryDequeue(Ptr ptr, out IQueueMessage item)
         {
             item = null;
             return QueueItems.TryRemove(ptr, out item);
         }
 
-        protected override IQueueItem GetFirstItem()
+        protected override IQueueMessage GetFirstItem()
         {
-            IQueueItem item = null;
+            IQueueMessage item = null;
             try
             {
                 if (Count() > 0)
@@ -144,7 +144,7 @@ namespace Nistec.Messaging
             int concurrencyLevel = numProcs * 2;
             int initialCapacity = 101;
 
-            QueueItems = new ConcurrentDictionary<Ptr, IQueueItem>(concurrencyLevel, initialCapacity);
+            QueueItems = new ConcurrentDictionary<Ptr, IQueueMessage>(concurrencyLevel, initialCapacity);
           
         }
 

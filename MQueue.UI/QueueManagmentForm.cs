@@ -256,17 +256,17 @@ namespace Nistec.Messaging.UI
                     PersistItem pi = (PersistItem)record;
                     if (pi.body.GetType() == typeof(byte[]))
                     {
-                        var item = BinarySerializer.Deserialize<IQueueItem>((byte[])pi.body);
+                        var item = BinarySerializer.Deserialize<IQueueMessage>((byte[])pi.body);
                         box.Text = item.ToJson();
                     }
-                    else if (pi.body.GetType() == typeof(IQueueItem))
+                    else if (pi.body.GetType() == typeof(IQueueMessage))
                     {
-                        box.Text = ((IQueueItem)pi.body).ToJson();
+                        box.Text = ((IQueueMessage)pi.body).ToJson();
                     }
                 }
-                else if (type == typeof(IQueueItem))
+                else if (type == typeof(IQueueMessage))
                 {
-                    box.Text = ((IQueueItem)record).ToJson();
+                    box.Text = ((IQueueMessage)record).ToJson();
                 }
             }
             catch (Exception ex)
@@ -760,7 +760,8 @@ namespace Nistec.Messaging.UI
 
         private void DoStatusBar(string text)
         {
-            this.mcManagment.StatusBar.Text = text;  
+            this.mcManagment.StatusBar.Text = text;
+            this.mcManagment.StatusBar.Refresh();
         }
 
         private void DoAddItem()
@@ -840,16 +841,27 @@ namespace Nistec.Messaging.UI
         {
             try
             {
-                string filename = CommonDlg.SaveAs("(*.xml)|*.xml", Environment.CurrentDirectory);
-                if (string.IsNullOrEmpty(filename))
+                string name = GetSelectedItem();
+                if (string.IsNullOrEmpty(name))
                     return;
-                 string name = GetSelectedItem();
-                 //RemoteQueue Client = new RemoteQueue(name);
+                TransStream ts = ManagementApi.Get(ManagementApi.HostName, name, NetProtocol.Pipe).Command(QueueCmd.BackupQueue);
+                var obj = (ts != null) ? ts.ReadValue() : null;
+                if (obj != null)
+                {
+                    MsgBox.ShowInfo(obj.ToString());
+                }
 
-                 //DataTable dt= Client.GetQueueItemsTable();
-                 //DataSet ds = new DataSet("RemoteQueue");
-                 //ds.Tables.Add(dt.Copy());
-                 //ds.WriteXml(filename);
+                //string filename = CommonDlg.SaveAs("(*.xml)|*.xml", Environment.CurrentDirectory);
+                //if (string.IsNullOrEmpty(filename))
+                //    return;
+                // string name = GetSelectedItem();
+                //RemoteQueue Client = new RemoteQueue(name);
+                //TransStream ts = ManagementApi.Get(ManagementApi.HostName, name, NetProtocol.Pipe).Command(QueueCmd.ReportQueueItems);
+
+                //DataTable dt = Client.GetQueueItemsTable();
+                //DataSet ds = new DataSet("RemoteQueue");
+                //ds.Tables.Add(dt.Copy());
+                //ds.WriteXml(filename);
             }
             catch (Exception ex)
             {
@@ -861,15 +873,32 @@ namespace Nistec.Messaging.UI
         {
             try
             {
-                string filename = CommonDlg.FileDialog("(*.xml)|*.xml", Environment.CurrentDirectory);
-                if (string.IsNullOrEmpty(filename))
-                    return;
+                string path = CommonDlg.FolderDialog();
 
                 string name = GetSelectedItem();
-                AsyncLoaderForm f = new AsyncLoaderForm(this, filename, name);
-                f.InvokeLoader(null);
+                if (string.IsNullOrEmpty(name))
+                    return;
 
-                this.DoRefresh();
+                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(path))
+                {
+                   MsgBox.ShowError("Queue name or path missing");
+                    return;
+                }
+
+                QueueRequest message = new QueueRequest()
+                {
+                    Host = name,
+                    QCommand = QueueCmd.LoadFromBackup,
+                    Args = NameValueArgs.Create("path", path)
+                };
+                
+
+                var api= ManagementApi.Get(ManagementApi.HostName, name, NetProtocol.Pipe);
+                TransStream ts = api.RequestItemStream(message, 300000);
+
+
+                var state = (ts != null) ? (MessageState)ts.ReadState() : MessageState.OperationFailed;
+                MsgBox.ShowInfo(state.ToString());
                 
             }
             catch (Exception ex)
@@ -877,8 +906,7 @@ namespace Nistec.Messaging.UI
                 MsgBox.ShowError(ex.Message);
             }
         }
-
-       
+               
        
         
         private void DoStatistic()
@@ -887,7 +915,7 @@ namespace Nistec.Messaging.UI
             {
 
                 //RemoteQueue client=new RemoteQueue(GetSelectedItem());
-                //IQueueItem item= client.Dequeue();
+                //IQueueMessage item= client.Dequeue();
                 //if (item != null)
                 //{
                 //    Nistec.GridView.VGridDlg dlg = new VGridDlg();

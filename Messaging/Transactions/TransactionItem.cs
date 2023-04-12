@@ -58,7 +58,7 @@ namespace Nistec.Messaging.Transactions
             Retry = 0;
         }
 
-        public TransactionItem(IQueueItem item, string location)
+        public TransactionItem(IQueueMessage item, string location)
         {
             this.Item = item;
             this.Identifier = item.Identifier;

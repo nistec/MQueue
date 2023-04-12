@@ -27,7 +27,7 @@ namespace Nistec.Messaging
     /// This message can serialize/desrialize fast and easly using the <see cref="BinaryStreamer"/>
     /// </summary>
     [Serializable]
-    public sealed class QueueRequest : MessageStream,  IQueueMessage, IDisposable
+    public sealed class QueueRequest : MessageStream, IQueueRequest, IDisposable
     {
         #region static
    

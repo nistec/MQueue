@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Data;
+using System.Linq;
 using System.Collections;
 using Nistec.Generic;
 using Nistec.Messaging.Remote;
@@ -60,7 +61,7 @@ namespace Nistec.Messaging.Server
             JournalQueue = new PriorityPersistQueue(journalProp);
         }
 
-        internal IQueueAck JournalAddItem(QueueItem item)
+        internal IQueueAck JournalAddItem(QueueMessage item)
         {
             if (JournalQueue != null)
                 return JournalQueue.Enqueue(item);
@@ -92,12 +93,14 @@ namespace Nistec.Messaging.Server
             MQueue mq = AgentManager.Queue.Get(qname);
             if (mq == null)
                 throw new Exception("Queue not exists: " + qname);
+            if (mq.Enabled == false)
+                throw new Exception("Queue not enabled: " + qname);
             return mq;
         }
 
         #region static
 
-        public static IQueueAck Requeue(IQueueItem item)
+        public static IQueueAck Requeue(IQueueMessage item)
         {
             MQueue mq = AgentManager.Queue.Get(item.Host);
             if (mq == null)
@@ -110,7 +113,19 @@ namespace Nistec.Messaging.Server
 
         #region queue response
 
-        public TransStream DoResponse(IQueueItem item, MessageState state)
+        public TransStream DoResponse(QueueAck item)
+        {
+            if (item == null)
+            {
+                return null;
+                //throw new MessageException(MessageState.MessageError, "Invalid queue item to write response");
+            }
+            QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.ToString());
+
+            return item.ToTransStream(); ;
+        }
+
+        public TransStream DoResponse(IQueueMessage item, MessageState state)
         {
             if (item == null)
             {
@@ -118,9 +133,9 @@ namespace Nistec.Messaging.Server
                 //throw new MessageException(MessageState.MessageError, "Invalid queue item to write response");
             }
 
-            var ts = ((QueueItem)item).ToTransStream(state);
+            var ts = ((QueueMessage)item).ToTransStream(state);
 
-            //((QueueItem)item).SetState(state);
+            //((QueueMessage)item).SetState(state);
             QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
             //return item.ToStream();
 
@@ -128,7 +143,7 @@ namespace Nistec.Messaging.Server
 
             //if (item != null)
             //{
-            //    ((QueueItem)item).SetState(state);
+            //    ((QueueMessage)item).SetState(state);
             //    return item.GetItemStream();
             //}
             //else
@@ -150,7 +165,7 @@ namespace Nistec.Messaging.Server
             QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
             return item.ToTransStream();
         }
-        public TransStream DoResponse(IQueueItem item)
+        public TransStream DoResponse(IQueueMessage item)
         {
             if (item == null)
             {
@@ -160,44 +175,63 @@ namespace Nistec.Messaging.Server
             QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
             return item.ToTransStream();
         }
-        public TransStream DoReportValue(object value)
-        {
-            return new TransStream(value);//, TransType.Object);
-        }
 
-        public TransStream DoReport(object item, QueueCmd cmd, MessageState state, string lbl)
+        public TransStream DoReport(object item, string message, MessageState state)
         {
             if (item == null)
             {
-                throw new MessageException(MessageState.PipeError, "Invalid item to write response");
+                return QueueAck.DoResponse(MessageState.QueueNotFound, message, item).ToTransStream();
             }
-            if (item != null)
+            else //if (item != null)
             {
-                var message = QueueItem.Ack(state, cmd, lbl, null);
-
-                message.SetBody(item);
-                return message.ToTransStream();
+                return QueueAck.DoResponse(MessageState.Ok, message, item).ToTransStream();
             }
-            else
-            {
-                QueueItem response = QueueItem.Ack(MessageState.UnExpectedError, cmd, new MessageException(MessageState.UnExpectedError, "WriteReport error: there is no item stream to write reponse"));
-                return response.ToTransStream();
-            }
-
-            // QLogger.DebugFormat("Server WriteReport State:{0}, MessageType: {1}", state, msgType);
-
         }
+        
+
+        //public TransStream DoReportValue(object value)
+        //{
+        //    return new TransStream(value);//, TransType.Object);
+        //}
+
+        //public TransStream DoReport(object item, QueueCmd cmd, MessageState state, string lbl)
+        //{
+        //    if (item == null)
+        //    {
+        //        return QueueAck.DoResponse(MessageState.ItemNotFound, cmd.ToString(), item).ToTransStream();
+
+        //        //throw new MessageException(MessageState.PipeError, "Invalid item to write response");
+        //    }
+        //    else //if (item != null)
+        //    {
+
+        //        return QueueAck.DoResponse(ChannMessageStateelState.Ok, cmd.ToString(), item).ToTransStream();
+        //        //var message = QueueMessage.Ack(state, cmd, lbl, null);
+
+        //        //message.SetBody(item);
+        //        //return message.ToTransStream();
+        //    }
+        //    //else
+        //    //{
+        //    //    QueueMessage response = QueueMessage.Ack(MessageState.UnExpectedError, cmd, new MessageException(MessageState.UnExpectedError, "WriteReport error: there is no item stream to write reponse"));
+        //    //    return response.ToTransStream();
+        //    //}
+
+        //    // QLogger.DebugFormat("Server WriteReport State:{0}, MessageType: {1}", state, msgType);
+
+        //}
         #endregion
 
         #region queue request
-        internal TransStream ExecRequset(IQueueMessage request)
+        internal TransStream ExecRequset(IQueueRequest request)
         {
             bool responseAck = false;
             try
             {
                 if (request.QCommand == QueueCmd.QueueHasValue)
                 {
-                    return DoReportValue(QueueCount(request.Host));
+                    return DoReport(QueueCount(request.Host), QueueCmd.QueueCount.ToString() + " for " + request.Host, MessageState.Ok);
+                    //return DoReportValue(QueueCount(request.Host));
                 }
 
                 Logger.Debug("QueueController ExecRequset : {0}", request.Print());
@@ -210,7 +244,7 @@ namespace Nistec.Messaging.Server
                         {
                             responseAck = true;
                             //MQueue Q = Get(request.Host);
-                            var ack = ExecSet((QueueItem)request);
+                            var ack = ExecSet((QueueMessage)request);
                             return DoResponse(ack);
                         }
                     case QueueCmd.Dequeue:
@@ -237,19 +271,42 @@ namespace Nistec.Messaging.Server
                         responseAck = true;
                         return DoResponse(RemoveQueue(request.Host));
                     case QueueCmd.HoldEnqueue:
-                        throw new Exception("Operation not supported");
+                        GetValidQ(request.Host).HoldEnqueue = true;
+                        return QueueAck.DoResponse(MessageState.Ok, "Hold Enqueue: " + request.Host, true).ToTransStream();
                     case QueueCmd.ReleaseHoldEnqueue:
-                        throw new Exception("Operation not supported");
+                        GetValidQ(request.Host).HoldEnqueue = false;
+                        return QueueAck.DoResponse(MessageState.Ok, "Release Hold Enqueue: " + request.Host, true).ToTransStream();
                     case QueueCmd.HoldDequeue:
-                        throw new Exception("Operation not supported");
+                        GetValidQ(request.Host).HoldDequeue = true;
+                        return QueueAck.DoResponse(MessageState.Ok, "Hold Dequeue: " + request.Host, true).ToTransStream();
                     case QueueCmd.ReleaseHoldDequeue:
-                        throw new Exception("Operation not supported");
+                        GetValidQ(request.Host).HoldDequeue = false;
+                        return QueueAck.DoResponse(MessageState.Ok, "Release Hold Dequeue: " + request.Host, true).ToTransStream();
                     case QueueCmd.EnableQueue:
-                        throw new Exception("Operation not supported");
+                        GetValidQ(request.Host).Enabled = true;
+                        return QueueAck.DoResponse(MessageState.Ok, "Enabled Queue: " + request.Host, true).ToTransStream();
                     case QueueCmd.DisableQueue:
-                        throw new Exception("Operation not supported");
+                        GetValidQ(request.Host).Enabled = false;
+                        return QueueAck.DoResponse(MessageState.Ok, "Disable Queue: " + request.Host, true).ToTransStream();
                     case QueueCmd.ClearQueue:
-                        throw new Exception("Operation not supported");
+                        GetValidQ(request.Host).ClearQueueItems(QueueItemType.AllItems);
+                        return QueueAck.DoResponse(MessageState.Ok, "Clear Queue: " + request.Host, true).ToTransStream();
+                    case QueueCmd.BackupQueue:
+                        {
+                            var report = GetValidQ(request.Host).BackupToFiles();
+                            return QueueAck.DoResponse(report != null ? MessageState.Ok : MessageState.OperationFailed, "Backup Queue: " + request.Host + Types.NZeq(report, null, "failed", "path:"), report ).ToTransStream();
+                        }
+                    case QueueCmd.BackupAll:
+                        {
+                            var report = BackupAll();
+                            return QueueAck.DoResponse(MessageState.Ok, "Backup Queues: " , report).ToTransStream();
+                        }
+                    case QueueCmd.LoadFromBackup:
+                        {
+                            MessageState state= MessageState.None;
+                            GetValidQ(request.Host).LoadFromBackup(request.Args.Get("path"), ref state);
+                            return new TransStream("Load From Backup to queue "+ request.Host, TransType.State, (int)state);
+                        }
 
 
                     //publish\subscribe
@@ -271,7 +328,7 @@ namespace Nistec.Messaging.Server
                         {
                             MQueue mq = GetValidQ(request.Host);
                             //mq.Topic.HoldTopic();
-                            TopicDispatcher.Pause( OnOffState.On);
+                            TopicDispatcher.Pause(OnOffState.On);
                             return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
                     case QueueCmd.TopicHoldRelease:
@@ -312,10 +369,12 @@ namespace Nistec.Messaging.Server
                     //reports
                     case QueueCmd.Exists:
                         responseAck = true;
-                        return MessageAckServer.DoResponse(Exists(request.Host));
+                        return Exists(request.Host).ToTransStream();
+                    //return QueueAck.DoResponse(Exists(request.Host));
                     case QueueCmd.ReportQueueList:
                         var list = GetQueueList();
-                        return new TransStream(list);
+                        //return QueueAck.DoResponse(MessageState.Ok, "ReportQueueList", list).ToTransStream();
+                        return new TransStream(list, TransType.Object);
                     case QueueCmd.QueueProperty:
                     case QueueCmd.ReportQueueItems:
                         return ExecQuery(request);
@@ -326,33 +385,36 @@ namespace Nistec.Messaging.Server
                     case QueueCmd.PerformanceCounter:
                         throw new Exception("Operation not supported");
                     case QueueCmd.QueueCount:
-                        return DoReport(QueueCount(request.Host), QueueCmd.QueueCount, MessageState.Ok, null);
+                        return DoReport(QueueCount(request.Host), QueueCmd.QueueCount.ToString() + " for " + request.Host, MessageState.Ok);
+                    case QueueCmd.QueueCountAll:
+                        return DoReport(QueueCountAll(), QueueCmd.QueueCount.ToString(), MessageState.Ok);
                 }
             }
             catch (MessageException mex)
             {
                 Logger.Exception("ExecRequset MessageException: ", mex, true);
-                return MessageAckServer.DoError(mex.MessageState, request, responseAck, mex);
+                //return QueueAck.DoError(mex.MessageState, request, responseAck, mex);
+                return new QueueAck(mex.MessageState, request.Label, request.Identifier, request.Host, mex).ToTransStream();
             }
             catch (ArgumentException ase)
             {
                 Logger.Exception("ExecRequset ArgumentException: ", ase, true, true);
-                return MessageAckServer.DoError(MessageState.ArgumentsError, request, responseAck, ase);
+                return new QueueAck(MessageState.ArgumentsError, request, ase).ToTransStream();
             }
             catch (SerializationException se)
             {
                 Logger.Exception("ExecRequset SerializationException: ", se, true);
-                return MessageAckServer.DoError(MessageState.SerializeError, request, responseAck, se);
+                return new QueueAck(MessageState.SerializeError, request, se).ToTransStream();
             }
             catch (Exception ex)
             {
                 Logger.Exception("ExecRequset Exception: ", ex, true, true);
-                return MessageAckServer.DoError(MessageState.UnExpectedError, request, responseAck, ex);
+                return new QueueAck(MessageState.UnExpectedError, request, ex).ToTransStream();
             }
             return null;
         }
 
-        internal IQueueItem ExecGet(IQueueMessage request)
+        internal IQueueMessage ExecGet(IQueueRequest request)
         {
             if (request.Host == null)
             {
@@ -381,7 +443,7 @@ namespace Nistec.Messaging.Server
         }
 
 
-        internal IQueueAck ExecSet(QueueItem item)
+        internal IQueueAck ExecSet(QueueMessage item)
         {
 
             if (item == null)
@@ -399,11 +461,13 @@ namespace Nistec.Messaging.Server
             MQueue Q;
 
             if (MQ.TryGetValue(item.Host, out Q))
-
             {
-                Logger.Debug("QueueController ExecSet : Mode:{0}, {1}", Q.Mode.ToString(), item.Print());
-
-                if (Q.Mode == CoverMode.Rout)
+                Logger.Debug("QueueController ExecSet : Mode:{0}, Enabled: {1}, {2}",  Q.Mode.ToString(), Q.Enabled, item.Print());
+                if (Q.Enabled==false)
+                {
+                    return ExecRout(item, Q.RoutHost);
+                }
+                else if (Q.Mode == CoverMode.Rout)
                 {
                     return ExecRout(item, Q.RoutHost);
                 }
@@ -411,7 +475,7 @@ namespace Nistec.Messaging.Server
                 {
                     return Q.EnqueueTopicItem(item);
                 }
-                //var item = new QueueItem(request, QueueCmd.Enqueue);
+                //var item = new QueueMessage(request, QueueCmd.Enqueue);
                 var ack = Q.Enqueue(item);
                 return ack;// ptr.MessageState;
             }
@@ -426,7 +490,7 @@ namespace Nistec.Messaging.Server
             //    {
             //        return Q.EnqueueTopicItem(item);
             //    }
-            //    //var item = new QueueItem(request, QueueCmd.Enqueue);
+            //    //var item = new QueueMessage(request, QueueCmd.Enqueue);
             //    if (Q.Mode == CoverMode.Rout)
             //    {
             //        return ExecRout(item, Q.RoutHost);
@@ -448,7 +512,7 @@ namespace Nistec.Messaging.Server
             //{
             //    return Q.EnqueueTopicItem(item);
             //}
-            ////var item = new QueueItem(request, QueueCmd.Enqueue);
+            ////var item = new QueueMessage(request, QueueCmd.Enqueue);
             //if (Q.Mode == CoverMode.Rout)
             //{
             //    return ExecRout(item, Q.RoutHost);
@@ -456,11 +520,11 @@ namespace Nistec.Messaging.Server
             //var ack = Q.Enqueue(item);
             //return ack;// ptr.MessageState;
 
-            ////return QueueItem.Ack(item, ptr.MessageState, ptr.Retry, null, ptr.Identifier);
+            ////return QueueMessage.Ack(item, ptr.MessageState, ptr.Retry, null, ptr.Identifier);
 
         }
 
-        IQueueAck ExecRout(QueueItem item, QueueHost qh)
+        IQueueAck ExecRout(QueueMessage item, QueueHost qh)
         {
 
             if (qh == null)
@@ -494,7 +558,7 @@ namespace Nistec.Messaging.Server
         #region queue query
 
 
-        internal TransStream ExecQuery(IQueueMessage request)
+        internal TransStream ExecQuery(IQueueRequest request)
         {
 
             if (request == null)
@@ -516,10 +580,10 @@ namespace Nistec.Messaging.Server
             {
                 case QueueCmd.QueueProperty:
                     var res = Q.Property();//.QueueProperty();
-                    return new TransStream(res);
+                    return new TransStream(res, TransType.Object);
                 case QueueCmd.ReportQueueItems:
                     var items = Q.QueryItems();
-                    return new TransStream(items);
+                    return new TransStream(items, TransType.Object);
                 default:
                     throw new NotSupportedException(request.QCommand.ToString());
             }
@@ -571,7 +635,7 @@ namespace Nistec.Messaging.Server
             return null;
         }
 
-        internal IQueueItem ExecGet(QueueMessage request)
+        internal IQueueMessage ExecGet(QueueMessage request)
         {
             try
             {
@@ -767,34 +831,38 @@ namespace Nistec.Messaging.Server
 
         }
 
-        public TransStream GetQueueReport(IQueueMessage message)
+        public TransStream GetQueueReport(IQueueRequest message)
         {
             MQueue queue = Get(message.Host);
             if (queue == null)
             {
-                var ack = new QueueItem()//MessageState.QueueNotFound, "QueueNotFound: " + message.Host, null, message.Host);
-                {
-                    MessageState = MessageState.QueueNotFound,
-                    Label = "QueueNotFound: " + message.Host,
-                    Host = message.Host
-                };
+                //var ack = new QueueMessage()//MessageState.QueueNotFound, "QueueNotFound: " + message.Host, null, message.Host);
+                //{
+                //    MessageState = MessageState.QueueNotFound,
+                //    Label = "QueueNotFound: " + message.Host,
+                //    Host = message.Host
+                //};
                 Logger.Info("QueueController GetQueueReport QueueNotFound : {0}", message.Host);
-                return ack.ToTransStream();
+                //return ack.ToTransStream();
+
+                return QueueAck.DoResponse(MessageState.QueueNotFound, "QueueNotFound: " + message.Host, null).ToTransStream();
             }
             var report = queue.GetReport();
             string result = null;
             if (report != null)
                 result = Nistec.Serialization.JsonSerializer.Serialize(report);
-            var item = new QueueItem()//MessageState.Ok, result, null, message.Host);
-            {
-                MessageState = MessageState.Ok,
-                Label = result,
-                Host = message.Host
-            };
-            item.SetBody(report);
+            //var item = new QueueMessage()//MessageState.Ok, result, null, message.Host);
+            //{
+            //    MessageState = MessageState.Ok,
+            //    Label = result,
+            //    Host = message.Host
+            //};
+            //item.SetBody(report);
             Logger.Info("QueueController GetQueueReport : {0}", result);
 
-            return item.ToTransStream();
+            //return item.ToTransStream();
+
+            return QueueAck.DoResponse(MessageState.Ok, "QueueNotFound: " + message.Host, report).ToTransStream();
         }
 
         /// <summary>Creates a non-transactional Message Queuing queue at the specified path.</summary>
@@ -872,7 +940,7 @@ namespace Nistec.Messaging.Server
 
 
 
-        public IQueueItem AddQueue(QProperties prop, out MQueue mq)
+        public QueueAck AddQueue(QProperties prop, out MQueue mq)
         {
 
             if (MQ.ContainsKey(prop.QueueName))
@@ -888,7 +956,9 @@ namespace Nistec.Messaging.Server
                 //    mq = MQ[prop.QueueName];
                 //}
                 mq = MQ[prop.QueueName];
-                return QueueItem.Ack(MessageState.AllreadyExists, QueueCmd.AddQueue, "AllreadyExists, Name: " + prop.QueueName, null);
+                //return QueueMessage.Ack(MessageState.AllreadyExists, QueueCmd.AddQueue, "AllreadyExists, Name: " + prop.QueueName, null);
+                return QueueAck.DoResponse(MessageState.ArgumentsError, "AddQueue " + prop.QueueName + " AllreadyExists", false);
+
             }
             //if (prop.IsDbQueue)
             //{
@@ -907,20 +977,19 @@ namespace Nistec.Messaging.Server
             Logger.Info("AddQueue : {0}", prop.Print());
             //return  MessageState.Ok;
 
-            return QueueItem.Ack(MessageState.Ok, QueueCmd.AddQueue);
+            //return QueueMessage.Ack(MessageState.Ok, QueueCmd.AddQueue);
+            return QueueAck.DoResponse(MessageState.Ok, "AddQueue " + prop.QueueName + " added", true);
+
         }
 
         /// <summary>Deletes a queue on a Message Queuing server.</summary>
         /// <param name="queueName">The location of the queue to be deleted. </param>
-        public IQueueItem RemoveQueue(string queueName)
+        public QueueAck RemoveQueue(string queueName)
         {
-            if (queueName == null)
+            if (queueName == null || queueName.Length == 0)
             {
-                throw new ArgumentNullException("queueName");
-            }
-            if (queueName.Length == 0)
-            {
-                throw new ArgumentException("InvalidParameter", "queueName");
+                //throw new ArgumentNullException("queueName");
+                return QueueAck.DoResponse(MessageState.ArgumentsError, "Null arguments", false);
             }
             //RemoveDbQueue(queueName);
 
@@ -934,28 +1003,30 @@ namespace Nistec.Messaging.Server
 
             Logger.Info("RemoveQueue : {0}, {1}", queueName, removed);
 
-            return QueueItem.Ack(removed ? MessageState.Ok : MessageState.OperationFailed, QueueCmd.RemoveQueue, removed ? "Queue was removed" : "Queue was not removed", null);
+            return QueueAck.DoResponse(removed ? MessageState.Ok : MessageState.OperationFailed, removed ? "Queue " + queueName + " was removed" : "Queue " + queueName + " was not removed", removed);
+
+            //return QueueMessage.Ack(removed ? MessageState.Ok : MessageState.OperationFailed, QueueCmd.RemoveQueue, removed ? "Queue was removed" : "Queue was not removed", null);
         }
         /// <summary>Determines whether a Message Queuing queue exists at the specified path.</summary>
         /// <returns>true if a queue with the specified path exists; otherwise, false.</returns>
         /// <param name="path">The location of the queue to find. </param>
-        public IQueueItem Exists(string queueName)
+        public QueueAck Exists(string queueName)
         {
-            if (queueName == null)
+            if (queueName == null || queueName.Length == 0)
             {
-                throw new ArgumentNullException("queueName");
-            }
-            if (queueName.Length == 0)
-            {
-                throw new ArgumentException("InvalidParameter", "queueName");
+                //throw new ArgumentNullException("queueName");
+                return QueueAck.DoResponse(MessageState.ArgumentsError,"Null arguments", false);
             }
             bool exists = MQ.ContainsKey(queueName);
-            return QueueItem.Ack(exists ? MessageState.Ok : MessageState.None, QueueCmd.Exists, exists ? "Queue exists" : "Queue not exists", null);
+            //return QueueMessage.Ack(exists ? MessageState.Ok : MessageState.None, QueueCmd.Exists, exists ? "Queue exists" : "Queue not exists", null);
+
+            return QueueAck.DoResponse(exists ? MessageState.Ok : MessageState.None, exists ? "Queue "+ queueName+" exists" : "Queue " + queueName + " not exists", exists);
 
         }
 
         public int QueueCount(string queueName)
         {
+
             if (queueName == null)
             {
                 throw new ArgumentNullException("queueName");
@@ -971,6 +1042,41 @@ namespace Nistec.Messaging.Server
             }
 
             return 0;
+        }
+        public string BackupAll()
+        {
+            GenericKeyValue g = new GenericKeyValue();
+            var queues = MQ.Values.ToArray();
+            g.Add("MQueue", "Backup");
+            foreach (var q in queues)
+            {
+                var path = q.BackupToFiles();
+                g.Add(q.QueueName + " backup path", path);
+            }
+            return g.ToJson();
+
+            //StringBuilder sb = new StringBuilder();
+
+            //var queues = MQ.Values.ToArray();
+            ////sb.AppendLine("MQueue Backup - " + DateTime.Now.ToSqlDateTimeString());
+            //foreach (var q in queues)
+            //{
+            //    var path=q.BackupToFiles();
+            //    sb.AppendLine(q.QueueName + " Backup path: " + path + ", ");
+            //}
+            //return sb.ToString();
+        }
+      
+        public string  QueueCountAll()
+        {
+            GenericKeyValue g = new GenericKeyValue();
+            var queues=MQ.Values.ToArray();
+            g.Add("MQueue", "Report");
+            foreach (var q in queues)
+            {
+                g.Add(q.QueueName + " Count", q.Count);
+            }
+            return g.ToJson();
         }
 
         public bool CanQueue(string queueName)
@@ -1108,7 +1214,7 @@ namespace Nistec.Messaging.Server
         public static DataTable QueueItemSchema()
         {
 
-            DataTable dt = new DataTable("QueueItem");
+            DataTable dt = new DataTable("QueueMessage");
             dt.Columns.Add(new DataColumn("ItemId", typeof(Guid)));
             dt.Columns.Add(new DataColumn("Status", typeof(int)));
             dt.Columns.Add(new DataColumn("MessageId", typeof(int)));
@@ -1137,7 +1243,7 @@ namespace Nistec.Messaging.Server
 
         #region static methods
 
-        //public IQueueItem[] GetQueueItems(string queueName)
+        //public IQueueMessage[] GetQueueItems(string queueName)
         //{
         //    MQueue q = Get(queueName);
         //    if (q != null)

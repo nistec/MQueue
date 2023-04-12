@@ -21,7 +21,7 @@ namespace Nistec.Messaging.Channels
     /// <summary>
     /// Represent a queue Http server listner.
     /// </summary>
-    public class HttpServerQueue : HttpServer<IQueueItem>, IChannelService
+    public class HttpServerQueue : HttpServer<IQueueMessage>, IChannelService
     {
 
         QueueChannel QueueChannel= QueueChannel.Consumer;
@@ -72,15 +72,15 @@ namespace Nistec.Messaging.Channels
 
         #region abstract methods
 
-        protected override string ExecString(IQueueItem message)
+        protected override string ExecString(IQueueMessage message)
         {
             var ts=Controller.OnMessageReceived(message);
-            return (ts == null) ? null : ts.ReadJson();
+            return (ts == null) ? null : ts.ReadToJson();
         }
 
-        protected override TransStream ExecTransStream(IQueueItem message)
+        protected override TransStream ExecTransStream(IQueueMessage message)
         {
-            return Controller.OnMessageReceived((QueueItem)message);
+            return Controller.OnMessageReceived((QueueMessage)message);
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        protected override IQueueItem ReadRequest(HttpRequestInfo request)
+        protected override IQueueMessage ReadRequest(HttpRequestInfo request)
         {
             //throw new Exception("Not implemented.");
 
@@ -113,7 +113,7 @@ namespace Nistec.Messaging.Channels
             }
 
             //return new QueueRequest(stream.GetStream());
-            return QueueItem.Create(stream.GetStream());
+            return QueueMessage.Create(stream.GetStream());
         }
 
         #endregion
@@ -175,7 +175,7 @@ namespace Nistec.Messaging.Channels
         protected override string ExecString(T message)
         {
             var ts = Controller.OnMessageReceived(message);
-            return (ts == null) ? null : ts.ReadJson();
+            return (ts == null) ? null : ts.ReadToJson();
         }
 
         protected override TransStream ExecTransStream(T message)
@@ -215,7 +215,7 @@ namespace Nistec.Messaging.Channels
             return Nistec.Runtime.ActivatorUtil.CreateInstance<T>().Parse<T>(stream.GetStream());
 
             //return new QueueRequest(stream.GetStream());
-            //return QueueItem.Create(stream.GetStream());
+            //return QueueMessage.Create(stream.GetStream());
         }
 
         #endregion

@@ -18,7 +18,7 @@ namespace Nistec.Messaging.Channels
 
         #region static send methods
 
-        public static QueueAck Enqueue(QueueItem request, string PipeName, PipeOptions options, bool enableException = false)
+        public static QueueAck Enqueue(QueueMessage request, string PipeName, PipeOptions options, bool enableException = false)
         {
             //Type type = request.BodyType;
             using (PipeClientQueue client = new PipeClientQueue(PipeName, true, options))
@@ -27,7 +27,7 @@ namespace Nistec.Messaging.Channels
             }
         }
 
-        public static QueueItem SendDuplex(IQueueMessage request, string PipeName, PipeOptions options, bool enableException = false)
+        public static QueueMessage SendDuplex(IQueueMessage request, string PipeName, PipeOptions options, bool enableException = false)
         {
             //Type type = request.BodyType;
             using (PipeClientQueue client = new PipeClientQueue(PipeName, true, options))
@@ -206,12 +206,12 @@ namespace Nistec.Messaging.Channels
         /// <summary>
         /// connect to the named pipe and execute request.
         /// </summary>
-        public QueueItem Execute(IQueueMessage message, bool enableException = false)
+        public QueueMessage Execute(IQueueMessage message, bool enableException = false)
         {
-            return Execute<QueueItem>(message, enableException);
+            return Execute<QueueMessage>(message, enableException);
         }
 
-        public QueueAck Enqueue(QueueItem message, bool enableException = false)
+        public QueueAck Enqueue(QueueMessage message, bool enableException = false)
         {
             return Execute<QueueAck>(message, enableException);
         }
@@ -356,9 +356,9 @@ namespace Nistec.Messaging.Channels
         /// <summary>
         /// connect to the named pipe and execute request.
         /// </summary>
-        public QueueItem Execute(MessageRequest message, bool enableException = false)
+        public QueueMessage Execute(MessageRequest message, bool enableException = false)
         {
-            return Execute<QueueItem>(message, enableException);
+            return Execute<QueueMessage>(message, enableException);
         }
 
         #endregion

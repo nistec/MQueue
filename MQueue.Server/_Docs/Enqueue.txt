@@ -22,7 +22,7 @@ Enqueue
 									QueueItemStream.SaveFile
 								||
 								PriorityMemQueue.TryAdd
-									<Ptr, IQueueItem> QueueList Add
+									<Ptr, IQueueMessage> QueueList Add
 								}
 								GenericPtrQueue.Enqueue
 					QueueResponse.DoResponse

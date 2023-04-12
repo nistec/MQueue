@@ -226,12 +226,12 @@ namespace Nistec.Messaging.Server
                    },
                    ActionTask = () =>
                    {
-                       IQueueItem item;
+                       IQueueMessage item;
                        try
                        {
                            if (EventQueue.TryDequeue(out item))
                            {
-                               SendItem(item as QueueItem);
+                               SendItem(item as QueueMessage);
 
                                return true;
                            }
@@ -380,12 +380,12 @@ namespace Nistec.Messaging.Server
         {
             while (KeepAlive)
             {
-                IQueueItem item;
+                IQueueMessage item;
                 try
                 {
                     if (EventQueue.TryDequeue(out item))
                     {
-                        SendItem(item as QueueItem);
+                        SendItem(item as QueueMessage);
                     }
                 }
                 catch (Exception ex)
@@ -400,13 +400,13 @@ namespace Nistec.Messaging.Server
 
         #region Add/Send
 
-        //public void AddItem(QueueItem item)
+        //public void AddItem(QueueMessage item)
         //{
         //    EventQueue.Enqueue(item);
         //}
 
         /*
-        public IQueueAck AddItem(QueueItem item, TopicPublisher Publisher)
+        public IQueueAck AddItem(QueueMessage item, TopicPublisher Publisher)
         {
             Logger.Debug("TopicController AddItem : TopicName:{0}, Identifier:{1}", Publisher.TopicName, item.Identifier);
 
@@ -430,7 +430,7 @@ namespace Nistec.Messaging.Server
             return new QueueAck(MessageState.Arrived, item);
         }
 
-        public IQueueAck AddItem(QueueItem item, TopicSubscriber subscriber)
+        public IQueueAck AddItem(QueueMessage item, TopicSubscriber subscriber)
         {
             var copy = item.Copy();
             copy.Host = subscriber.QHost.RawHostAddress;
@@ -449,7 +449,7 @@ namespace Nistec.Messaging.Server
         }
 
 
-        public IQueueAck SendItem(QueueItem item)
+        public IQueueAck SendItem(QueueMessage item)
         {
             try
             {
@@ -477,7 +477,7 @@ namespace Nistec.Messaging.Server
 
         */
 
-        //public IQueueAck SendSubscriber(TopicSubscriber subscriber, QueueItem copy)
+        //public IQueueAck SendSubscriber(TopicSubscriber subscriber, QueueMessage copy)
         //{
         //    try
         //    {
@@ -612,7 +612,7 @@ namespace Nistec.Messaging.Server
                 Thread.Sleep(100);
                 return false;
             }
-            IQueueItem item;
+            IQueueMessage item;
 
             try
             {
@@ -635,7 +635,7 @@ namespace Nistec.Messaging.Server
 
                 if (m_queue.TryDequeue(out item))
                 {
-                    SendItem(item as QueueItem);
+                    SendItem(item as QueueMessage);
                     return true;
                 }
             }
@@ -650,7 +650,7 @@ namespace Nistec.Messaging.Server
             return false;
         }
 
-        public void SendItem(QueueItem item)
+        public void SendItem(QueueMessage item)
         {
             try
             {
@@ -787,7 +787,7 @@ namespace Nistec.Messaging.Server
                 },
                 ActionTask = () =>
                 {
-                    IQueueItem item;
+                    IQueueMessage item;
                     try
                     {
 
@@ -807,7 +807,7 @@ namespace Nistec.Messaging.Server
 
                             if (m_queue.TryDequeue(out item))
                             {
-                                SendItem(item as QueueItem);
+                                SendItem(item as QueueMessage);
 
                                 return true;
                             }
@@ -1028,7 +1028,7 @@ namespace Nistec.Messaging.Server
          }
 
 
-         public IQueueAck AddItem(QueueItem item)
+         public IQueueAck AddItem(QueueMessage item)
          {
              Logger.Debug("TopicController AddItem : SendDirect:{0}, Identifier: {1}, Destination: {2}", SendDirect, item.Identifier, item.Destination);
 
@@ -1077,7 +1077,7 @@ namespace Nistec.Messaging.Server
          }
 
 
-         public IQueueAck SendSubscriber(TopicSubscriber subscriber, QueueItem copy)
+         public IQueueAck SendSubscriber(TopicSubscriber subscriber, QueueMessage copy)
          {
              try
              {
@@ -1168,12 +1168,12 @@ namespace Nistec.Messaging.Server
 
             foreach(var topic in Topics.Values)
             {
-                IQueueItem item;
+                IQueueMessage item;
                 try
                 {
                     if (topic.TryDequeue(out item))
                     {
-                        SendItem(item as QueueItem);
+                        SendItem(item as QueueMessage);
 
                         //return true;
                     }
@@ -1212,12 +1212,12 @@ namespace Nistec.Messaging.Server
                     },
                     ActionTask = () =>
                     {
-                        IQueueItem item;
+                        IQueueMessage item;
                         try
                         {
                             if (EventQueue.TryDequeue(out item))
                             {
-                                SendItem(item as QueueItem);
+                                SendItem(item as QueueMessage);
 
                                 return true;
                             }
@@ -1364,12 +1364,12 @@ namespace Nistec.Messaging.Server
         {
             while (KeepAlive)
             {
-                IQueueItem item;
+                IQueueMessage item;
                 try
                 {
                     if (EventQueue.TryDequeue(out item))
                     {
-                        SendItem(item as QueueItem);
+                        SendItem(item as QueueMessage);
                     }
                 }
                 catch (Exception ex)
@@ -1383,12 +1383,12 @@ namespace Nistec.Messaging.Server
         */
 
 
-        //public void AddItem(QueueItem item)
+        //public void AddItem(QueueMessage item)
         //{
         //    EventQueue.Enqueue(item);
         //}
 
-        public IQueueAck AddItem(QueueItem item, TopicPublisher Publisher)
+        public IQueueAck AddItem(QueueMessage item, TopicPublisher Publisher)
         {
             Logger.Debug("TopicController AddItem : TopicName:{0}, Identifier:{1}", Publisher.TopicName, item.Identifier);
 
@@ -1412,7 +1412,7 @@ namespace Nistec.Messaging.Server
             return new QueueAck(MessageState.Arrived, item);
         }
 
-        public IQueueAck AddItem(QueueItem item, TopicSubscriber subscriber)
+        public IQueueAck AddItem(QueueMessage item, TopicSubscriber subscriber)
         {
             var copy = item.Copy();
             copy.Host = subscriber.QHost.RawHostAddress;
@@ -1431,7 +1431,7 @@ namespace Nistec.Messaging.Server
         }
 
 
-        public IQueueAck SendItem(QueueItem item)
+        public IQueueAck SendItem(QueueMessage item)
         {
             try
             {
@@ -1457,7 +1457,7 @@ namespace Nistec.Messaging.Server
             }
         }
 
-        //public IQueueAck SendSubscriber(TopicSubscriber subscriber, QueueItem copy)
+        //public IQueueAck SendSubscriber(TopicSubscriber subscriber, QueueMessage copy)
         //{
         //    try
         //    {
@@ -1608,7 +1608,7 @@ namespace Nistec.Messaging.Server
 
         }
 
-        public void SendSubscriber(TopicSubscriber subscriber, QueueItem item)
+        public void SendSubscriber(TopicSubscriber subscriber, QueueMessage item)
         {
             try
             {
@@ -1621,7 +1621,7 @@ namespace Nistec.Messaging.Server
                 Netlog.Exception("Topic Sender Subscriber error ", ex);
             }
         }
-        public void Send(string topicId, QueueItem item)
+        public void Send(string topicId, QueueMessage item)
         {
             TopicPublisher publisher;
 
@@ -1641,12 +1641,12 @@ namespace Nistec.Messaging.Server
         {
             while (KeepAlive)
             {
-                IQueueItem item;
+                IQueueMessage item;
                 try
                 {
                     if (EventQueue.TryDequeue(out item))
                     {
-                        Send(item.Host, item as QueueItem);
+                        Send(item.Host, item as QueueMessage);
                     }
                 }
                 catch (Exception ex)
@@ -1662,7 +1662,7 @@ namespace Nistec.Messaging.Server
         {
             while (KeepAlive)
             {
-                IQueueItem item;
+                IQueueMessage item;
                 try
                 {
                     foreach (var entry in MQ)
@@ -1673,7 +1673,7 @@ namespace Nistec.Messaging.Server
                         {
 
                             if (SendDirect)
-                                Send(item.Host, item as QueueItem);
+                                Send(item.Host, item as QueueMessage);
                             else
                                 EventQueue.Enqueue(item);
                         }

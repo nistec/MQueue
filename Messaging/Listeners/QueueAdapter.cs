@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using Nistec.Generic;
 using System.IO;
+using Nistec.Channels;
 
 namespace Nistec.Messaging.Listeners
 {
@@ -64,7 +65,7 @@ namespace Nistec.Messaging.Listeners
         /// <summary>
         /// Get or Set the delegate of target methods.
         /// </summary>
-        public Action<IQueueItem> MessageReceivedAction { get; set; }
+        public Action<IQueueMessage> MessageReceivedAction { get; set; }
         /// <summary>
         /// Get or Set the delegate of acknowledgment methods.
         /// </summary>
@@ -85,7 +86,22 @@ namespace Nistec.Messaging.Listeners
                 }
             }
         }
-
+        int _MaxConnection;
+        /// <summary>
+        /// Gets or Set the number of worker count.
+        /// </summary>
+        public int MaxConnection
+        {
+            get { return _MaxConnection; }
+            set
+            {
+                if (value > 0)
+                {
+                    _MaxConnection = value;
+                }
+            }
+        }
+        public bool IsMultiTask { get; set; }
         //int _interval;
         ///// <summary>
         ///// Gets or Set the interval sleep in milliseconds between tasks.
@@ -137,11 +153,13 @@ namespace Nistec.Messaging.Listeners
             ProtocolType = AdapterProtocols.NamedPipe;
             IsTrans = false;
             IsTopic = false;
+            IsMultiTask = true;
             MaxItemsPerSession = 1;
             Interval = 1000;// interval<=0? DefaultInterval:interval;// 1000;
             ConnectTimeout = Defaults.ConnectTimeout;
             ReadTimeout = Defaults.ReadTimeout;
             WorkerCount = 1;
+            MaxConnection = 9999;
             IsAsync = false;
             EnableResetEvent = false;
             EnableDynamicWait = false;
@@ -164,7 +182,7 @@ namespace Nistec.Messaging.Listeners
         /// <param name="serverName"></param>
         public QueueAdapter(string queueName, string serverName) : this()
         {
-            Source = new QueueHost(queueName, serverName);
+            Source = QueueHost.ParseLocal(queueName, serverName);
         }
 
         /// <summary>
@@ -176,7 +194,7 @@ namespace Nistec.Messaging.Listeners
         /// <param name="hostName"></param>
         public QueueAdapter(HostProtocol protocol, string serverName, int hostPort, string hostName) : this()
         {
-            Source = new QueueHost(protocol, serverName, hostPort, hostName);
+            Source = new QueueHost(protocol, serverName, hostPort.ToString(), hostName);
         }
         public QueueAdapter(string serverName, string pipeName, string hostName) : this()
         {

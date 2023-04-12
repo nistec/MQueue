@@ -54,7 +54,7 @@ namespace Nistec.Messaging.Remote
             return Pool.TryGetValue(hostname, out api);
         }
 
-        public static IQueueAck Enqueue(QueueItem message, string hostname, int connectTimeout = 0)
+        public static IQueueAck Enqueue(QueueMessage message, string hostname, int connectTimeout = 0)
         {
             QueueApi api;
             if (Pool.TryGetValue(hostname, out api))
@@ -65,7 +65,7 @@ namespace Nistec.Messaging.Remote
             return new QueueAck(MessageState.QueueNotFound, message);
         }
 
-        public static IQueueItem Dequeue(string hostname, int connectTimeout = 0)
+        public static IQueueMessage Dequeue(string hostname, int connectTimeout = 0)
         {
             QueueApi api;
             if (Pool.TryGetValue(hostname, out api))
@@ -81,21 +81,21 @@ namespace Nistec.Messaging.Remote
     public static class RemoteExtension
     {
 
-        public static IQueueAck Enqueue(this IQueueItem message, string hostAddress,  int connectTimeout = 0)
+        public static IQueueAck Enqueue(this IQueueMessage message, string hostAddress,  int connectTimeout = 0)
         {
             var host = QueueHost.Parse(hostAddress);
             var api = new QueueApi(host);
             api.IsAsync = false;
             api.ConnectTimeout = connectTimeout;
-            return api.Enqueue(message as QueueItem);
+            return api.Enqueue(message as QueueMessage);
         }
 
-        public static IQueueAck Enqueue(this IQueueItem message,  QueueHost host, int connectTimeout = 0)
+        public static IQueueAck Enqueue(this IQueueMessage message,  QueueHost host, int connectTimeout = 0)
         {
             var api = new QueueApi(host);
             api.IsAsync = false;
             api.ConnectTimeout = connectTimeout;
-            return api.Enqueue(message as QueueItem);
+            return api.Enqueue(message as QueueMessage);
         }
  
     }

@@ -1,4 +1,5 @@
-﻿using Nistec.IO;
+﻿using Nistec.Channels;
+using Nistec.IO;
 using Nistec.Messaging;
 using Nistec.Messaging.Remote;
 using Nistec.Runtime;
@@ -59,40 +60,40 @@ namespace Nistec.Messaging.Client
             return q;
         }
 
-        public static QueueItem CreateQueueItem(string body, string label)
+        public static QueueMessage CreateQueueItem(string body, string label)
         {
-            QueueItem msg = new QueueItem();
+            QueueMessage msg = new QueueMessage();
             msg.SetBody(body);
             msg.Label = label;
 
             return msg;
         }
 
-        public static QueueItem CreateQueueItem(string body, string label, Priority priority, string id)
+        public static QueueMessage CreateQueueItem(string body, string label, Priority priority, string id)
         {
-            QueueItem msg = new QueueItem();
+            QueueMessage msg = new QueueMessage();
             msg.SetBody(body);
             msg.Label = label;
             msg.MessageType = MQTypes.Message;
             msg.Priority = priority;
             msg.QCommand = QueueCmd.Enqueue;
             //msg.Identifier= identifier;
-            msg.Id = id;
+            msg.CustomId = id;
             //msg.GroupId = groupId;
 
             return msg;
         }
 
-        public static QueueItem CreateQueueItem(NetStream body, Type type, string label, Priority priority, string id)
+        public static QueueMessage CreateQueueItem(NetStream body, Type type, string label, Priority priority, string id)
         {
-            QueueItem msg = new QueueItem();
+            QueueMessage msg = new QueueMessage();
             msg.SetBody(body, type.Name);
             msg.Label = label;
             msg.MessageType = MQTypes.Message;
             msg.Priority = priority;
             msg.QCommand = QueueCmd.Enqueue;
             //msg.Identifier= identifier;
-            msg.Id = id;
+            msg.CustomId = id;
             //msg.GroupId = groupId;
 
             return msg;

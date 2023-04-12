@@ -273,7 +273,7 @@ namespace Nistec.Messaging.UI
             this.tbLoadXml.Name = "tbLoadXml";
             this.tbLoadXml.Size = new System.Drawing.Size(22, 20);
             this.tbLoadXml.TabIndex = 20;
-            this.tbLoadXml.ToolTipText = "Load Queue from xml file";
+            this.tbLoadXml.ToolTipText = "Load Queue from file";
             // 
             // tbSaveXml
             // 
@@ -285,7 +285,7 @@ namespace Nistec.Messaging.UI
             this.tbSaveXml.Name = "tbSaveXml";
             this.tbSaveXml.Size = new System.Drawing.Size(22, 20);
             this.tbSaveXml.TabIndex = 19;
-            this.tbSaveXml.ToolTipText = "Save Queue as xml file";
+            this.tbSaveXml.ToolTipText = "Save Queue Items to file";
             // 
             // sp5
             // 

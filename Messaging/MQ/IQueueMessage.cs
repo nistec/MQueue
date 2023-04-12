@@ -7,6 +7,7 @@ using System.IO;
 using Nistec.Runtime;
 using Nistec.Serialization;
 using Nistec.Channels;
+using Nistec.Generic;
 
 namespace Nistec.Messaging
 {
@@ -18,7 +19,7 @@ namespace Nistec.Messaging
         string Host { get; }
     }
 
-    public interface IQueueMessage : IMessageStream, ISerialEntity, ITransformMessage, IDisposable
+    public interface IQueueRequest : IMessageStream, ISerialEntity, ITransformMessage, IDisposable
     {
         /// <summary>
         /// Get message type.
@@ -69,10 +70,10 @@ namespace Nistec.Messaging
         /// </summary>
         string Host { get; set; }
        
-        /// <summary>
-        /// Get ItemId
-        /// </summary>
-        string Identifier { get;}
+        ///// <summary>
+        ///// Get ItemId
+        ///// </summary>
+        //string Identifier { get;}
 
         /// <summary>
         /// Get the current body stream.
@@ -89,7 +90,7 @@ namespace Nistec.Messaging
         string Print();
     }
 
-    public interface IQueueItem : IQueueMessage //, IMessageStream//changeIQueueMessage
+    public interface IQueueMessage : IQueueRequest //, IMessageStream//changeIQueueMessage
     {
 
         #region property
@@ -108,14 +109,14 @@ namespace Nistec.Messaging
         /// Get Destination
         /// </summary>
         string Destination { get; }
-        /// <summary>
-        /// Get Channel
-        /// </summary>
-        int ChannelId { get; }
-        /// <summary>
-        /// Get Channel
-        /// </summary>
-        int AccountId { get; }
+        ///// <summary>
+        ///// Get Channel
+        ///// </summary>
+        //int ChannelId { get; }
+        ///// <summary>
+        ///// Get Channel
+        ///// </summary>
+        //int AccountId { get; }
         ///// <summary>
         ///// Get Command
         ///// </summary>
@@ -126,7 +127,10 @@ namespace Nistec.Messaging
         ///// </summary>
         //TransformTypes TransformType { get; }
 
-
+        /// <summary>
+        /// Get or Set message type.
+        /// </summary>
+        NameValueArgs<int> IArgs { get; }
 
         ///// <summary>
         ///// Get or Set message type.
@@ -162,7 +166,7 @@ namespace Nistec.Messaging
         /// </summary>
         DateTime ArrivedTime { get; }
 
-        #region IQueueMessage
+        #region IQueueRequest
 
         ///// <summary>
         ///// Get the current body stream.
@@ -218,7 +222,7 @@ namespace Nistec.Messaging
 
         #endregion
 
-        QueueItem Copy();
+        QueueMessage Copy();
         
         //Message ToMessage();
 

@@ -102,7 +102,7 @@ namespace Nistec.Messaging
         #region override
 
         /// <summary>
-        /// Peek IQueueItem from queue
+        /// Peek IQueueMessage from queue
         /// </summary>
         /// <returns></returns>
         public Ptr Peek()
@@ -114,7 +114,7 @@ namespace Nistec.Messaging
 
         
         /// <summary>
-        /// Dequeue IQueueItem from queue
+        /// Dequeue IQueueMessage from queue
         /// </summary>
         /// <returns></returns>
         public Ptr Dequeue()
@@ -149,7 +149,7 @@ namespace Nistec.Messaging
         }
 
         /// <summary>
-        /// Enqueue IQueueItem in queue
+        /// Enqueue IQueueMessage in queue
         /// </summary>
         /// <param name="ptr"></param>
         public new void Enqueue(Ptr ptr)
@@ -162,7 +162,7 @@ namespace Nistec.Messaging
         }
 
         /// <summary>
-        /// ReEnqueue IQueueItem in queue
+        /// ReEnqueue IQueueMessage in queue
         /// </summary>
         /// <param name="ptr"></param>
         internal void ReEnqueue(Ptr ptr)
@@ -224,7 +224,7 @@ namespace Nistec.Messaging
         }
 
         /// <summary>
-        /// Find IQueueItem
+        /// Find IQueueMessage
         /// </summary>
         /// <param name="itemId"></param>
         /// <returns></returns>

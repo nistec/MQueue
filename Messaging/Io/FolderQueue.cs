@@ -29,7 +29,7 @@ namespace Nistec.Messaging.Io
         int _WaitInterval = DefaultWaitInterval;
         public int WaitInterval { get { return _WaitInterval; } set { _WaitInterval = value <= 10 ? DefaultWaitInterval : value; } }
 
-        QueueItem CurrentItem = null;
+        QueueMessage CurrentItem = null;
 
 
         FileMessage m_fileMessage;
@@ -78,7 +78,7 @@ namespace Nistec.Messaging.Io
         /// <summary>
         /// Get or Set the delegate of target methods.
         /// </summary>
-        public Action<QueueItem> QueueAction { get; set; }
+        public Action<QueueMessage> QueueAction { get; set; }
 
         /// <summary>
         /// Get or Set the delegate of acknowledgment methods.
@@ -265,7 +265,7 @@ namespace Nistec.Messaging.Io
             int connectTimeout,
             int maxItemsPersession, 
             FileOrderTypes orderType, 
-            Action<QueueItem> targetAction,
+            Action<QueueMessage> targetAction,
             bool isCoverable)
         {
             return new FolderQueue(host)
@@ -307,7 +307,7 @@ namespace Nistec.Messaging.Io
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        public IQueueAck Enqueue(QueueItem message)
+        public IQueueAck Enqueue(QueueMessage message)
         {
             return m_fileMessage.Enqueue(message);
 
@@ -315,7 +315,7 @@ namespace Nistec.Messaging.Io
             //string filename = Ptr.GetPtrLocation(m_fileMessage.Host.QueuePath, message.Identifier);
             //var stream = message.Serialize(true);
             //stream.SaveToFile(filename);
-            //return new QueueItem(message, MessageState.Received, (string)null);
+            //return new QueueMessage(message, MessageState.Received, (string)null);
         }
 
         /// <summary>
@@ -340,12 +340,12 @@ namespace Nistec.Messaging.Io
         /// </summary>
         /// <param name="onTake"></param>
         /// <returns></returns>
-        public int Dequeue(Action<IQueueItem> onTake)
+        public int Dequeue(Action<IQueueMessage> onTake)
         {
             return m_fileMessage.DequeueFolder(1, onTake);
         }
 
-        public IQueueItem Dequeue()
+        public IQueueMessage Dequeue()
         {
             return m_fileMessage.DequeueFolder(1).FirstOrDefault();
         }
@@ -354,7 +354,7 @@ namespace Nistec.Messaging.Io
         ///// Dequeue message from queue, using sync methods.
         ///// </summary>
         ///// <returns></returns>
-        //public IQueueItem Dequeue()
+        //public IQueueMessage Dequeue()
         //{
 
         //    try
@@ -394,7 +394,7 @@ namespace Nistec.Messaging.Io
         /// </summary>
         /// <param name="identifier"></param>
         /// <returns></returns>
-        public IQueueItem DequeueItem(string identifier)
+        public IQueueMessage DequeueItem(string identifier)
         {
             try
             {
@@ -429,7 +429,7 @@ namespace Nistec.Messaging.Io
             return null;
         }
 
-        public int Dequeue(int maxItemsPerSession, Action<IQueueItem> onTake)
+        public int Dequeue(int maxItemsPerSession, Action<IQueueMessage> onTake)
         {
             return m_fileMessage.DequeueFolder(maxItemsPerSession, onTake);
         }
@@ -441,7 +441,7 @@ namespace Nistec.Messaging.Io
 
 
 
-        //public void DequeueAsync(Action<string> onFault, Action<QueueItem> onCompleted, DuplexTypes DuplexType, AutoResetEvent resetEvent)// = DuplexTypes.WaitOne)
+        //public void DequeueAsync(Action<string> onFault, Action<QueueMessage> onCompleted, DuplexTypes DuplexType, AutoResetEvent resetEvent)// = DuplexTypes.WaitOne)
         //{
         //    try
         //    {
@@ -578,7 +578,7 @@ namespace Nistec.Messaging.Io
         //                count = m_fileMessage.DequeueFolderTransfer(FileOrderType, 1);
         //                //if (count > 0 && CurrentItem != null)
         //                //{
-        //                //    return new QueueItem() { Host = m_fileMessage.HostName, State = MessageState.Received, Identifier = CurrentItem.Identifier };
+        //                //    return new QueueMessage() { Host = m_fileMessage.HostName, State = MessageState.Received, Identifier = CurrentItem.Identifier };
         //                //}
         //            }
         //        }
@@ -597,7 +597,7 @@ namespace Nistec.Messaging.Io
         //    //int count = m_fileMessage.DequeueFileTransfer();
         //    //if (count > 0 && CurrentItem != null)
         //    //{
-        //    //    return new QueueItem() { Host = m_host.HostName, State = MessageState.Received, Identifier = CurrentItem.Identifier };
+        //    //    return new QueueMessage() { Host = m_host.HostName, State = MessageState.Received, Identifier = CurrentItem.Identifier };
         //    //}
         //    //return count;
 

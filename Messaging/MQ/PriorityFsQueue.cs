@@ -25,7 +25,7 @@ namespace Nistec.Messaging
         #region members
 
         FileMessage m_fs;
-        ConcurrentDictionary<Ptr, IQueueItem> QueueItems;
+        ConcurrentDictionary<Ptr, IQueueMessage> QueueItems;
         PersistCommitMode CommitMode = PersistCommitMode.OnMemory;
         CoverMode CoverMode = CoverMode.FileStream;
         public string RootPath { get; private set; }
@@ -41,11 +41,11 @@ namespace Nistec.Messaging
             int concurrencyLevel = numProcs * 2;
             int initialCapacity = 101;
 
-            QueueItems = new ConcurrentDictionary<Ptr, IQueueItem>(concurrencyLevel, initialCapacity);
+            QueueItems = new ConcurrentDictionary<Ptr, IQueueMessage>(concurrencyLevel, initialCapacity);
 
             //CommitMode = qp.CommitMode;
             //CoverMode = qp.Mode;
-            RootPath = qp.RootPath;
+            RootPath = qp.HostAddress;
             CommitMode = qp.CommitMode;
             CoverMode = qp.CoverMode;
 
@@ -64,7 +64,7 @@ namespace Nistec.Messaging
                 m_fs.Logger = Logger;
                 //InitRecoverQueue();
 
-                //m_db = new PersistentBinary<IQueueItem>(settings);
+                //m_db = new PersistentBinary<IQueueMessage>(settings);
                 ////m_db = new PersistentDictionary(settings);
                 //m_db.BeginLoading += M_db_BeginLoading;
                 //m_db.LoadCompleted += M_db_LoadCompleted;
@@ -80,7 +80,7 @@ namespace Nistec.Messaging
                 if (qp.ReloadOnStart)
                 {
                     Logger.Info("PriorityFsQueue will load items to : {0}", qp.HostName);
-                    m_fs.ReloadItemsAsync(FolderType.Queue, 0, (IQueueItem item) =>
+                    m_fs.ReloadItemsAsync(FolderType.Queue, 0, (IQueueMessage item) =>
                     {
                         this.Requeue(item);
                     });
@@ -129,7 +129,7 @@ namespace Nistec.Messaging
         //    QLogger.InfoFormat("PriorityComplexQueue ClearCompleted : {0}", m_db.Name);
         //}
 
-        //private void M_db_ItemChanged(object sender, Generic.GenericEventArgs<string, string, IQueueItem> e)
+        //private void M_db_ItemChanged(object sender, Generic.GenericEventArgs<string, string, IQueueMessage> e)
         //{
         //    QLogger.InfoFormat("PriorityPersistQueue ItemChanged : action- {0}, key- {1}", e.Args1, e.Args2, e.Args3);
         //}
@@ -164,7 +164,7 @@ namespace Nistec.Messaging
 
         #region Persist Tasks
 
-        bool PersistItemRemove(IQueueItem item)
+        bool PersistItemRemove(IQueueMessage item)
         {
             return Task<bool>.Factory.StartNew(() =>
                 m_fs.DeleteItem(item)
@@ -172,7 +172,7 @@ namespace Nistec.Messaging
             //return true;
         }
 
-        bool PersistItemAdd(IQueueItem item)
+        bool PersistItemAdd(IQueueMessage item)
         {
 
             Task tsk = Task.Factory.StartNew(() =>
@@ -185,7 +185,7 @@ namespace Nistec.Messaging
         #region override
 
 
-        protected override bool TryAdd(Ptr ptr, IQueueItem item)
+        protected override bool TryAdd(Ptr ptr, IQueueMessage item)
         {
             var copy = item.Copy();
             QueueItems[ptr] = copy;
@@ -213,7 +213,7 @@ namespace Nistec.Messaging
 
         }
 
-        protected override bool TryPeek(Ptr ptr, out IQueueItem item)
+        protected override bool TryPeek(Ptr ptr, out IQueueMessage item)
         {
             if (CoverMode == CoverMode.FileStream)
             {
@@ -244,7 +244,7 @@ namespace Nistec.Messaging
             return false;
         }
 
-        protected override bool TryDequeue(Ptr ptr, out IQueueItem item)
+        protected override bool TryDequeue(Ptr ptr, out IQueueMessage item)
         {
 
             if (CoverMode == CoverMode.FileStream)
@@ -253,7 +253,7 @@ namespace Nistec.Messaging
                 {
                     if (CommitMode == PersistCommitMode.OnDisk)
                     {
-                        //IQueueItem item_pers = null;
+                        //IQueueMessage item_pers = null;
 
                         if(m_fs.DeleteItem(item))
                         {
@@ -284,10 +284,10 @@ namespace Nistec.Messaging
             return false;
         }
 
-        protected override IQueueItem GetFirstItem()
+        protected override IQueueMessage GetFirstItem()
         {
 
-            IQueueItem item = null;
+            IQueueMessage item = null;
             try
             {
                 if (CoverMode == CoverMode.FileStream)
@@ -295,7 +295,7 @@ namespace Nistec.Messaging
                     item = base.Dequeue();
                     if (item != null)
                     {
-                        //IQueueItem qi;
+                        //IQueueMessage qi;
 
                         //m_fs.TryRemove(item.Identifier, out qi);
 
@@ -390,7 +390,7 @@ namespace Nistec.Messaging
         internal protected override void ReloadItems()
         {
             if (CoverMode == CoverMode.FileStream)
-                m_fs.ReloadItemsAsync(FolderType.Queue,0, (IQueueItem item) =>
+                m_fs.ReloadItemsAsync(FolderType.Queue,0, (IQueueMessage item) =>
                 {
                     this.Requeue(item);
                 });
@@ -416,7 +416,7 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public override void Requeue(IQueueItem item)
+        public override void Requeue(IQueueMessage item)
         {
             base.Requeue(item);
 

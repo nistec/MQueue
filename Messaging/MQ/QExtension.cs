@@ -49,7 +49,7 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="writeContextType"></param>
         /// <returns></returns>
-        public static NetStream Serialize(this IQueueItem message, bool writeContextType)
+        public static NetStream Serialize(this IQueueMessage message, bool writeContextType)
         {
             NetStream ns = new NetStream();
             var streamer = new BinaryStreamer(ns);
@@ -62,13 +62,13 @@ namespace Nistec.Messaging
         }
 
 
-        public static TransStream DoResponse(this QueueItem item)
+        public static TransStream DoResponse(this QueueMessage item)
         {
             if (item != null)
                 return item.ToTransStream();//.BodyStream;
             return null;
         }
-        public static TransStream DoResponse(this IQueueItem item)
+        public static TransStream DoResponse(this IQueueMessage item)
         {
             if (item != null)
                 return item.ToTransStream();
@@ -88,12 +88,12 @@ namespace Nistec.Messaging
         //    return new MessageAck(message, MessageState.Received, (string)null);
         //}
 
-        public static string GetFileName(this QueueItem message, string path)
+        public static string GetFileName(this QueueMessage message, string path)
         {
             return SysIO.PathFix(path + "\\" + message.Filename);
         }
 
-        public static void SaveToFile(this QueueItem message, string path)
+        public static void SaveToFile(this QueueMessage message, string path)
         {
             string filename = message.GetFileName(path);
             var stream = message.Serialize(true);
@@ -114,7 +114,7 @@ namespace Nistec.Messaging
             //}
         }
 
-        public static object[] MessageItemArray(this QueueItem msg)
+        public static object[] MessageItemArray(this QueueMessage msg)
         {
             //return new object[] {
             //MessageState,
@@ -152,7 +152,7 @@ namespace Nistec.Messaging
 
         }
 
-        public static DataParameter[] MessageDataParameters(this QueueItem msg)
+        public static DataParameter[] MessageDataParameters(this QueueMessage msg)
         {
 
             return new DataParameter[]{

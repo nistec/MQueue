@@ -80,14 +80,14 @@ namespace Nistec.Messaging.Listeners
         #endregion
 
 
-        //protected override IQueueAck Send(QueueItem message)
+        //protected override IQueueAck Send(QueueMessage message)
         //{
         //    return _api.Enqueue(message);
         //}
 
         protected override void ReceiveAsync(IDynamicWait dw)
         {
-            _api.Dequeue((IQueueItem item) => {
+            _api.Dequeue((IQueueMessage item) => {
 
                 if (dw!=null)
                     dw.DynamicWaitAck(item!=null);
@@ -102,7 +102,7 @@ namespace Nistec.Messaging.Listeners
             //    );
         }
 
-        protected override IQueueItem Receive()
+        protected override IQueueMessage Receive()
         {
             return _api.Dequeue();
         }

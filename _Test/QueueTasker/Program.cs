@@ -57,7 +57,7 @@ namespace QueueTasker
         {
 
             DateTime start = DateTime.Now;
-            QueueItem msg = new QueueItem();
+            QueueMessage msg = new QueueMessage();
             msg.SetBody("Hello world " + DateTime.Now.ToString("s"));
             if (q.IsAsync)
             {
@@ -85,7 +85,7 @@ namespace QueueTasker
             {
                 //Task.Factory.StartNew(() => SendItem(q, i));
 
-                QueueItem msg = new QueueItem();
+                QueueMessage msg = new QueueMessage();
                 msg.Label = i.ToString();
                 msg.SetBody("Hello world " + DateTime.Now.ToString("s"));
 
@@ -126,7 +126,7 @@ namespace QueueTasker
 
             //    //SendItem(q,counter);
                 
-            //    //QueueItem msg = new QueueItem();
+            //    //QueueMessage msg = new QueueMessage();
             //    //msg.SetBodyText("Hello world " + DateTime.Now.ToString("s"));
             //    //q.SendAsync(msg, 5000, (ack) =>
             //    //{

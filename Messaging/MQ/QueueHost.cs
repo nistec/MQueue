@@ -11,8 +11,116 @@ using Nistec.Generic;
 
 namespace Nistec.Messaging
 {
+    [Serializable]
+    public class QueueHost : HostChannel, IDisposable//, ISerialEntity
+    {
+        #region ctor
+
+        public QueueHost() : base()
+        {
+            CommitMode = PersistCommitMode.None;
+            CoverMode = CoverMode.Memory;
+            ReloadOnStart = false;
+        }
+        public QueueHost(string address):base(address)
+        {
+            
+        }
+
+        public QueueHost(HostProtocol protocol, string serverAddress, string hostPort, string hostName): base(protocol, serverAddress, hostPort, hostName)
+        {
+            
+        }
+        public QueueHost(HostProtocol protocol, string serverAddress, int port, string hostName) : base(protocol, serverAddress, port.ToString(), hostName)
+        {
+
+        }
+        public QueueHost(HostProtocol protocol, string address, string hostName): base(protocol, address, hostName)
+        {
+           
+        }
+
+        #endregion
+
+        #region Dispose
+
+        /// <summary>
+        /// Release all resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        bool disposed = false;
+        /// <summary>
+        /// Get indicate wether the current instance is Disposed.
+        /// </summary>
+        protected bool IsDisposed
+        {
+            get { return disposed; }
+        }
+        /// <summary>
+        /// Dispose.
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                Segments = null;
+
+                //HostName = null;
+                //ServerName = null;
+                //_RawHostAddress = null;
+                //_HostAddress = null;
+            }
+            disposed = true;
+        }
+        #endregion
+
+        #region properties
+        /// <summary>
+        /// Cover Mode
+        /// </summary>
+        public CoverMode CoverMode { get; set; }
+        /// <summary>
+        /// Commit Mode
+        /// </summary>
+        public PersistCommitMode CommitMode { get; set; }
+        /// <summary>
+        /// Reload On Start
+        /// </summary>
+        public bool ReloadOnStart { get; set; }
+        #endregion
+
+        #region Parse
+        public static QueueHost ParseLocal(string hostName, string hostAddress = ".")
+        {
+            if (string.IsNullOrEmpty(hostAddress) || hostAddress == ".")
+                hostAddress = ".";
+
+            var qh = new QueueHost();
+            qh.Segments[1] = hostAddress;
+            qh.Segments[3] = hostName;
+            //ServerName = serverName;
+            qh.RawHostAddress = string.Format("local:{0}:{1}?{2}", hostAddress, ".", hostName);
+            //_HostAddress = "local";
+            qh.Protocol = HostProtocol.local;
+            qh.Port = 0;
+            return qh;
+        }
 
 
+        public static QueueHost Parse(string hostAddress)
+        {
+            QueueHost host = new QueueHost(hostAddress);
+            return host;
+        }
+        #endregion
+    }
+    
+    /*
     public enum HostProtocol : byte
     {
         local = 0,
@@ -27,7 +135,7 @@ namespace Nistec.Messaging
     public class QueueHost : ISerialEntity,IDisposable
     {
 
-        
+
 
         public QueueHost() {
             CommitMode = PersistCommitMode.None;
@@ -230,7 +338,7 @@ namespace Nistec.Messaging
         /// Reload On Start
         /// </summary>
         public bool ReloadOnStart { get; set; }
-        
+
         ///// <summary>
         ///// Get or Set QueueName
         ///// </summary>
@@ -293,7 +401,7 @@ namespace Nistec.Messaging
             get { return _HostProtocol; }
         }
 
-        
+
 
         int _Port;
         public int Port
@@ -736,6 +844,6 @@ namespace Nistec.Messaging
 
         #endregion
     }
+    */
 
-  
 }

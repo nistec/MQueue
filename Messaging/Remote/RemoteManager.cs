@@ -18,7 +18,7 @@ namespace Nistec.Messaging.Remote
         /// <summary>
         /// Get or Set the delegate of target methods.
         /// </summary>
-        public Action<IQueueItem,string> MessageReceivedAction { get; set; }
+        public Action<IQueueMessage,string> MessageReceivedAction { get; set; }
         /// <summary>
         /// Get or Set the delegate of acknowledgment methods.
         /// </summary>
@@ -53,7 +53,7 @@ namespace Nistec.Messaging.Remote
             ql.MessageReceived -= Ql_MessageReceived;
         }
 
-        protected virtual void OnMessageReceived(IQueueItem item, string hostName)
+        protected virtual void OnMessageReceived(IQueueMessage item, string hostName)
         {
             if (MessageReceivedAction != null)
                 MessageReceivedAction(item, hostName);
@@ -66,7 +66,7 @@ namespace Nistec.Messaging.Remote
         }
 
 
-        private void Ql_MessageReceived(object sender, Generic.GenericEventArgs<IQueueItem> e)
+        private void Ql_MessageReceived(object sender, Generic.GenericEventArgs<IQueueMessage> e)
         {
             var message = e.Args;
             QueueListener ql = (QueueListener)sender;

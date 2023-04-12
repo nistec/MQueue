@@ -36,7 +36,7 @@ namespace Nistec.Messaging
                 throw new MessageException(MessageState.PipeError, "Invalid stream to write ack");
             }
             string lbl = label == null ? state.ToString() : label;
-            QueueItem response = QueueItem.Ack(state, cmd,lbl,null);
+            QueueMessage response = QueueMessage.Ack(state, cmd,lbl,null);
             using (NetStream stream = new NetStream())
             {
                 response.EntityWrite(stream, null);
@@ -53,7 +53,7 @@ namespace Nistec.Messaging
             try
             {
                 string lbl = ex.Message;
-                QueueItem response = QueueItem.Ack(state, cmd, ex);
+                QueueMessage response = QueueMessage.Ack(state, cmd, ex);
                 using (NetStream stream = new NetStream())
                 {
                     response.EntityWrite(stream, null);
@@ -67,7 +67,7 @@ namespace Nistec.Messaging
         }
         
 
-        //public static void WriteResponse(Stream pipeStream, IQueueItem item, MessageState state)
+        //public static void WriteResponse(Stream pipeStream, IQueueMessage item, MessageState state)
         //{
         //    if (pipeStream == null)
         //    {
@@ -75,18 +75,18 @@ namespace Nistec.Messaging
         //    }
         //    if (item != null)
         //    {
-        //        ((QueueItem)item).SetState(state);
+        //        ((QueueMessage)item).SetState(state);
         //        WriteReponse(pipeStream, item.Serilaize());
 
         //        //using (NetStream stream = new NetStream())
         //        //{
         //        //    //response.EntityWrite(stream, null);
-        //        //    WriteReponse(pipeStream, ((QueueItem)item).ItemBinary);
+        //        //    WriteReponse(pipeStream, ((QueueMessage)item).ItemBinary);
         //        //}
         //    }
         //    else
         //    {
-        //        QueueItem response = QueueItem.Ack(MessageState.UnExpectedError,item.QCommand, new MessageException(MessageState.UnExpectedError, "WriteResponse error: there is no item stream to write reponse"));
+        //        QueueMessage response = QueueMessage.Ack(MessageState.UnExpectedError,item.QCommand, new MessageException(MessageState.UnExpectedError, "WriteResponse error: there is no item stream to write reponse"));
         //        using (NetStream stream = new NetStream())
         //        {
         //            response.EntityWrite(stream, null);
@@ -105,14 +105,14 @@ namespace Nistec.Messaging
             }
             if (item != null)
             {
-                var message = QueueItem.Ack(state, cmd, lbl,null);
+                var message = QueueMessage.Ack(state, cmd, lbl,null);
                 
                 message.SetBody(item);
                 WriteReponse(pipeStream, message.ToStream().ToArray());
             }
             else
             {
-                QueueItem response = QueueItem.Ack(MessageState.UnExpectedError, cmd, new MessageException(MessageState.UnExpectedError, "WriteReport error: there is no item stream to write reponse"));
+                QueueMessage response = QueueMessage.Ack(MessageState.UnExpectedError, cmd, new MessageException(MessageState.UnExpectedError, "WriteReport error: there is no item stream to write reponse"));
                 WriteReponse(pipeStream, response.ToStream().ToArray());
             }
 
@@ -121,7 +121,7 @@ namespace Nistec.Messaging
 
         
 
-        public static TransStream DoError(MessageState state, IQueueMessage message, bool responseAck, Exception ex)
+        public static TransStream DoError(MessageState state, IQueueRequest message, bool responseAck, Exception ex)
         {
 
             try
@@ -129,7 +129,7 @@ namespace Nistec.Messaging
                 string lbl = ex.Message;
                 if (responseAck)
                     return new QueueAck(state, message, ex.Message).ToTransStream();
-                return QueueItem.Ack(state, message.QCommand, ex).ToTransStream();
+                return QueueMessage.Ack(state, message.QCommand, ex).ToTransStream();
             }
             catch (Exception x)
             {
@@ -145,7 +145,7 @@ namespace Nistec.Messaging
         //    try
         //    {
         //        string lbl = ex.Message;
-        //        return QueueItem.Ack(state, cmd, ex).ToTransStream();
+        //        return QueueMessage.Ack(state, cmd, ex).ToTransStream();
         //        //using (NetStream stream = new NetStream())
         //        //{
         //        //    response.EntityWrite(stream, null);
@@ -171,7 +171,7 @@ namespace Nistec.Messaging
             QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
             return item.ToTransStream();
         }
-        public static TransStream DoResponse(IQueueItem item)
+        public static TransStream DoResponse(IQueueMessage item)
         {
             if (item == null)
             {
@@ -181,7 +181,7 @@ namespace Nistec.Messaging
             QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
             return item.ToTransStream();
         }
-        public static TransStream DoResponse(IQueueItem item, MessageState state)
+        public static TransStream DoResponse(IQueueMessage item, MessageState state)
         {
             if (item == null)
             {
@@ -189,9 +189,9 @@ namespace Nistec.Messaging
                 //throw new MessageException(MessageState.MessageError, "Invalid queue item to write response");
             }
 
-            var ts=((QueueItem)item).ToTransStream(state);
+            var ts=((QueueMessage)item).ToTransStream(state);
 
-            //((QueueItem)item).SetState(state);
+            //((QueueMessage)item).SetState(state);
             QLogger.Debug("QueueController DoResponse IQueueAck: {0}", item.Print());
             //return item.ToStream();
 
@@ -199,7 +199,7 @@ namespace Nistec.Messaging
 
             //if (item != null)
             //{
-            //    ((QueueItem)item).SetState(state);
+            //    ((QueueMessage)item).SetState(state);
             //    return item.GetItemStream();
             //}
             //else
@@ -225,14 +225,14 @@ namespace Nistec.Messaging
             }
             if (item != null)
             {
-                var message = QueueItem.Ack(state, cmd,lbl,null);
+                var message = QueueMessage.Ack(state, cmd,lbl,null);
                 
                 message.SetBody(item);
                 return message.ToTransStream();
             }
             else
             {
-                QueueItem response = QueueItem.Ack(MessageState.UnExpectedError, cmd, new MessageException(MessageState.UnExpectedError, "WriteReport error: there is no item stream to write reponse"));
+                QueueMessage response = QueueMessage.Ack(MessageState.UnExpectedError, cmd, new MessageException(MessageState.UnExpectedError, "WriteReport error: there is no item stream to write reponse"));
                 return response.ToTransStream();
             }
 

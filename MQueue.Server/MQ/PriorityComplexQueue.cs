@@ -27,8 +27,8 @@ namespace Nistec.Messaging
 
         #region members
 
-        PersistentBinary<IQueueItem> m_db;
-        ConcurrentDictionary<Ptr, IQueueItem> QueueItems;
+        PersistentBinary<IQueueMessage> m_db;
+        ConcurrentDictionary<Ptr, IQueueMessage> QueueItems;
         CommitMode CommitMode = CommitMode.OnMemory;
         CoverMode CoverMode = CoverMode.Memory;
         #endregion
@@ -43,7 +43,7 @@ namespace Nistec.Messaging
             int concurrencyLevel = numProcs * 2;
             int initialCapacity = 101;
 
-            QueueItems = new ConcurrentDictionary<Ptr, IQueueItem>(concurrencyLevel, initialCapacity);
+            QueueItems = new ConcurrentDictionary<Ptr, IQueueMessage>(concurrencyLevel, initialCapacity);
 
             CommitMode = (CommitMode)(int)qp.CommitMode;
             CoverMode = qp.Mode;
@@ -58,7 +58,7 @@ namespace Nistec.Messaging
                     DbPath = AgentManager.Settings.QueuesPath
                 };
                 //settings.SetFast();
-                m_db = new PersistentBinary<IQueueItem>(settings);
+                m_db = new PersistentBinary<IQueueMessage>(settings);
                 //m_db = new PersistentDictionary(settings);
                 m_db.BeginLoading += M_db_BeginLoading;
                 m_db.LoadCompleted += M_db_LoadCompleted;
@@ -85,7 +85,7 @@ namespace Nistec.Messaging
             Logger.Info("PriorityComplexQueue ClearCompleted : {0}", m_db.Name);
         }
 
-        //private void M_db_ItemChanged(object sender, Generic.GenericEventArgs<string, string, IQueueItem> e)
+        //private void M_db_ItemChanged(object sender, Generic.GenericEventArgs<string, string, IQueueMessage> e)
         //{
         //    QLogger.InfoFormat("PriorityPersistQueue ItemChanged : action- {0}, key- {1}", e.Args1, e.Args2, e.Args3);
         //}
@@ -122,7 +122,7 @@ namespace Nistec.Messaging
         bool PersistItemRemove(Ptr ptr)
         {
 
-            IQueueItem persistItem = null;
+            IQueueMessage persistItem = null;
 
             Task tsk = Task.Factory.StartNew(() =>
                 m_db.TryRemove(ptr.Identifier, out persistItem)
@@ -130,7 +130,7 @@ namespace Nistec.Messaging
             return true;
         }
 
-        bool PersistItemAdd(Ptr ptr, IQueueItem item)
+        bool PersistItemAdd(Ptr ptr, IQueueMessage item)
         {
 
             Task tsk = Task.Factory.StartNew(() =>
@@ -142,7 +142,7 @@ namespace Nistec.Messaging
 
         #region override
 
-        protected override bool TryAdd(Ptr ptr, IQueueItem item)
+        protected override bool TryAdd(Ptr ptr, IQueueMessage item)
         {
             var copy = item.Copy();
             QueueItems[ptr] = copy;
@@ -170,7 +170,7 @@ namespace Nistec.Messaging
 
         }
 
-        protected override bool TryPeek(Ptr ptr, out IQueueItem item)
+        protected override bool TryPeek(Ptr ptr, out IQueueMessage item)
         {
             if (CoverMode == CoverMode.Persistent)
             {
@@ -197,7 +197,7 @@ namespace Nistec.Messaging
             return false;
         }
 
-        protected override bool TryDequeue(Ptr ptr, out IQueueItem item)
+        protected override bool TryDequeue(Ptr ptr, out IQueueMessage item)
         {
 
             if (CoverMode == CoverMode.Persistent)
@@ -206,7 +206,7 @@ namespace Nistec.Messaging
                 {
                     if (CommitMode == CommitMode.OnDisk)
                     {
-                        IQueueItem item_pers = null;
+                        IQueueMessage item_pers = null;
                         if (m_db.TryRemove(ptr.Identifier, out item_pers))
                         {
                             OnTryDequeue(ptr, item, true);
@@ -230,10 +230,10 @@ namespace Nistec.Messaging
             return false;
         }
 
-        protected override IQueueItem GetFirstItem()
+        protected override IQueueMessage GetFirstItem()
         {
 
-            IQueueItem item = null;
+            IQueueMessage item = null;
             try
             {
                 if (CoverMode == CoverMode.Persistent)
@@ -241,7 +241,7 @@ namespace Nistec.Messaging
                     item = base.Dequeue();
                     if (item != null)
                     {
-                        IQueueItem qi;
+                        IQueueMessage qi;
 
                         m_db.TryRemove(item.Identifier, out qi);
                     }
@@ -347,7 +347,8 @@ namespace Nistec.Messaging
             }
             catch (Exception ex)
             {
-                Console.WriteLine("ItemExists error: " + ex.Message);
+                //Console.WriteLine("ItemExists error: " + ex.Message);
+                Logger.Error("PriorityComplexQueue ItemExists : Host:{0}, message:{1}", this.Name, ex.Message);
             }
             return false;
         }
@@ -357,7 +358,7 @@ namespace Nistec.Messaging
         ///// </summary>
         ///// <param name="item"></param>
         ///// <returns></returns>
-        //protected override void Requeue(IQueueItem item)
+        //protected override void Requeue(IQueueMessage item)
         //{
         //    base.Requeue(item);
 
@@ -377,7 +378,7 @@ namespace Nistec.Messaging
         protected override void OnErrorOccured(QueueItemEventArgs e)
         {
             base.OnErrorOccured(e);
-            Logger.Info("PriorityPersistQueue OnError : Host:{0}, message:{1}", this.Name, e.Message);
+            Logger.Error("PriorityPersistQueue OnError : Host:{0}, message:{1}", this.Name, e.Message);
         }
 
         protected override void OnMessageArrived(QueueItemEventArgs e)
@@ -407,6 +408,15 @@ namespace Nistec.Messaging
         //{
         //    base.OnTransEnd(e);
         //}
+
+        #endregion
+
+        #region internal
+
+        internal IEnumerable<IQueueMessage> GetAllItems()
+        {
+            return QueueItems.Values;
+        }
 
         #endregion
 

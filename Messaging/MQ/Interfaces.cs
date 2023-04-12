@@ -22,13 +22,13 @@ namespace Nistec.Messaging
 
     public interface IControllerHandler
     {
-        TransStream OnMessageReceived(IQueueItem message);
+        TransStream OnMessageReceived(IQueueMessage message);
         void OnErrorOcurred(string message);
     }
 
     public interface IQueueClient
     {
-        IQueueItem EndReceive(IAsyncResult asyncResult);
+        IQueueMessage EndReceive(IAsyncResult asyncResult);
         void Commit(Ptr ptr);
         bool IsCoverable { get;}
     }
@@ -70,7 +70,7 @@ namespace Nistec.Messaging
     {
         //bool IsTrans { get; }
         //void Completed(Guid itemId, int status);
-        //IQueueItem EndReceive(IAsyncResult asyncResult);
+        //IQueueMessage EndReceive(IAsyncResult asyncResult);
     }
     public interface IQueueReceiver
     {
@@ -78,16 +78,16 @@ namespace Nistec.Messaging
         bool IsTopic { get;}
         string TargetPath { get; }
 
-        IQueueAck Enqueue(IQueueItem item);
-        IQueueItem Dequeue();
-        IQueueItem Dequeue(Priority priority);
-        IQueueItem Dequeue(Ptr ptr);
-        IQueueItem Consume(int maxSecondWait);
-        bool TryDequeue(out IQueueItem item);
-        IQueueItem Peek();
+        IQueueAck Enqueue(IQueueMessage item);
+        IQueueMessage Dequeue();
+        IQueueMessage Dequeue(Priority priority);
+        IQueueMessage Dequeue(Ptr ptr);
+        IQueueMessage Consume(int maxSecondWait);
+        bool TryDequeue(out IQueueMessage item);
+        IQueueMessage Peek();
         void AbortTrans(Guid ItemId);
         void CommitTrans(Guid ItemId);
-        IQueueAck Requeue(IQueueItem item);
+        IQueueAck Requeue(IQueueMessage item);
 
     }
 
@@ -95,7 +95,7 @@ namespace Nistec.Messaging
     {
         void CommitTrans(Guid itemId);
         void AbortTrans(Guid itemId);
-        //void TransEnded(IQueueItem item, ItemState state);
+        //void TransEnded(IQueueMessage item, ItemState state);
 
     }
 

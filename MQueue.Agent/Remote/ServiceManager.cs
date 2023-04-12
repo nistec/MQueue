@@ -92,7 +92,7 @@ namespace Nistec.Services
 
                     m_PipeServerProducer = new PipeServerChannel(QueueChannel.Producer, QueueSettings.DefaultQueueProducer);
                     m_PipeServerProducer.Start();
-                    //QLogger.Info("PipeServerChannel started...");
+                    QLogger.Info("PipeServerChannel started... at: " + m_PipeServerProducer.PipeName);
                 }
 
 
@@ -100,7 +100,7 @@ namespace Nistec.Services
                 {
                     m_PipeServerConsumer = new PipeServerChannel(QueueChannel.Consumer, QueueSettings.DefaultQueueConsumer);
                     m_PipeServerConsumer.Start();
-                    //QLogger.Info("PipeServerListener started...");
+                    QLogger.Info("PipeServerListener started... at: " + m_PipeServerConsumer.PipeName);
                 }
 
 
@@ -112,25 +112,25 @@ namespace Nistec.Services
                 {
                     m_TcpServerProducer = new TcpServerChannel(QueueChannel.Producer, QueueSettings.DefaultQueueProducer);
                     m_TcpServerProducer.Start();
-                    //QLogger.Info("TcpServerChannel started...");
+                    QLogger.Info("TcpServerChannel started... at: " + m_TcpServerProducer.Settings.RawHostAddress);
                 }
                 if (AgentManager.Settings.EnableTcpConsumer)
                 {
                     m_TcpServerConsumer = new TcpServerChannel(QueueChannel.Consumer, QueueSettings.DefaultQueueConsumer);
                     m_TcpServerConsumer.Start();
-                    //QLogger.Info("TcpServerListener started...");
+                    QLogger.Info("TcpServerListener started... at: " + m_TcpServerConsumer.Settings.RawHostAddress);
                 }
                 if (AgentManager.Settings.EnableHttpProducer)
                 {
                     m_HttpServerProducer = new HttpServerChannel(QueueChannel.Producer, QueueSettings.DefaultQueueProducer);
                     m_HttpServerProducer.Start();
-                    //QLogger.Info("HttpServerChannel started...");
+                    QLogger.Info("HttpServerChannel started... at: " + m_HttpServerProducer.Settings.RawHostAddress);
                 }
                 if (AgentManager.Settings.EnableHttpConsumer)
                 {
                     m_HttpServerConsumer = new HttpServerChannel(QueueChannel.Consumer, QueueSettings.DefaultQueueConsumer);
                     m_HttpServerConsumer.Start();
-                    //QLogger.Info("HttpServerListener started...");
+                    QLogger.Info("HttpServerListener started... at: " + m_HttpServerConsumer.Settings.RawHostAddress);
                 }
 
                 if (AgentManager.Settings.EnablePipeQueueManager)
@@ -138,14 +138,14 @@ namespace Nistec.Services
                     m_PipeServerQueueManager = new PipeServerChannel(QueueChannel.Manager, QueueSettings.DefaultQueueManager);
                     m_PipeServerQueueManager.IsAsync = false;
                     m_PipeServerQueueManager.Start();// (false);
-                    //QLogger.Info("ServerQueueManager started...");
+                    QLogger.Info("ServerQueueManager started... at: " + m_PipeServerQueueManager.PipeName);
                 }
                 if (AgentManager.Settings.EnableTcpQueueManager)
                 {
                     m_TcpServerQueueManager = new TcpServerChannel(QueueChannel.Manager, QueueSettings.DefaultQueueManager);
                     //m_TcpServerQueueManager.IsAsync = false;
                     m_TcpServerQueueManager.Start();// (false);
-                    //QLogger.Info("ServerQueueManager started...");
+                    QLogger.Info("ServerQueueManager started... at: " + m_TcpServerQueueManager.Settings.RawHostAddress);
                 }
                 //if (AgentManager.Settings.EnableFolderListener)
                 //{

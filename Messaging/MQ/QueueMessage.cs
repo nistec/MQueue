@@ -20,88 +20,87 @@ using System.Xml.Serialization;
 
 namespace Nistec.Messaging
 {
-
-    public class QueueItem : MessageStream, IQueueItem, ICloneable, IDisposable, IQueueAck//, ISerialEntity
+    public class QueueMessage : MessageStream, IQueueMessage, ICloneable, IDisposable, IQueueAck//, ISerialEntity
     {
         #region static
-        public static QueueItem Create(Stream stream)
+        public static QueueMessage Create(Stream stream)
         {
             if (stream == null)
             {
-                throw new ArgumentNullException("QueueItem.Load.stream");
+                throw new ArgumentNullException("QueueMessage.Load.stream");
             }
             if (stream is NetStream)
             {
                 stream.Position = 0;
             }
-            var msg = new QueueItem();
+            var msg = new QueueMessage();
             msg.EntityRead(stream, null);
             msg.Modified = DateTime.Now;
             return msg;
         }
 
-        public static QueueItem Create(XmlNode node)
+        public static QueueMessage Create(XmlNode node)
         {
             if (node == null)
             {
-                throw new ArgumentNullException("QueueItem.Load.XmlNode");
+                throw new ArgumentNullException("QueueMessage.Load.XmlNode");
             }
-            var msg = new QueueItem();
+            var msg = new QueueMessage();
             msg.Load(node);
             msg.Modified = DateTime.Now;
             return msg;
         }
 
-        public static QueueItem Create(DataRow row)
+        public static QueueMessage Create(DataRow row)
         {
             if (row == null)
             {
-                throw new ArgumentNullException("QueueItem.Load.DataRow");
+                throw new ArgumentNullException("QueueMessage.Load.DataRow");
             }
             var dic = Nistec.Data.DataUtil.DataRowToHashtable(row);
-            var msg = new QueueItem();
+            var msg = new QueueMessage();
             msg.Load(dic);
             msg.Modified = DateTime.Now;
             return msg;
         }
 
-        public static QueueItem Create(IDictionary dic)
+        public static QueueMessage Create(IDictionary dic)
         {
             if (dic == null)
             {
-                throw new ArgumentNullException("QueueItem.Load.IDictionary");
+                throw new ArgumentNullException("QueueMessage.Load.IDictionary");
             }
-            var msg = new QueueItem();
+            var msg = new QueueMessage();
             msg.Load(dic);
             msg.Modified = DateTime.Now;
             return msg;
         }
 
-        public static QueueItem Create(NameValueCollection nvc)
+        public static QueueMessage Create(NameValueCollection nvc)
         {
             if (nvc == null)
             {
-                throw new ArgumentNullException("QueueItem.Load.NameValueCollection");
+                throw new ArgumentNullException("QueueMessage.Load.NameValueCollection");
             }
-            var msg = new QueueItem();
+            var msg = new QueueMessage();
             msg.Load(nvc);
             msg.Modified = DateTime.Now;
             return msg;
         }
-        public static QueueItem Create(GenericRecord rcd)
+        public static QueueMessage Create(GenericRecord rcd)
         {
             if (rcd == null)
             {
-                throw new ArgumentNullException("QueueItem.Load.GenericRecord");
+                throw new ArgumentNullException("QueueMessage.Load.GenericRecord");
             }
-            var msg = new QueueItem();
+            var msg = new QueueMessage();
             msg.Load(rcd);
             msg.Modified = DateTime.Now;
             return msg;
         }
-        public static QueueItem Ack(MessageState state, QueueCmd cmd)
+        public static QueueMessage Ack(MessageState state, QueueCmd cmd)
         {
-            return new QueueItem()
+            return new QueueMessage()
             {
                 QCommand = cmd,
                 Label = state.ToString(),
@@ -109,9 +108,9 @@ namespace Nistec.Messaging
             };
         }
 
-        public static QueueItem Ack(MessageState state, QueueCmd cmd, Exception ex)
+        public static QueueMessage Ack(MessageState state, QueueCmd cmd, Exception ex)
         {
-            return new QueueItem()
+            return new QueueMessage()
             {
                 QCommand = cmd,
                 Label = ex == null ? state.ToString() : ex.Message,
@@ -119,26 +118,26 @@ namespace Nistec.Messaging
             };
         }
 
-        public static QueueItem Ack(MessageState state, QueueCmd cmd, string label, string identifier)
+        public static QueueMessage Ack(MessageState state, QueueCmd cmd, string label, string identifier)
         {
-            return new QueueItem()
+            return new QueueMessage(identifier)
             {
                 QCommand = cmd,
                 Label = label,
-                Identifier = identifier,
+                //Identifier = identifier,
                 MessageState = state
             };
         }
 
-        public static QueueItem Ack(QueueItem item, MessageState state, int retry, string label, string identifier)
+        public static QueueMessage Ack(QueueMessage item, MessageState state, int retry, string label, string identifier)
         {
-            return new QueueItem()
+            return new QueueMessage(identifier)
             {
                 ArrivedTime = DateTime.Now,
                 MessageState = state,
                 Command = item.Command,
                 Host = item.Host,
-                Identifier = identifier,
+                //Identifier = identifier,
                 Modified = DateTime.Now,
                 Creation = item.Creation,
                 Priority = item.Priority,
@@ -391,15 +390,15 @@ namespace Nistec.Messaging
 
         #region ICloneable
 
-        public QueueItem Copy()
+        public QueueMessage Copy()
         {
-            var copy = new QueueItem()
+            var copy = new QueueMessage(this.Identifier)
             {
                 MessageState = this.MessageState,
                 MessageType = this.MessageType,
                 Command = this.Command,
                 Priority = this.Priority,
-                Identifier = this.Identifier,
+                //Identifier = this.Identifier,
                 Retry = this.Retry,
                 ArrivedTime = this.ArrivedTime,
                 Creation = this.Creation,
@@ -411,7 +410,17 @@ namespace Nistec.Messaging
 
                 BodyStream = this.BodyStream.Copy(),
                 TypeName = this.TypeName,
-                EncodingName=this.EncodingName
+                EncodingName=this.EncodingName,
+
+                //Identifier = this.Identifier,
+                Formatter = this.Formatter,
+                CustomId = this.CustomId,
+                SessionId = this.SessionId,
+                DuplexType = this.DuplexType,
+                Expiration = this.Expiration,
+                Args = this.Args,
+                IArgs = this.IArgs,
+
                 //Header = this.Header,
                 //ItemBinary = this.ItemBinary
             };
@@ -429,9 +438,9 @@ namespace Nistec.Messaging
         /// <summary>
         /// Initialize a new instance of Message
         /// </summary>
-        public QueueItem()
+        public QueueMessage() : base()
         {
-            Identifier = Ptr.NewIdentifier();
+            //Identifier = Ptr.NewIdentifier();
             Priority = Priority.Normal;
             Creation = DateTime.Now;
             Modified = DateTime.Now;
@@ -440,9 +449,26 @@ namespace Nistec.Messaging
             IsDuplex = true;
             MessageType = MQTypes.Message;
             EncodingName = DefaultEncoding;
+            _IArgs = new NameValueArgs<int>();
+        }
+        public QueueMessage(Ptr ptr) : this(ptr.Identifier)
+        {
+        }
+        public QueueMessage(string identifier) : base(identifier)
+        {
+            //Identifier = Ptr.NewIdentifier(ptr.ItemId);
+            Priority = Priority.Normal;
+            Creation = DateTime.Now;
+            Modified = DateTime.Now;
+            ArrivedTime = Assists.NullDate;
+            Version = QueueDefaults.CurrentVersion;
+            IsDuplex = true;
+            MessageType = MQTypes.Message;
+            EncodingName = DefaultEncoding;
+            _IArgs = new NameValueArgs<int>();
         }
 
-        //public QueueItem(QueueCmd command, TransformTypes transformType, Priority priority, string destination, string json)
+        //public QueueMessage(QueueCmd command, TransformTypes transformType, Priority priority, string destination, string json)
         //{
         //    MessageType = MQTypes.MessageRequest;
         //    Command = command;
@@ -459,7 +485,7 @@ namespace Nistec.Messaging
         //    //m_BodyStream = new NetStream(Body);
         //}
 
-        //public QueueItem(QueueItem message, byte[] body, Type type)
+        //public QueueMessage(QueueMessage message, byte[] body, Type type)
         //{
 
         //    Message msg = message.ToMessage();
@@ -495,7 +521,7 @@ namespace Nistec.Messaging
         //    //ItemBinary = body;// Encoding.UTF8.GetBytes(body);
         //}
 
-        public QueueItem(QueueRequest message)
+        public QueueMessage(QueueRequest message):base()
         {
             Version = message.Version;
             MessageType = MQTypes.MessageRequest;
@@ -509,9 +535,10 @@ namespace Nistec.Messaging
             //m_BodyStream = null;
             BodyStream = null;
             EncodingName = message.EncodingName;
+            _IArgs = new NameValueArgs<int>();
         }
                
-        //public QueueItem(Message message)
+        //public QueueMessage(Message message)
         //{
         //    MessageType = MQTypes.Message;
         //    Command = message.Command;
@@ -531,7 +558,7 @@ namespace Nistec.Messaging
         //    ItemBinary = ns.ToArray();
         //}
 
-        //public QueueItem(QueueAck message)
+        //public QueueMessage(QueueAck message)
         //{
         //    MessageType = MQTypes.Ack;
         //    Command = QueueCmd.Ack;
@@ -558,7 +585,7 @@ namespace Nistec.Messaging
         /// <param name="stream"></param>
         /// <param name="streamer"></param>
         /// <param name="state"></param>
-        internal QueueItem(Stream stream, IBinaryStreamer streamer, MessageState state)
+        internal QueueMessage(Stream stream, IBinaryStreamer streamer, MessageState state):this()
         {
             EntityRead(stream, streamer);
             Modified = DateTime.Now;
@@ -570,7 +597,7 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="streamer"></param>
-        public QueueItem(Stream stream, IBinaryStreamer streamer)
+        public QueueMessage(Stream stream, IBinaryStreamer streamer) : this()
         {
             EntityRead(stream, streamer);
         }
@@ -579,16 +606,16 @@ namespace Nistec.Messaging
         /// Initialize a new instance of MessageStream from <see cref="SerializeInfo"/>.
         /// </summary>
         /// <param name="info"></param>
-        public QueueItem(SerializeInfo info)
+        public QueueMessage(SerializeInfo info) : this()
         {
             ReadContext(info);
         }
 
-        public QueueItem(IPersistQueueItem item)
+        public QueueMessage(IPersistQueueItem item) : this()
         {
             if (item == null)
             {
-                throw new ArgumentNullException("QueueItem.QueuePersistItem");
+                throw new ArgumentNullException("QueueMessage.QueuePersistItem");
             }
             EntityRead(new NetStream(item.ItemBinary),null);
 
@@ -598,11 +625,11 @@ namespace Nistec.Messaging
         }
 
 
-        //public QueueItem(byte[] body)
+        //public QueueMessage(byte[] body)
         //{
         //    if(body==null)
         //    {
-        //        throw new ArgumentNullException("QueueItem.body");
+        //        throw new ArgumentNullException("QueueMessage.body");
         //    }
         //    EntityRead(new NetStream(body), null);
         //}
@@ -661,12 +688,12 @@ namespace Nistec.Messaging
 
         #region property
 
-        public int Version { get; set; }
+        public int Version { get; private set; }
 
-        /// <summary>
-        /// Get ItemId
-        /// </summary>
-        public string Identifier { get; set; }
+        ///// <summary>
+        ///// Get ItemId
+        ///// </summary>
+        //public string Identifier { get; set; }
 
         /// <summary>
         /// Get MessageState
@@ -705,18 +732,19 @@ namespace Nistec.Messaging
         /// Get or set The message Destination.
         /// </summary>
         public string Destination { get; set; }
-        /// <summary>
-        /// Get or set The Channel ID.
-        /// </summary>
-        public int ChannelId { get; set; }
-        /// <summary>
-        /// Get or set The AccountId.
-        /// </summary>
-        public int AccountId { get; set; }
-        /// <summary>
-        /// Get or set The MessageId.
-        /// </summary>
-        public int MessageId { get; set; }
+
+        ///// <summary>
+        ///// Get or set The Channel ID.
+        ///// </summary>
+        //public int ChannelId { get; set; }
+        ///// <summary>
+        ///// Get or set The AccountId.
+        ///// </summary>
+        //public int AccountId { get; set; }
+        ///// <summary>
+        ///// Get or set The MessageId.
+        ///// </summary>
+        //public int MessageId { get; set; }
         ///// <summary>
         ///// Get or set The BatchId.
         ///// </summary>
@@ -726,10 +754,10 @@ namespace Nistec.Messaging
         ///// </summary>
         //public int OperationId { get; set; }
 
-        /// <summary>
-        /// Get or set The Amount.
-        /// </summary>
-        public decimal Amount { get; set; }
+        ///// <summary>
+        ///// Get or set The Amount.
+        ///// </summary>
+        //public decimal Amount { get; set; }
 
         //NetStream m_BodyStream;
         ///// <summary>
@@ -774,8 +802,101 @@ namespace Nistec.Messaging
 
         #endregion
 
+        #region IArgs
+
+        NameValueArgs<int> _IArgs;
+        /// <summary>
+        /// Get or Set The header identifiers for current message.
+        /// </summary>
+        public NameValueArgs<int> IArgs
+        {
+            get { return _IArgs; }
+            set
+            {
+                if (value == null)
+                    _IArgs.Clear();
+                else
+                {
+                    _IArgs = value;
+                }
+            }
+        }
+        public void Set(string key, int value)
+        {
+            IArgs.Set(key, value);
+        }
+        public int GetIArg(string key)
+        {
+            return IArgs.Get(key);
+        }
+        /*
+        /// <summary>
+        /// Create arguments helper.
+        /// </summary>
+        /// <param name="keyValues"></param>
+        /// <returns></returns>
+        public static NameValueArgs<int> CreateIArgs(params object[] keyValues)
+        {
+            if (keyValues == null)
+                return null;
+            NameValueArgs<int> args = new NameValueArgs<int>(keyValues);
+            return args;
+        }
+        public NameValueArgs<int> IArgsAdd(params object[] keyValues)
+        {
+            if (keyValues == null)
+                return null;
+            int count = keyValues.Length;
+            if (count % 2 != 0)
+            {
+                throw new ArgumentException("values parameter not correct, Not match key value arguments");
+            }
+
+            if (IArgs == null)
+                IArgs = new NameValueArgs<int>();
+
+            for (int i = 0; i < count; i++)
+            {
+                string key = keyValues[i].ToString();
+                int value = Types.ToInt(keyValues[++i]);
+
+                if (IArgs.ContainsKey(key))
+                    IArgs[key] = value;
+                else
+                    IArgs.Add(key, value);
+            }
+            return IArgs;
+        }
+        /// <summary>
+        /// Get or create a collection of arguments.
+        /// </summary>
+        /// <returns></returns>
+        public NameValueArgs<int> IArgsGet()
+        {
+            if (IArgs == null)
+                return new NameValueArgs<int>();
+            return IArgs;
+        }
+
+        public int IArgsGet(string name)
+        {
+            if (IArgs == null)
+                return 0;
+            return IArgs.Get(name);
+        }
+        public void IArgsSet(string name, int value)
+        {
+            IArgsGet().Add(name, value);
+        }
+        //public void Notify(params object[] args)
+        //{
+        //    AddArgs(args);
+        //}
+        */
+        #endregion
+
         #region ItemStream/Body
-        
+
         //byte[] _ItemBinary;
         //public byte[] ItemBinary
         //{
@@ -932,6 +1053,7 @@ namespace Nistec.Messaging
         {
             if (streamer == null)
                 streamer = new BinaryStreamer(stream);
+                       
 
             //if (MessageType == MQTypes.MessageRequest)
             //{
@@ -952,7 +1074,7 @@ namespace Nistec.Messaging
             streamer.WriteValue((byte)MessageType);
             streamer.WriteValue((byte)QCommand);
             streamer.WriteValue((byte)Priority);
-            streamer.WriteString(Identifier);//.WriteValue(ItemId);
+            //streamer.WriteString(Identifier);//.WriteValue(ItemId);
             streamer.WriteValue((byte)Retry);
             streamer.WriteValue(ArrivedTime);
             streamer.WriteValue(Creation);
@@ -965,18 +1087,21 @@ namespace Nistec.Messaging
             //streamer.WriteString(Label);
             //streamer.WriteString(Sender);
             streamer.WriteString(Destination);
-            streamer.WriteValue(ChannelId);
-            streamer.WriteValue(AccountId);
-            streamer.WriteValue(MessageId);
-            //streamer.WriteValue(BatchId);
-            //streamer.WriteValue(OperationId);
-            streamer.WriteValue(Amount);
+            streamer.WriteValue(IArgs);
 
-        //streamer.WriteValue(BodyStream);
-        //streamer.WriteString(TypeName);
+            //streamer.WriteValue(ChannelId);
+            //streamer.WriteValue(AccountId);
+            //streamer.WriteValue(MessageId);
+            //streamer.WriteValue(Amount);
 
-        //MessageStream=======================================
-            streamer.WriteString(Id);
+            //streamer.WriteValue(BodyStream);
+            //streamer.WriteString(TypeName);
+
+            base.EntityWrite(stream, streamer);
+            /*
+            //MessageStream=======================================
+            streamer.WriteValue(ItemId);
+            streamer.WriteString(Identifier);
             streamer.WriteValue(BodyStream);
             streamer.WriteString(TypeName);
             streamer.WriteValue((int)Formatter);
@@ -991,6 +1116,7 @@ namespace Nistec.Messaging
             streamer.WriteValue((byte)TransformType);
             streamer.WriteString(EncodingName);
             streamer.Flush();
+            */
         }
 
 
@@ -1011,7 +1137,7 @@ namespace Nistec.Messaging
             MessageType = (MQTypes)streamer.ReadValue<byte>();
             QCommand = (QueueCmd)streamer.ReadValue<byte>();
             Priority = (Priority)streamer.ReadValue<byte>();
-            Identifier = streamer.ReadString();//.ReadValue<Guid>();
+            //Identifier = streamer.ReadString();//.ReadValue<Guid>();
             Retry = streamer.ReadValue<byte>();
             ArrivedTime = streamer.ReadValue<DateTime>();
             Creation = streamer.ReadValue<DateTime>();
@@ -1024,18 +1150,19 @@ namespace Nistec.Messaging
             //Label = streamer.ReadString();
             //Sender = streamer.ReadString();
             Destination = streamer.ReadString();
-            ChannelId = streamer.ReadValue<int>();
-            AccountId = streamer.ReadValue<int>();
-            MessageId = streamer.ReadValue<int>();
-            //BatchId = streamer.ReadValue<int>();
-            //OperationId = streamer.ReadValue<int>();
-            Amount = streamer.ReadValue<decimal>();
+            IArgs = (NameValueArgs<int>)streamer.ReadValue<NameValueArgs<int>>();
+
+            //ChannelId = streamer.ReadValue<int>();
+            //AccountId = streamer.ReadValue<int>();
+            //MessageId = streamer.ReadValue<int>();
+            //Amount = streamer.ReadValue<decimal>();
             //BodyStream = (NetStream)streamer.ReadValue();
             //TypeName = streamer.ReadString();
 
-
+            base.EntityRead(stream, streamer);
+            /*
             //MessageStream=======================================
-            Id = streamer.ReadString();
+            Identifier = streamer.ReadString();
             BodyStream = (NetStream)streamer.ReadValue();
             TypeName = streamer.ReadString();
             Formatter = (Formatters)streamer.ReadValue<int>();
@@ -1049,6 +1176,10 @@ namespace Nistec.Messaging
             Args = (NameValueArgs)streamer.ReadValue();
             TransformType = (TransformType)streamer.ReadValue<byte>();
             EncodingName = Types.NZorEmpty(streamer.ReadString(), DefaultEncoding);
+            */
+
+
+
 
             ////Topic = streamer.ReadString();
             //HeaderStream = (NetStream)streamer.ReadValue();
@@ -1081,16 +1212,18 @@ namespace Nistec.Messaging
         /// Write the current object include the body and properties to <see cref="ISerializerContext"/> using <see cref="SerializeInfo"/>.
         /// </summary>
         /// <param name="context"></param>
-        public override void WriteContext(ISerializerContext context)
+        /// <param name="info"></param>
+        public override void WriteContext(ISerializerContext context, SerializeInfo info = null)
         {
-            SerializeInfo info = new SerializeInfo();
+            if(info==null)
+            info = new SerializeInfo();
 
             info.Add("Version", Version);
             info.Add("MessageState", (byte)MessageState);
             info.Add("MessageType", (byte)MessageType);
             info.Add("Command", (byte)QCommand);
             info.Add("Priority", (byte)Priority);
-            info.Add("Identifier", Identifier);
+            //info.Add("Identifier", Identifier);
             info.Add("Retry", Retry);
             info.Add("ArrivedTime", ArrivedTime);
             info.Add("Creation", Creation);
@@ -1104,18 +1237,20 @@ namespace Nistec.Messaging
             //info.Add("Label", Label);
             //info.Add("Sender", Sender);
             info.Add("Destination", Destination);
-            info.Add("ChannelId", ChannelId);
-            info.Add("AccountId", AccountId);
-            info.Add("MessageId", MessageId);
-            //info.Add("BatchId", BatchId);
-            //info.Add("OperationId", OperationId);
-            info.Add("Amount", Amount);
+            info.Add("IArgs", IArgs);
+            //info.Add("ChannelId", ChannelId);
+            //info.Add("AccountId", AccountId);
+            //info.Add("MessageId", MessageId);
+            //info.Add("Amount", Amount);
 
             //info.Add("BodyStream", BodyStream);
             //info.Add("TypeName", TypeName);
 
+            base.WriteContext(context, info);
+
+            /*
             //MessageStream=======================================
-            info.Add("Id", Id);
+            info.Add("Identifier", Identifier);
             info.Add("BodyStream", BodyStream);
             info.Add("TypeName", TypeName);
             info.Add("Formatter", (int)Formatter);
@@ -1129,7 +1264,7 @@ namespace Nistec.Messaging
             info.Add("Args", Args);
             info.Add("TransformType", (byte)TransformType);
             info.Add("EncodingName", EncodingName);
-
+            */
 
             //info.Add("ItemBinary", new NetStream(ItemBinary));
 
@@ -1154,10 +1289,12 @@ namespace Nistec.Messaging
         /// Read <see cref="ISerializerContext"/> context to the current object include the body and properties using <see cref="SerializeInfo"/>.
         /// </summary>
         /// <param name="context"></param>
-        public override void ReadContext(ISerializerContext context)
+        public override void ReadContext(ISerializerContext context, SerializeInfo info = null)
         {
-            SerializeInfo info = context.ReadSerializeInfo();
+            if (info == null)
+                info = context.ReadSerializeInfo();
             ReadContext(info);
+            base.ReadContext(context, info);
         }
 
         /// <summary>
@@ -1172,7 +1309,7 @@ namespace Nistec.Messaging
             MessageType = (MQTypes)info.GetValue<byte>("MessageType");
             QCommand = (QueueCmd)info.GetValue<byte>("Command");
             Priority = (Priority)info.GetValue<byte>("Priority");
-            Identifier = info.GetValue<string>("Identifier");
+            //Identifier = info.GetValue<string>("Identifier");
             Retry = info.GetValue<byte>("Retry");
             ArrivedTime = info.GetValue<DateTime>("ArrivedTime");
             Creation = info.GetValue<DateTime>("Creation");
@@ -1185,19 +1322,19 @@ namespace Nistec.Messaging
             //Label = info.GetValue<string>("Label");
             //Sender = info.GetValue<string>("Sender");
             Destination = info.GetValue<string>("Destination");
-            ChannelId = info.GetValue<int>("ChannelId");
-            AccountId = info.GetValue<int>("AccountId");
-            MessageId = info.GetValue<int>("MessageId");
-            //BatchId = info.GetValue<int>("BatchId");
-            //OperationId = info.GetValue<int>("OperationId");
-            Amount = info.GetValue<decimal>("Amount");
+            IArgs = (NameValueArgs<int>)info.GetValue("IArgs");
+
+            //ChannelId = info.GetValue<int>("ChannelId");
+            //AccountId = info.GetValue<int>("AccountId");
+            //MessageId = info.GetValue<int>("MessageId");
+            //Amount = info.GetValue<decimal>("Amount");
 
             //BodyStream = (NetStream)info.GetValue("BodyStream");
             //TypeName = info.GetValue<string>("TypeName");
 
-
+            /*
             //MessageStream=======================================
-            Id = info.GetValue<string>("Id");
+            Identifier = info.GetValue<string>("Identifier");
             BodyStream = (NetStream)info.GetValue("BodyStream");
             TypeName = info.GetValue<string>("TypeName");
             Formatter = (Formatters)info.GetValue<int>("Formatter");
@@ -1211,7 +1348,7 @@ namespace Nistec.Messaging
             Args = (NameValueArgs)info.GetValue("Args");
             TransformType = (TransformType)info.GetValue<byte>("TransformType");
             EncodingName = Types.NZorEmpty(info.GetValue<string>("EncodingName"), DefaultEncoding); 
-
+            */
             //var ns = (NetStream)info.GetValue("ItemBinary");
             //ItemBinary = ns.ToArray();
 
@@ -1252,7 +1389,7 @@ namespace Nistec.Messaging
             serializer.WriteToken("MessageType", (byte)MessageType);
             serializer.WriteToken("Command", (byte)QCommand);
             serializer.WriteToken("Priority", (byte)Priority);
-            serializer.WriteToken("Identifier", Identifier);
+            //serializer.WriteToken("Identifier", Identifier);
             serializer.WriteToken("Retry", Retry);
             serializer.WriteToken("ArrivedTime", ArrivedTime);
             serializer.WriteToken("Creation", Creation);
@@ -1266,18 +1403,21 @@ namespace Nistec.Messaging
             //serializer.WriteToken("Label", Label);
             //serializer.WriteToken("Sender", Sender);
             serializer.WriteToken("Destination", Destination);
-            serializer.WriteToken("ChannelId", ChannelId);
-            serializer.WriteToken("AccountId", AccountId);
-            serializer.WriteToken("MessageId", MessageId);
-            //serializer.WriteToken("BatchId", BatchId);
-            //serializer.WriteToken("OperationId", OperationId);
-            serializer.WriteToken("Amount", Amount);
+            serializer.WriteToken("IArgs", IArgs);
+
+            //serializer.WriteToken("ChannelId", ChannelId);
+            //serializer.WriteToken("AccountId", AccountId);
+            //serializer.WriteToken("MessageId", MessageId);
+            //serializer.WriteToken("Amount", Amount);
 
             //serializer.WriteToken("BodyStream", BodyStream);
             //serializer.WriteToken("TypeName", TypeName);
 
+            return base.EntityWrite(serializer, pretty);
+
+            /*
             //MessageStream=======================================
-            serializer.WriteToken("Id", Id);
+            serializer.WriteToken("Identifier", Identifier);
             serializer.WriteToken("BodyStream", BodyStream == null ? null : BodyStream.ToBase64String());
             serializer.WriteToken("TypeName", TypeName);
             serializer.WriteToken("Formatter", Formatter);
@@ -1295,6 +1435,7 @@ namespace Nistec.Messaging
             //serializer.WriteToken("Body", body);
 
             return serializer.WriteOutput(pretty);
+            */
         }
 
         public override object EntityRead(string json, IJsonSerializer serializer)
@@ -1302,9 +1443,34 @@ namespace Nistec.Messaging
             if (serializer == null)
                 serializer = new JsonSerializer(JsonSerializerMode.Read, new JsonSettings() { IgnoreCaseOnDeserialize = true });
 
+            var JsonReader = serializer.Read<Dictionary<string, object>>(json);
+            if(JsonReader!= null)
+            {
+                Version = JsonReader.Get<int>("Version");
+                MessageState = (MessageState)JsonReader.Get<byte>("MessageState");
+                MessageType = (MQTypes)JsonReader.Get<byte>("MessageType");
+                QCommand = (QueueCmd)JsonReader.Get<byte>("Command");
+                Priority = (Priority)JsonReader.Get<byte>("Priority");
+                //Identifier = dic.Get<string>("Identifier");
+                Retry = JsonReader.Get<byte>("Retry");
+                ArrivedTime = JsonReader.Get<DateTime>("ArrivedTime");
+                Creation = JsonReader.Get<DateTime>("Creation");
+                //Modified = dic.Get<DateTime>("Modified");
+                Duration = JsonReader.Get<int>("Duration");
+                //TransformType = (TransformType)dic.Get<byte>("TransformType");
+                //DuplexType = (DuplexTypes)dic.Get<byte>("DuplexType");
+                //Expiration = dic.Get<int>("Expiration");
+                Host = JsonReader.Get<string>("Host");
+                //Label = dic.Get<string>("Label");
+                //Sender = dic.Get<string>("Sender");
+                Destination = JsonReader.Get<string>("Destination");
+                IArgs = NameValueArgs<int>.Convert((IDictionary<string, int>)JsonReader.Get("IArgs"));// dic.Get<NameValueArgs>("Args");
+            }
+            return base.EntityRead(JsonReader, serializer);
+
             //var queryParams = new Dictionary<string, string>(HtmlPage.Document.QueryString, StringComparer.InvariantCultureIgnoreCase);
 
-
+            /*
             var dic = serializer.Read<Dictionary<string, object>>(json);
 
             if (dic != null)
@@ -1317,7 +1483,7 @@ namespace Nistec.Messaging
                 MessageType = (MQTypes)dic.Get<byte>("MessageType");
                 QCommand = (QueueCmd)dic.Get<byte>("Command");
                 Priority = (Priority)dic.Get<byte>("Priority");
-                Identifier = dic.Get<string>("Identifier");
+                //Identifier = dic.Get<string>("Identifier");
                 Retry = dic.Get<byte>("Retry");
                 ArrivedTime = dic.Get<DateTime>("ArrivedTime");
                 Creation = dic.Get<DateTime>("Creation");
@@ -1330,18 +1496,18 @@ namespace Nistec.Messaging
                 //Label = dic.Get<string>("Label");
                 //Sender = dic.Get<string>("Sender");
                 Destination = dic.Get<string>("Destination");
-                ChannelId = dic.Get<int>("ChannelId");
-                AccountId = dic.Get<int>("AccountId");
-                MessageId = dic.Get<int>("MessageId");
-                //BatchId = dic.Get<int>("BatchId");
-                //OperationId = dic.Get<int>("OperationId");
-                Amount = dic.Get<decimal>("Amount");
+                IArgs = NameValueArgs<int>.Convert((IDictionary<string, int>)dic.Get("IArgs"));// dic.Get<NameValueArgs>("Args");
+
+                //ChannelId = dic.Get<int>("ChannelId");
+                //AccountId = dic.Get<int>("AccountId");
+                //MessageId = dic.Get<int>("MessageId");
+                //Amount = dic.Get<decimal>("Amount");
 
                 //BodyStream = (NetStream)dic.Get("BodyStream");
                 //TypeName = dic.Get<string>("TypeName");
 
                 //MessageStream=======================================
-                Id = dic.Get<string>("Id");
+                Identifier = dic.Get<string>("Identifier");
                 var body = dic.Get<string>("BodyStream");
                 TypeName = dic.Get<string>("TypeName");
                 Formatter = dic.GetEnum<Formatters>("Formatter", Formatters.Json);
@@ -1359,8 +1525,10 @@ namespace Nistec.Messaging
                 if (body != null && body.Length > 0)
                     BodyStream = NetStream.FromBase64String(body);
             }
-
+            
             return this;
+
+            */
         }
 
         public override object EntityRead(NameValueCollection queryString, IJsonSerializer serializer)
@@ -1376,7 +1544,7 @@ namespace Nistec.Messaging
                 MessageType = (MQTypes)queryString.Get<byte>("MessageType");
                 QCommand = (QueueCmd)queryString.Get<byte>("Command");
                 Priority = (Priority)queryString.Get<byte>("Priority");
-                Identifier = queryString.Get<string>("Identifier");
+                //Identifier = queryString.Get<string>("Identifier");
                 Retry = queryString.Get<byte>("Retry");
                 ArrivedTime = queryString.Get<DateTime>("ArrivedTime");
                 Creation = queryString.Get<DateTime>("Creation");
@@ -1389,18 +1557,25 @@ namespace Nistec.Messaging
                 //Label = queryString.Get<string>("Label");
                 //Sender = queryString.Get<string>("Sender");
                 Destination = queryString.Get<string>("Destination");
-                ChannelId = queryString.Get<int>("ChannelId");
-                AccountId = queryString.Get<int>("AccountId");
-                MessageId = queryString.Get<int>("MessageId");
-                //BatchId = queryString.Get<int>("BatchId");
-                //OperationId = queryString.Get<int>("OperationId");
-                Amount = queryString.Get<decimal>("Amount");
+                var iargs = queryString.Get("IArgs");
+                if (iargs != null)
+                {
+                    string[] nameValue = iargs.SplitTrim(':', ',', ';');
+                    IArgs = NameValueArgs<int>.Create(nameValue);
+                }
+                //ChannelId = queryString.Get<int>("ChannelId");
+                //AccountId = queryString.Get<int>("AccountId");
+                //MessageId = queryString.Get<int>("MessageId");
+                //Amount = queryString.Get<decimal>("Amount");
 
                 //BodyStream = (NetStream)queryString.Get("BodyStream");
                 //TypeName = queryString.Get<string>("TypeName");
 
+                return base.EntityRead(queryString, serializer);
+
+                /*
                 //MessageStream=======================================
-                Id = queryString.Get<string>("Id");
+                Identifier = queryString.Get<string>("Identifier");
                 var body = queryString.Get<string>("BodyStream");
                 TypeName = queryString.Get<string>("TypeName");
                 Formatter = queryString.GetEnum<Formatters>("Formatter", Formatters.Json);
@@ -1421,7 +1596,7 @@ namespace Nistec.Messaging
                 EncodingName = Types.NZorEmpty(queryString.Get<string>("EncodingName"), DefaultEncoding); 
                 if (body != null && body.Length > 0)
                     BodyStream = NetStream.FromBase64String(body);
-
+                */
 
                 //MessageStream=======================================
                 //Command = queryString.Get<string>("Command".ToLower());
@@ -1459,9 +1634,9 @@ namespace Nistec.Messaging
         {
             return BinarySerializer.SerializeToBytes(this);
         }
-        public static QueueItem Deserialize(byte[] bytes)
+        public static QueueMessage Deserialize(byte[] bytes)
         {
-            return BinarySerializer.Deserialize<QueueItem>(bytes);
+            return BinarySerializer.Deserialize<QueueMessage>(bytes);
         }
 
         //public PersistItem ToPersistItem()
@@ -1501,9 +1676,9 @@ namespace Nistec.Messaging
             //}
             //return null;
         }
-        public static QueueItem Deserialize(string json)
+        public static QueueMessage Deserialize(string json)
         {
-            return JsonSerializer.Deserialize<QueueItem>(json);
+            return JsonSerializer.Deserialize<QueueMessage>(json);
 
         }
 
@@ -1545,7 +1720,7 @@ namespace Nistec.Messaging
         //}
 
         ///// <summary>
-        ///// Get body stream after set the position to first byte in buffer, This method is a part of <see cref="IQueueItem"/> implementation.
+        ///// Get body stream after set the position to first byte in buffer, This method is a part of <see cref="IQueueMessage"/> implementation.
         ///// </summary>
         ///// <returns></returns>
         //public NetStream GetMessageStream()
@@ -1858,7 +2033,7 @@ namespace Nistec.Messaging
                 this.Modified = now;
                 this.ArrivedTime = now;
                 this.MessageState = Messaging.MessageState.Arrived;
-                this.Identifier = Ptr.NewIdentifier();
+                //this.Identifier = Ptr.NewIdentifier();
 
                 Ptr ptr = new Ptr(this, host);
                 return ptr;
@@ -2002,7 +2177,7 @@ namespace Nistec.Messaging
 
 
             //StringBuilder sb = new StringBuilder();
-            //sb.Append("QueueItem Print:");
+            //sb.Append("QueueMessage Print:");
             //sb.AppendFormat("\r\n{0}", MessageState);
             //sb.AppendFormat("\r\n{0}", MessageType);
             //sb.AppendFormat("\r\n{0}", Command);
@@ -2022,7 +2197,7 @@ namespace Nistec.Messaging
         }
 
         ///// <summary>
-        ///// Get a copy of <see cref="QueueItemStream"/> as <see cref="IQueueItem"/>
+        ///// Get a copy of <see cref="QueueItemStream"/> as <see cref="IQueueMessage"/>
         ///// </summary>
         ///// <returns></returns>
         //public Message GetMessage()
@@ -2058,7 +2233,7 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="filename"></param>
         /// <returns></returns>
-        public static QueueItem ReadFile(string filename)
+        public static QueueMessage ReadFile(string filename)
         {
             if (!File.Exists(filename))
             {
@@ -2071,7 +2246,7 @@ namespace Nistec.Messaging
                 input.CopyTo(netStream);
             }
             netStream.Position = 0;
-            return new QueueItem(netStream, null);
+            return new QueueMessage(netStream, null);
         }
 
         /// <summary>
@@ -2079,7 +2254,7 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="filename"></param>
         /// <returns></returns>
-        public static ReadFileState ReadFile(string filename, out IQueueItem item)
+        public static ReadFileState ReadFile(string filename, out IQueueMessage item)
         {
             if (!File.Exists(filename))
             {
@@ -2095,9 +2270,9 @@ namespace Nistec.Messaging
                     input.CopyTo(netStream);
                 }
                 netStream.Position = 0;
-                QueueItem qitem = new QueueItem(netStream, null);
+                QueueMessage qitem = new QueueMessage(netStream, null);
 
-                item = qitem as IQueueItem;
+                item = qitem as IQueueMessage;
 
                 return ReadFileState.Completed;
             }
@@ -2164,8 +2339,7 @@ namespace Nistec.Messaging
         }
 
         #endregion
-
-     
+    
     }
 
 
@@ -2315,12 +2489,12 @@ namespace Nistec.Messaging
     }
 
 
-    public class QueueItem:IDisposable, ICloneable, IQueueItem
+    public class QueueMessage:IDisposable, ICloneable, IQueueMessage
     {
     #region ICloneable
         public object Clone()
         {
-            var copy = new QueueItem()
+            var copy = new QueueMessage()
             {
                 Modified = this.Modified,
                 Retry = this.Retry,
@@ -2365,7 +2539,7 @@ namespace Nistec.Messaging
         /// <summary>
         /// Initialize a new instance of Message
         /// </summary>
-        public QueueItem()
+        public QueueMessage()
         {
             var header = new QItemHeader()
             {
@@ -2373,7 +2547,7 @@ namespace Nistec.Messaging
             };
         }
 
-        public QueueItem(QueueCmd command, TransformTypes transformType, Priority priority, string destination, string json)
+        public QueueMessage(QueueCmd command, TransformTypes transformType, Priority priority, string destination, string json)
         {
             var header = new QItemHeader()
             {
@@ -2390,7 +2564,7 @@ namespace Nistec.Messaging
             //m_BodyStream = new NetStream(Body);
         }
 
-        public QueueItem(MessageRequest message)
+        public QueueMessage(MessageRequest message)
         {
             var header = new QItemHeader()
             {
@@ -2408,7 +2582,7 @@ namespace Nistec.Messaging
             Body = ns.ToArray();
         }
 
-        public QueueItem(Message message)
+        public QueueMessage(Message message)
         {
             var header = new QItemHeader()
             {
@@ -2426,7 +2600,7 @@ namespace Nistec.Messaging
             Body = ns.ToArray();
         }
 
-        public QueueItem(QueueAck message)
+        public QueueMessage(QueueAck message)
         {
             var header = new QItemHeader()
             {
@@ -2449,7 +2623,7 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="streamer"></param>
-        public QueueItem(Stream stream, IBinaryStreamer streamer)
+        public QueueMessage(Stream stream, IBinaryStreamer streamer)
         {
             EntityRead(stream, streamer);
         }

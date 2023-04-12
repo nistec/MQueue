@@ -105,7 +105,8 @@ namespace QueueListenerDemo
             {
                 Source = host,
                 IsAsync = true,
-                Interval = 100,
+                IsMultiTask=true,
+                Interval = 10000,
                 ConnectTimeout = 5000,
                 ReadTimeout = 180000,
                 WorkerCount = 1,
@@ -151,7 +152,7 @@ namespace QueueListenerDemo
             //Console.ReadLine();
         }
 
-        private static void Listener_MessageReceived(object sender, Nistec.Generic.GenericEventArgs<IQueueItem> e)
+        private static void Listener_MessageReceived(object sender, Nistec.Generic.GenericEventArgs<IQueueMessage> e)
         {
             var message = e.Args;
             Console.WriteLine("State:{0},Arrived:{1},Host:{2},Label:{3}, Identifier:{4}", message.MessageState, message.ArrivedTime, message.Host, message.Label, message.Identifier);
@@ -180,7 +181,7 @@ namespace QueueListenerDemo
 
             var listener = new TopicSbscriberListener(qhost, true)
             {
-                OnItemReceived = (IQueueItem message) =>
+                OnItemReceived = (IQueueMessage message) =>
                 {
 
                     Console.WriteLine("State:{0},Arrived:{1},Host:{2},Label:{3}, Identifier:{4}", message.MessageState, message.ArrivedTime, message.Host, message.Label, message.Identifier);
@@ -219,7 +220,7 @@ namespace QueueListenerDemo
         }
 
 
-        public override TransStream OnMessageReceived(IQueueItem message)
+        public override TransStream OnMessageReceived(IQueueMessage message)
         {
             Console.WriteLine("State:{0},Arrived:{1},Host:{2},Label:{3}, Identifier:{4}", message.MessageState, message.ArrivedTime, message.Host, message.Label, message.Identifier);
 

@@ -9,7 +9,7 @@ namespace Nistec.Messaging.Listeners
 {
     internal interface IListenerHandler
     {
-        void DoMessageReceived(QueueItem message);
+        void DoMessageReceived(QueueMessage message);
 
         void DoErrorOcurred(string message);
     }

@@ -36,6 +36,6 @@ namespace Nistec.Messaging
         //byte[] Body { get; }
 
         string Print();
-        //QueueItem Copy();
+        //QueueMessage Copy();
     }
 }

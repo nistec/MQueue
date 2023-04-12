@@ -64,42 +64,42 @@ namespace Nistec.Messaging
         /// Peek Message
         /// </summary>
         /// <returns></returns>
-        IQueueItem Peek(Ptr ptr);
+        IQueueMessage Peek(Ptr ptr);
 
         /// <summary>
         /// Peek Message
         /// </summary>
         /// <returns></returns>
-        IQueueItem Peek(Priority priority);
+        IQueueMessage Peek(Priority priority);
 
         /// <summary>
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        IQueueItem Peek();
+        IQueueMessage Peek();
      
         /// <summary>
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        IQueueItem Dequeue(Ptr ptr);
+        IQueueMessage Dequeue(Ptr ptr);
 
         /// <summary>
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        IQueueItem Dequeue(Priority priority);
+        IQueueMessage Dequeue(Priority priority);
 
         /// <summary>
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        bool TryDequeue(out IQueueItem item);
+        bool TryDequeue(out IQueueMessage item);
         /// <summary>
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        IQueueItem Dequeue();
+        IQueueMessage Dequeue();
 
 
         /// <summary>
@@ -107,27 +107,27 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="maxSecondWait"></param>
         /// <returns></returns>
-        IQueueItem Consume(int maxSecondWait);
+        IQueueMessage Consume(int maxSecondWait);
   
         /// <summary>
         /// Enqueue Message
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        IQueueAck Enqueue(IQueueItem item);
+        IQueueAck Enqueue(IQueueMessage item);
 
         /// <summary>
         /// Re Enqueue Message
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        IQueueAck Requeue(IQueueItem item);
+        IQueueAck Requeue(IQueueMessage item);
 
         /// <summary>
         /// Remove Item
         /// </summary>
         /// <param name="ptr"></param>
-        IQueueItem RemoveItem(Ptr ptr);
+        IQueueMessage RemoveItem(Ptr ptr);
 
         bool ItemExists(Ptr ptr);
 
@@ -165,17 +165,17 @@ namespace Nistec.Messaging
         private GenericPtrQueue mediumQ;
         private GenericPtrQueue highQ;
 
-        SyncTimerDispatcher<IQueueItem> transactionalItems;
+        SyncTimerDispatcher<IQueueMessage> transactionalItems;
 
-       //ConcurrentDictionary<Ptr,IQueueItem> TransactionalItems;
-        //private Dictionary<string,IQueueItem> holdItems;
+       //ConcurrentDictionary<Ptr,IQueueMessage> TransactionalItems;
+        //private Dictionary<string,IQueueMessage> holdItems;
 
         ILogger _Logger;
         /// <summary>
         /// Get or Set Logger that implements <see cref="ILogger"/> interface.
         /// </summary>
         public ILogger Logger { get { return _Logger; } set { if (value != null) _Logger = value; } }
-        //private ConcurrentDictionary<Guid, IQueueItem> QueueList;
+        //private ConcurrentDictionary<Guid, IQueueMessage> QueueList;
 
         //private bool isTrans;
         //private string host;
@@ -222,15 +222,15 @@ namespace Nistec.Messaging
                 ErrorOccured(this, e);
         }
 
-        protected virtual void OnTryAdd(Ptr ptr, IQueueItem item, bool result)
+        protected virtual void OnTryAdd(Ptr ptr, IQueueMessage item, bool result)
         {
             Logger.Debug("OnTryAdd {0} item:{1}", result, item.Print());
         }
-        protected virtual void OnTryDequeue(Ptr ptr, IQueueItem item, bool result)
+        protected virtual void OnTryDequeue(Ptr ptr, IQueueMessage item, bool result)
         {
             Logger.Debug("TryDequeue {0} item:{1}", result, item.Print());
         }
-        protected virtual void OnTryPeek(Ptr ptr, IQueueItem item, bool result)
+        protected virtual void OnTryPeek(Ptr ptr, IQueueMessage item, bool result)
         {
             Logger.Debug("TryPeek {0} item:{1}", result, item.Print());
         }
@@ -238,11 +238,11 @@ namespace Nistec.Messaging
 
         #region abstract
 
-        protected abstract bool TryAdd(Ptr ptr, IQueueItem item);
+        protected abstract bool TryAdd(Ptr ptr, IQueueMessage item);
 
-        protected abstract bool TryDequeue(Ptr ptr, out IQueueItem item);
+        protected abstract bool TryDequeue(Ptr ptr, out IQueueMessage item);
 
-        protected abstract bool TryPeek(Ptr ptr, out IQueueItem item);
+        protected abstract bool TryPeek(Ptr ptr, out IQueueMessage item);
 
         protected abstract int Count();
 
@@ -250,13 +250,13 @@ namespace Nistec.Messaging
 
         internal protected abstract void ReloadItems();
 
-        protected abstract IQueueItem GetFirstItem();
+        protected abstract IQueueMessage GetFirstItem();
 
         public abstract IEnumerable<IPersistEntity> QueryItems();
 
         public abstract bool ItemExists(Ptr ptr);
 
-        //protected abstract bool TransBegin(Ptr ptr, out IQueueItem item);
+        //protected abstract bool TransBegin(Ptr ptr, out IQueueMessage item);
 
         #endregion
 
@@ -272,7 +272,7 @@ namespace Nistec.Messaging
             highQ = new GenericPtrQueue();
             TransactionExpiryMinuts = 1;
             //transactionalItems = new SyncTimerDispatcher<TransactionItem>();
-            //holdItems = new Dictionary<string, IQueueItem>();
+            //holdItems = new Dictionary<string, IQueueMessage>();
             _Logger = QLogger.Logger.ILog;
         }
 
@@ -295,7 +295,7 @@ namespace Nistec.Messaging
         //    //int concurrencyLevel = numProcs * 2;
         //    //int initialCapacity= 101;
 
-        //    //QueueList = new ConcurrentDictionary<Guid, IQueueItem>(concurrencyLevel, initialCapacity);
+        //    //QueueList = new ConcurrentDictionary<Guid, IQueueMessage>(concurrencyLevel, initialCapacity);
         //    //if (isTrans)
         //    //{
         //    //    syncTrans = new object();
@@ -383,13 +383,13 @@ namespace Nistec.Messaging
             //TODO:
         }
 
-        private void AddTransItem(IQueueItem item)
+        private void AddTransItem(IQueueMessage item)
         {
             Guid ptr = item.ItemId;
             m_TransDispatcher.Add( new TransactionItem(item, null));
         }
 
-        public void TransEnded(IQueueItem item, ItemState state)
+        public void TransEnded(IQueueMessage item, ItemState state)
         {
             m_TransDispatcher.Remove(item.ItemId);
             OnTransEnd(new QueueItemEventArgs(item, state));
@@ -447,10 +447,10 @@ namespace Nistec.Messaging
                 TransScop ti = (TransScop)hashAsyncTrans[itemId];
                 if (rollback)
                 {
-                    IQueueItem item = ti.Item;
+                    IQueueMessage item = ti.Item;
                     if (item.Retry < MaxRetry)
                     {
-                        ((IQueueItem)item).DoRetry();
+                        ((IQueueMessage)item).DoRetry();
                         Enqueue(item);
                     }
                 }
@@ -469,7 +469,7 @@ namespace Nistec.Messaging
 
         }
 
-        private void TransBegin(IQueueItem item)
+        private void TransBegin(IQueueMessage item)
         {
 
             if (!isTrans)
@@ -487,7 +487,7 @@ namespace Nistec.Messaging
         private class TransScop
         {
             private PriorityQueue owner;
-            public IQueueItem Item;
+            public IQueueMessage Item;
             public Guid Ptr;
             public ItemState State = ItemState.Wait;
             TimeSpan timeout;
@@ -496,7 +496,7 @@ namespace Nistec.Messaging
 
             //public event EventHandler TransCompleted;
 
-            public TransScop(PriorityQueue owner,IQueueItem item)
+            public TransScop(PriorityQueue owner,IQueueMessage item)
             {
                 start = item.ArrivedTime;
                 this.owner=owner;
@@ -603,7 +603,7 @@ namespace Nistec.Messaging
             }
         }
 
-        private void AddTransItem(IQueueItem item)
+        private void AddTransItem(IQueueMessage item)
         {
             Guid ptr = item.ItemId;
             TransScop ti = new TransScop(this,item);
@@ -615,7 +615,7 @@ namespace Nistec.Messaging
             
         }
 
-        public void TransEnded(IQueueItem item, ItemState state)
+        public void TransEnded(IQueueMessage item, ItemState state)
         {
             lock (hashAsyncTrans)
             {
@@ -626,7 +626,7 @@ namespace Nistec.Messaging
             //{
             //    if (item.Retry < MaxRetry)
             //    {
-            //        ((QueueItem)item).DoRetry();
+            //        ((QueueMessage)item).DoRetry();
             //        Enqueue(item);
             //    }
             //}
@@ -685,10 +685,10 @@ namespace Nistec.Messaging
                 TransScop ti = (TransScop)hashAsyncTrans[itemId];
                 if (rollback)
                 {
-                    IQueueItem item = ti.Item;
+                    IQueueMessage item = ti.Item;
                     if (item.Retry < MaxRetry)
                     {
-                        ((IQueueItem)item).DoRetry();
+                        ((IQueueMessage)item).DoRetry();
                         Enqueue(item);
                     }
                 }
@@ -707,7 +707,7 @@ namespace Nistec.Messaging
 
         }
 
-        private void TransBegin(IQueueItem item)
+        private void TransBegin(IQueueMessage item)
         {
 
             if (!isTrans)
@@ -720,25 +720,25 @@ namespace Nistec.Messaging
 
         #region Transactional
 
-        public SyncTimerDispatcher<IQueueItem> TransactionalDispatcher
+        public SyncTimerDispatcher<IQueueMessage> TransactionalDispatcher
         {
             get
             {
                 if(transactionalItems==null)
                 {
-                    transactionalItems = new SyncTimerDispatcher<IQueueItem>();
+                    transactionalItems = new SyncTimerDispatcher<IQueueMessage>();
                     transactionalItems.SyncItemCompleted += TransactionalItems_SyncItemCompleted;
                 }
                 return transactionalItems;
             }
         }
 
-        private void TransactionalItems_SyncItemCompleted(object sender, SyncItemEventArgs<IQueueItem> e)
+        private void TransactionalItems_SyncItemCompleted(object sender, SyncItemEventArgs<IQueueMessage> e)
         {
             OnTransactionExpired(e);
         }
 
-        protected virtual void OnTransactionExpired(SyncItemEventArgs<IQueueItem> e)
+        protected virtual void OnTransactionExpired(SyncItemEventArgs<IQueueMessage> e)
         {
             //if (this.SyncItemCompleted != null)
             //{
@@ -746,19 +746,19 @@ namespace Nistec.Messaging
             //}
         }
 
-        protected virtual void TransactionAdd(IQueueItem item, int expirationMinurs = 1)
+        protected virtual void TransactionAdd(IQueueMessage item, int expirationMinurs = 1)
         {
             if (TransactionalDispatcher.Initialized)
                 TransactionalDispatcher.Add(item, expirationMinurs);
         }
-        protected virtual bool TransactionCommit(IQueueItem item)
+        protected virtual bool TransactionCommit(IQueueMessage item)
         {
             return TransactionalDispatcher.Remove(item);
         }
 
-        protected virtual void TransactionAbort(IQueueItem item)
+        protected virtual void TransactionAbort(IQueueMessage item)
         {
-            OnTransactionExpired(new SyncItemEventArgs<IQueueItem>(item));
+            OnTransactionExpired(new SyncItemEventArgs<IQueueMessage>(item));
         }
 
 
@@ -773,7 +773,7 @@ namespace Nistec.Messaging
         {
             try
             {
-                IQueueItem item;
+                IQueueMessage item;
                 TryDequeue(ptr, out item);
             }
             catch (Exception ex)
@@ -828,9 +828,9 @@ namespace Nistec.Messaging
         /// Peek Message
         /// </summary>
         /// <returns></returns>
-        public IQueueItem Peek(Ptr ptr)
+        public IQueueMessage Peek(Ptr ptr)
         {
-            IQueueItem item = null;
+            IQueueMessage item = null;
             TryPeek(ptr,out item);
             return item;
         }
@@ -839,7 +839,7 @@ namespace Nistec.Messaging
         /// Peek Message
         /// </summary>
         /// <returns></returns>
-        public virtual IQueueItem Peek(Priority priority)
+        public virtual IQueueMessage Peek(Priority priority)
         {
             Ptr ptr = Ptr.Empty;
             switch (priority)
@@ -871,7 +871,7 @@ namespace Nistec.Messaging
             //    return null;
             //}
 
-            //IQueueItem item = Peek(ptr);
+            //IQueueMessage item = Peek(ptr);
             //if (item == null)
             //{
             //    return Peek(priority);
@@ -884,7 +884,7 @@ namespace Nistec.Messaging
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        public virtual IQueueItem Peek()
+        public virtual IQueueMessage Peek()
         {
             Ptr ptr = Ptr.Empty;
             if (!highQ.IsEmpty && highQ.TryPeek(out ptr))
@@ -909,7 +909,7 @@ namespace Nistec.Messaging
             //    return null;
             //}
 
-            //IQueueItem item = Peek(ptr);
+            //IQueueMessage item = Peek(ptr);
             //if (item == null)
             //{
             //    return Peek();
@@ -924,10 +924,10 @@ namespace Nistec.Messaging
         /// <param name="ptr"></param>
         /// <param name="transactional"></param>
         /// <returns></returns>
-        private IQueueItem DequeueScop(Ptr ptr, bool transactional = false)
+        private IQueueMessage DequeueScop(Ptr ptr, bool transactional = false)
         {
 
-            IQueueItem item = null;
+            IQueueMessage item = null;
 
             if (transactional)
             {
@@ -941,10 +941,10 @@ namespace Nistec.Messaging
                     if (item != null)
                     {
 
-                        ((QueueItem)item).SetState(MessageState.Receiving);
-                        ((QueueItem)item).QCommand = QueueCmd.Dequeue;
+                        ((QueueMessage)item).SetState(MessageState.Receiving);
+                        ((QueueMessage)item).QCommand = QueueCmd.Dequeue;
                         //item.Status = ItemState.Dequeue;
-                        //((QueueItem)item).SetSentTime();
+                        //((QueueMessage)item).SetSentTime();
 
 
                         if (MessageReceived != null)
@@ -962,10 +962,10 @@ namespace Nistec.Messaging
 
                 if (item != null)
                 {
-                    ((QueueItem)item).SetState(MessageState.Receiving);
-                    ((QueueItem)item).QCommand = QueueCmd.Dequeue;
+                    ((QueueMessage)item).SetState(MessageState.Receiving);
+                    ((QueueMessage)item).QCommand = QueueCmd.Dequeue;
                     //item.Status = ItemState.Dequeue;
-                    //((QueueItem)item).SetSentTime();
+                    //((QueueMessage)item).SetSentTime();
 
                     if (MessageReceived != null)
                     {
@@ -977,7 +977,7 @@ namespace Nistec.Messaging
             return item;
         }
         */
-        private bool DequeueScopEvent(IQueueItem item)
+        private bool DequeueScopEvent(IQueueMessage item)
         {
 
             if (item != null)
@@ -986,10 +986,10 @@ namespace Nistec.Messaging
                 {
                     TransactionAdd(item, TransactionExpiryMinuts);
                 }
-                ((QueueItem)item).SetState(MessageState.Receiving);
-                ((QueueItem)item).QCommand = QueueCmd.Dequeue;
+                ((QueueMessage)item).SetState(MessageState.Receiving);
+                ((QueueMessage)item).QCommand = QueueCmd.Dequeue;
                 //item.Status = ItemState.Dequeue;
-                //((QueueItem)item).SetSentTime();
+                //((QueueMessage)item).SetSentTime();
 
                 if (MessageReceived != null)
                 {
@@ -1005,9 +1005,9 @@ namespace Nistec.Messaging
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        public virtual IQueueItem Dequeue(Ptr ptr)
+        public virtual IQueueMessage Dequeue(Ptr ptr)
         {
-            IQueueItem item = null;
+            IQueueMessage item = null;
             try
             {
                 if (TryDequeue(ptr, out item))
@@ -1033,10 +1033,10 @@ namespace Nistec.Messaging
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        public virtual IQueueItem Dequeue(Priority priority)
+        public virtual IQueueMessage Dequeue(Priority priority)
         {
             Ptr ptr = Ptr.Empty;
-            IQueueItem item = null;
+            IQueueMessage item = null;
             try
             {
                 using (TransactionScope scope = TransHelper.GetTransactionScope())
@@ -1088,7 +1088,7 @@ namespace Nistec.Messaging
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        public virtual bool TryDequeue(out IQueueItem item)
+        public virtual bool TryDequeue(out IQueueMessage item)
         {
             Ptr ptr = Ptr.Empty;
 
@@ -1139,10 +1139,10 @@ namespace Nistec.Messaging
         /// Dequeue Message
         /// </summary>
         /// <returns></returns>
-        public virtual IQueueItem Dequeue()
+        public virtual IQueueMessage Dequeue()
         {
             Ptr ptr = Ptr.Empty;
-            IQueueItem item = null;
+            IQueueMessage item = null;
             try
             {
 
@@ -1203,10 +1203,10 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="maxSecondWait"></param>
         /// <returns></returns>
-        public virtual IQueueItem Consume(int maxSecondWait)
+        public virtual IQueueMessage Consume(int maxSecondWait)
         {
             Ptr ptr = Ptr.Empty;
-            IQueueItem item = null;
+            IQueueMessage item = null;
             DateTime start = DateTime.Now;
             bool wait = true;
             int sycle = 0;
@@ -1255,9 +1255,9 @@ namespace Nistec.Messaging
 
         }
 
-        //private IQueueItem GetFirstItem()
+        //private IQueueMessage GetFirstItem()
         //{
-        //    IQueueItem item = null;
+        //    IQueueMessage item = null;
         //    try
         //    {
         //        if (Count() > 0)
@@ -1286,16 +1286,16 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public virtual IQueueAck Enqueue(IQueueItem item)
+        public virtual IQueueAck Enqueue(IQueueMessage item)
         {
             
 
             //using (TransactionScope tran = new TransactionScope())
             //{
-                //((QueueItem)item).SetState(MessageState.Arrived);
-                //((QueueItem)item).ArrivedTime = DateTime.Now;
+                //((QueueMessage)item).SetState(MessageState.Arrived);
+                //((QueueMessage)item).ArrivedTime = DateTime.Now;
 
-                Ptr ptr = ((QueueItem)item).SetArrivedPtr(Name);
+                Ptr ptr = ((QueueMessage)item).SetArrivedPtr(Name);
                 //Ptr ptr = new Ptr(item, Host);
 
                 if (TryAdd(ptr, item))
@@ -1331,13 +1331,13 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public virtual IQueueAck Requeue(IQueueItem item)
+        public virtual IQueueAck Requeue(IQueueMessage item)
         {
             if(item.Retry > MaxRetry)
             {
                 return new QueueAck(MessageState.RetryExceeds, item);
             }
-            ((QueueItem)item).DoRetry();
+            ((QueueMessage)item).DoRetry();
 
             Ptr ptr = new Ptr(item, Name);
 
@@ -1375,9 +1375,9 @@ namespace Nistec.Messaging
         /// Remove Item
         /// </summary>
         /// <param name="ptr"></param>
-        public virtual IQueueItem RemoveItem(Ptr ptr)
+        public virtual IQueueMessage RemoveItem(Ptr ptr)
         {
-            IQueueItem item;
+            IQueueMessage item;
             
             TryDequeue(ptr, out item);
 
@@ -1403,7 +1403,7 @@ namespace Nistec.Messaging
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public virtual IQueueAck HoldAdd(IQueueItem item)
+        public virtual IQueueAck HoldAdd(IQueueMessage item)
         {
 
             var ptr = item.GetPtr();
@@ -1491,10 +1491,10 @@ namespace Nistec.Messaging
         ///// Queue items Clone
         ///// </summary>
         ///// <returns></returns>
-        //public IQueueItem[] Clone()
+        //public IQueueMessage[] Clone()
         //{
         //    int count =QueueList.Count;
-        //    IQueueItem[] list = new IQueueItem[count];
+        //    IQueueMessage[] list = new IQueueMessage[count];
         //    QueueList.Values.CopyTo(list,0);
         //    return list;
         //}
@@ -1503,30 +1503,30 @@ namespace Nistec.Messaging
         ///// Queue items
         ///// </summary>
         ///// <returns></returns>
-        //public ICollection<IQueueItem> Items
+        //public ICollection<IQueueMessage> Items
         //{
         //    get { return QueueList.Values; }
         //}
 
 
         ///// <summary>
-        ///// Find IQueueItem
+        ///// Find IQueueMessage
         ///// </summary>
         ///// <param name="itemId"></param>
         ///// <param name="messageId"></param>
         ///// <returns></returns>
-        //public IQueueItem Find(Guid itemId)
+        //public IQueueMessage Find(Guid itemId)
         //{
-        //    IQueueItem item;
+        //    IQueueMessage item;
         //    if (QueueList.ContainsKey(itemId))
         //    {
-        //        item = (IQueueItem)QueueList[itemId];
+        //        item = (IQueueMessage)QueueList[itemId];
         //        return item.Copy();
         //    }
 
         //    //if (QueueList.TryGetValue(itemId,out item))
         //    //{
-        //    //    return item.Copy() as IQueueItem;
+        //    //    return item.Copy() as IQueueMessage;
         //    //}
         //    return null;
         //}
@@ -1535,11 +1535,11 @@ namespace Nistec.Messaging
         ///// </summary>
         ///// <param name="TransactionId"></param>
         ///// <returns></returns>
-        //public IQueueItem[] Find(string TransactionId)
+        //public IQueueMessage[] Find(string TransactionId)
         //{
-        //    IQueueItem[] items = Clone();
-        //    List<IQueueItem> qitems = new List<IQueueItem>();
-        //    foreach (IQueueItem item in items)
+        //    IQueueMessage[] items = Clone();
+        //    List<IQueueMessage> qitems = new List<IQueueMessage>();
+        //    foreach (IQueueMessage item in items)
         //    {
         //        if (item.TransactionId == TransactionId)
         //            qitems.Add(item);
@@ -1553,11 +1553,11 @@ namespace Nistec.Messaging
         ///// </summary>
         ///// <param name="messageId"></param>
         ///// <returns></returns>
-        //public IQueueItem[] Find(int messageId)
+        //public IQueueMessage[] Find(int messageId)
         //{
-        //    IQueueItem[] items = Clone();
-        //    List<IQueueItem> qitems = new List<IQueueItem>();
-        //    foreach (IQueueItem item in items)
+        //    IQueueMessage[] items = Clone();
+        //    List<IQueueMessage> qitems = new List<IQueueMessage>();
+        //    foreach (IQueueMessage item in items)
         //    {
         //        if (item.MessageId == messageId)
         //            qitems.Add(item);

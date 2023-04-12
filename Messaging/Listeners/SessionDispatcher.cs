@@ -25,13 +25,13 @@ namespace Nistec.Messaging.Listeners
         /// </summary>
         public event GenericEventHandler<string> ErrorOcurred;
         /// <summary>
-        /// QueueItem Received
+        /// QueueMessage Received
         /// </summary>
-        public event GenericEventHandler<QueueItem> MessageReceived;
+        public event GenericEventHandler<QueueMessage> MessageReceived;
 
-        void IListenerHandler.DoMessageReceived(QueueItem message)
+        void IListenerHandler.DoMessageReceived(QueueMessage message)
         {
-            OnMessageReceived(new GenericEventArgs<QueueItem>(message));
+            OnMessageReceived(new GenericEventArgs<QueueMessage>(message));
         }
 
         void IListenerHandler.DoErrorOcurred(string message)
@@ -42,7 +42,7 @@ namespace Nistec.Messaging.Listeners
         /// Occured when message received.
         /// </summary>
         /// <param name="e"></param>
-        protected virtual void OnMessageReceived(GenericEventArgs<QueueItem> e)
+        protected virtual void OnMessageReceived(GenericEventArgs<QueueMessage> e)
         {
 
             if (MessageReceived != null)

@@ -13,14 +13,14 @@ namespace Nistec.Messaging.Server
     {
         public const string TableName = "QCover";
 
-        static PersistentSqlCover<QueueItem> _Instance;
-        public static PersistentSqlCover<QueueItem> Instance
+        static PersistentSqlCover<QueueMessage> _Instance;
+        public static PersistentSqlCover<QueueMessage> Instance
         {
 
             get {
                 if (_Instance == null)
                 {
-                    _Instance = new PersistentSqlCover<QueueItem>(Settings.DbCoverConnection, Data.DBProvider.SqlServer, TableName);
+                    _Instance = new PersistentSqlCover<QueueMessage>(Settings.DbCoverConnection, Data.DBProvider.SqlServer, TableName);
                 }
                 return _Instance;
             }
@@ -31,7 +31,7 @@ namespace Nistec.Messaging.Server
             get { return AgentManager.Settings; }
         }
 
-        public static bool Add(QueueItem item)
+        public static bool Add(QueueMessage item)
         {
             return Instance.TryAdd(item.Identifier, item.Host, item);
         }
@@ -41,7 +41,7 @@ namespace Nistec.Messaging.Server
             IPersistBinaryItem pitem;
             if (Instance.TryFetch(hostName, out pitem))
             {
-                QueueItem item = QueueItem.Deserialize(pitem.body);
+                QueueMessage item = QueueMessage.Deserialize(pitem.body);
                 AgentManager.Queue.ExecSet(item);
             }
         }
@@ -62,7 +62,7 @@ namespace Nistec.Messaging.Server
                         found = (Instance.TryFetch(hostName, out pitem));
                         if (found)
                         {
-                            QueueItem item = QueueItem.Deserialize(pitem.body);
+                            QueueMessage item = QueueMessage.Deserialize(pitem.body);
                             if (item.IsExpired)
                             {
                                 Instance.TryAddJournal(item.Host, pitem);
@@ -113,7 +113,7 @@ namespace Nistec.Messaging.Server
 
         }
 
-        public static void RenqueueAction(string hostName, int maxCount, Action<QueueItem> action)
+        public static void RenqueueAction(string hostName, int maxCount, Action<QueueMessage> action)
         {
 
 
@@ -129,7 +129,7 @@ namespace Nistec.Messaging.Server
                         found = (Instance.TryFetch(hostName, out pitem));
                         if (found)
                         {
-                            QueueItem item = QueueItem.Deserialize(pitem.body);
+                            QueueMessage item = QueueMessage.Deserialize(pitem.body);
                             if (item.IsExpired)
                             {
                                 Instance.TryAddJournal(item.Host, pitem);

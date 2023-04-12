@@ -13,14 +13,14 @@ namespace Nistec.Messaging.Proxies
         MessageState SendItem(Stream item);
     }
 
-    public class DynamicProxy<TChannel> : ServiceProxy<TChannel, QueueItem> where TChannel : IServiceProxy
+    public class DynamicProxy<TChannel> : ServiceProxy<TChannel, QueueMessage> where TChannel : IServiceProxy
     {
         public DynamicProxy(string endpointUrl)
             : base(endpointUrl)
         {
 
         }
-        protected override MessageState Send(QueueItem item)
+        protected override MessageState Send(QueueMessage item)
         {
             return Proxy.SendItem(item.BodyStream);
         }

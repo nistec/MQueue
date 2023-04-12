@@ -16,7 +16,7 @@ namespace Nistec.Messaging.Server
     /// <summary>
     /// Represent a queue Pipe server listner.
     /// </summary>
-    public class PipeServerChannel : PipeServer<IQueueMessage>
+    public class PipeServerChannel : PipeServer<IQueueRequest>
     {
         QueueChannel QueueChannel;
 
@@ -94,7 +94,7 @@ namespace Nistec.Messaging.Server
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override TransStream ExecRequset(IQueueMessage message)
+        protected override TransStream ExecRequset(IQueueRequest message)
         {
             return AgentManager.Queue.ExecRequset(message);
         }
@@ -103,11 +103,11 @@ namespace Nistec.Messaging.Server
         /// </summary>
         /// <param name="pipeServer"></param>
         /// <returns></returns>
-         protected override IQueueMessage ReadRequest(NamedPipeServerStream pipeServer)
+         protected override IQueueRequest ReadRequest(NamedPipeServerStream pipeServer)
         {
 
             if (QueueChannel == QueueChannel.Producer)
-                return new QueueItem(pipeServer, null);
+                return new QueueMessage(pipeServer, null);
             else
                 return new QueueRequest(pipeServer);
         }

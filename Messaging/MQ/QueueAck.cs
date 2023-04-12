@@ -7,57 +7,71 @@ using Nistec.Runtime;
 using Nistec.Serialization;
 using Nistec.IO;
 using Nistec.Channels;
+using Nistec.Generic;
 
 namespace Nistec.Messaging
 {
-    public class QueueAck: ISerialEntity, IQueueAck
+    [Serializable]
+    public class QueueAck: ISerialEntity, IQueueAck, IAck
     {
-        public QueueAck() {
+
+        public static QueueAck DoResponse(MessageState state, string message, object response = null)
+        {
+            return new QueueAck() { MessageState = state, Label = message, Response = response };
+        }
+        //public static QueueAck DoResponse(MessageState state, string label, string identifier, string host, object response = null)
+        //{
+        //    return new QueueAck() { MessageState = state, Label = label, Response = response, Identifier = identifier, Host = host };
+        //}
+        public QueueAck()
+        {
             Creation = DateTime.Now;
         }
-
-
-
-        public QueueAck(MessageState state, string identifier, string host)
+        public QueueAck(MessageState state, string label, string identifier, string host, object response = null)
+        {
+            MessageState = state;
+            Label = label;
+            Response = response;
+            Identifier = identifier;
+            Host = host;
+        }
+        public QueueAck(MessageState state, string identifier, string host):this()
         {
             this.Identifier = identifier;
             this.Label = null;
             this.MessageState = state;
-            this.Creation = DateTime.Now;
             this.Host = host;
         }
-        public QueueAck(MessageState state, string result, string identifier, string host)
+        public QueueAck(MessageState state, string result, string identifier, string host) : this()
         {
             this.Identifier = identifier;
             this.Label = result;
             this.MessageState = state;
-            this.Creation = DateTime.Now;
             this.Host = host;
         }
-        public QueueAck(MessageState state, string destination, Exception ex)
+        public QueueAck(MessageState state, string destination, Exception ex) : this()
         {
             this.Label = ex.Message;
             this.MessageState = state;
-            this.Creation = DateTime.Now;
             this.Host = destination;
         }
-        public QueueAck(MessageState state, IQueueItem item)
+        public QueueAck(MessageState state, IQueueMessage item, object response = null) : this()
         {
             this.Identifier = item.Identifier;
             this.Label = item.Label;
             this.MessageState = state;
-            this.Creation = DateTime.Now;
             this.Host = item.Host;
+            this.Response = response;
         }
-        public QueueAck(MessageState state, IQueueMessage item, string label)
+        public QueueAck(MessageState state, IQueueRequest item, object response = null) : this()
         {
             this.Identifier = item.Identifier;
-            this.Label = label;
+            this.Label = item.Label;
             this.MessageState = state;
-            this.Creation = DateTime.Now;
             this.Host = item.Host;
+            this.Response = response;
         }
-        public QueueAck(IQueueAck[] acks)
+        public QueueAck(IQueueAck[] acks) : this()
         {
 
             for (int i = 0; i < acks.Count(); i++)
@@ -74,30 +88,30 @@ namespace Nistec.Messaging
                 else
                 {
 
-                    this.Identifier +="|"+ ack.Identifier;
+                    this.Identifier += "|" + ack.Identifier;
                     this.Label += "|" + ack.Label;
                     //this.MessageState += "|" + ack.MessageState;
                     this.Host += "|" + ack.Host;
                 }
             }
 
-            this.Count = acks.Count();
+            //this.Count = acks.Count();
         }
 
-        public QueueAck(NetStream stream)
+        public QueueAck(NetStream stream) : this()
         { 
             EntityRead(stream, null);
         }
 
-        //public NetStream ToStream()
-        //{
-        //    NetStream stream = new NetStream();
-        //    EntityWrite(stream, null);
-        //    return stream;
-        //}
+        public NetStream ToStream()
+        {
+            NetStream stream = new NetStream();
+            EntityWrite(stream, null);
+            return stream;
+        }
         public TransStream ToTransStream()
         {
-            TransStream stream = new TransStream(this);//, TransType.Object);
+            TransStream stream = new TransStream(this, TransType.Ack);
             return stream;
         }
 
@@ -106,15 +120,19 @@ namespace Nistec.Messaging
         /// <summary>
         /// Get or Set The ItemId.
         /// </summary>
+        public object Response { get; internal set; }
+        /// <summary>
+        /// Get or Set The ItemId.
+        /// </summary>
         public string Identifier { get; internal set; }
         /// <summary>
         /// Get the message state
         /// </summary>
         public MessageState MessageState { get; internal set; }
-        /// <summary>
-        /// Get or Set the arrived time.
-        /// </summary>
-        public DateTime ArrivedTime { get; internal set; }
+        ///// <summary>
+        ///// Get or Set the arrived time.
+        ///// </summary>
+        //public DateTime ArrivedTime { get; internal set; }
         /// <summary>
         /// Get or Set the send time.
         /// </summary>
@@ -131,29 +149,33 @@ namespace Nistec.Messaging
         /// Get or Set Duration
         /// </summary>
         public int Duration { get; internal set; }
-        /// <summary>
-        /// Get or Set Count
-        /// </summary>
-        public int Count { get; internal set; }
+        ///// <summary>
+        ///// Get or Set Count
+        ///// </summary>
+        //public int Count { get; internal set; }
         public string Print()
         {
             return string.Format("Creation:{0}, MessageState:{1}, Label:{2}, Host:{3}, Identifier:{4}, Duration:{5}", Creation, MessageState, Label, Host, Identifier, Duration);
-
-            //StringBuilder sb = new StringBuilder();
-            //sb.Append("QueueAck Print:");
-            //sb.AppendFormat("\r\n{0}", MessageState);
-            //sb.AppendFormat("\r\n{0}", Identifier);
-            ////sb.AppendFormat("\r\n{0}", ArrivedTime);
-            //sb.AppendFormat("\r\n{0}", SentTime);
-            //sb.AppendFormat("\r\n{0}", Destination);
-            //sb.AppendFormat("\r\n{0}", Label);
-            //sb.AppendFormat("\r\n{0}", Count);
-            //return sb.ToString();
+        }
+        public string Display()
+        {
+            return Strings.ReflatJson(GenericKeyValue.Create("Label", Label, "Response", Response, "State", MessageState.ToString()).ToJson());
+        }
+        public string ToJson()
+        {
+            KeyValueArgs a = new KeyValueArgs();
+            a.Add("Label", Label);
+            a.Add("Response", Response);
+            a.Add("State", MessageState.ToString());
+            if (!Host.IsNull()) a.Add("Identifier", Identifier);
+            if (!Host.IsNull()) a.Add("Host", Host);
+            if (!Host.IsNull()) a.Add("Label", Label);
+            
+            return JsonSerializer.Serialize(a.ToJson());
+            //return GenericKeyValue.Create("Label", Label, "Response", Response, "State", MessageState).ToJson();
         }
 
-
         #endregion
-
 
         #region  ISerialEntity
 
@@ -174,8 +196,9 @@ namespace Nistec.Messaging
             streamer.WriteString(Host);
             streamer.WriteString(Label);
             streamer.WriteValue(Duration);
-            streamer.WriteValue(Count);
-            streamer.WriteValue(ArrivedTime);
+            streamer.WriteValue(Response);
+            //streamer.WriteValue(Count);
+            //streamer.WriteValue(ArrivedTime);
             //string arrived = ArrivedTime == null || ArrivedTime.HasValue == false ? null : ArrivedTime.ToString();
             //streamer.WriteString(arrived);
 
@@ -198,21 +221,23 @@ namespace Nistec.Messaging
             Host = streamer.ReadString();
             Label = streamer.ReadString();
             Duration = streamer.ReadValue<int>();
-            Count = streamer.ReadValue<int>();
+            Response = streamer.ReadValue();
+            //Count = streamer.ReadValue<int>();
             //string arrived = streamer.ReadString();
             //ArrivedTime= Types.ToNullableDate(arrived);
-            ArrivedTime = streamer.ReadValue<DateTime>();
+            //ArrivedTime = streamer.ReadValue<DateTime>();
         }
 
         #endregion
-
+               
+  
         internal void SetArrived()
         {
             DateTime arrived = DateTime.Now;
-            ArrivedTime = arrived;
+            //ArrivedTime = arrived;
             var d = arrived.Subtract(Creation).TotalMilliseconds;
             d = Math.Min(d, int.MaxValue);
-            Duration = (int)d;
+            Duration = (int)d; //Math.Round(d, 4, MidpointRounding.AwayFromZero);
         }
         //internal void SetReceived()
         //{

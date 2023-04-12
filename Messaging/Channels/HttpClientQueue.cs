@@ -20,12 +20,12 @@ namespace Nistec.Messaging.Channels
     /// <summary>
     /// Represent Http client channel
     /// </summary>
-    public class HttpClientQueue : HttpClient<IQueueMessage>, IDisposable
+    public class HttpClientQueue : HttpClient<IQueueRequest>, IDisposable
     {
 
         #region static send methods
 
-        public static QueueAck Enqueue(QueueItem request, string hostAddress, string method, int ProcessTimeout, bool IsAsync, bool enableException = false)
+        public static QueueAck Enqueue(QueueMessage request, string hostAddress, string method, int ProcessTimeout, bool IsAsync, bool enableException = false)
         {
             //Type type = request.BodyType;
             using (HttpClientQueue client = new HttpClientQueue(hostAddress, method, ProcessTimeout))
@@ -36,13 +36,13 @@ namespace Nistec.Messaging.Channels
                 //var item = request.Copy();
                 //item.SetBodyText(response);
                 //item.SetArrived();
-                //return item;// new QueueItem(request, body, typeof(string));
+                //return item;// new QueueMessage(request, body, typeof(string));
             }
 
             //return null;
         }
         
-        public static QueueAck Management(IQueueMessage request, string hostAddress, string method, int ProcessTimeout, bool IsAsync, bool enableException = false)
+        public static QueueAck Management(IQueueRequest request, string hostAddress, string method, int ProcessTimeout, bool IsAsync, bool enableException = false)
         {
             //Type type = request.BodyType;
             using (HttpClientQueue client = new HttpClientQueue(hostAddress, method, ProcessTimeout))
@@ -53,17 +53,17 @@ namespace Nistec.Messaging.Channels
                 //var item = request.Copy();
                 //item.SetBodyText(response);
                 //item.SetArrived();
-                //return item;// new QueueItem(request, body, typeof(string));
+                //return item;// new QueueMessage(request, body, typeof(string));
             }
 
             //return null;
         }
-        public static QueueItem SendDuplex(IQueueMessage request, string hostAddress, string method, int ProcessTimeout, bool IsAsync, bool enableException = false)
+        public static QueueMessage SendDuplex(IQueueRequest request, string hostAddress, string method, int ProcessTimeout, bool IsAsync, bool enableException = false)
         {
             //Type type = request.BodyType;
             using (HttpClientQueue client = new HttpClientQueue(hostAddress, method, ProcessTimeout))
             {
-                var response = client.Execute<QueueItem>(request, enableException);
+                var response = client.Execute<QueueMessage>(request, enableException);
                 return response;
 
                 //var response= client.Execute(request, enableException);
@@ -71,13 +71,13 @@ namespace Nistec.Messaging.Channels
                 //var item = request.Copy();
                 //item.SetBodyText(response);
                 //item.SetArrived();
-                //return item;// new QueueItem(request, body, typeof(string));
+                //return item;// new QueueMessage(request, body, typeof(string));
             }
 
             //return null;
         }
 
-        public static void SendOut(IQueueMessage request, string hostAddress, string method, int ProcessTimeout, bool IsAsync, bool enableException = false)
+        public static void SendOut(IQueueRequest request, string hostAddress, string method, int ProcessTimeout, bool IsAsync, bool enableException = false)
         {
             //request.IsDuplex = false;
             using (HttpClientQueue client = new HttpClientQueue(hostAddress, method, ProcessTimeout))
@@ -144,7 +144,7 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override NetStream RequestToStream(IQueueMessage message)
+        protected override NetStream RequestToStream(IQueueRequest message)
         {
             return message.ToStream();
         }
@@ -154,7 +154,7 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override byte[] RequestToBinary(IQueueMessage message)
+        protected override byte[] RequestToBinary(IQueueRequest message)
         {
             //return message.ToStream().GetStream().ToArray();
             return message.ToStream().ToArray();
@@ -166,7 +166,7 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override string RequestToJson(IQueueMessage message)
+        protected override string RequestToJson(IQueueRequest message)
         {
             return message.ToJson();// JsonSerializer.Serialize(message);
         }

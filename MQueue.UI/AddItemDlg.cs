@@ -364,7 +364,7 @@ namespace Nistec.Messaging.UI
             return ok;
         }
 
-        public QProperties QueueItem
+        public QProperties QueueMessage
         {
             get { return m_QueueItem; }
         }

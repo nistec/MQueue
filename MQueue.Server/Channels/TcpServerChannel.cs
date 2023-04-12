@@ -17,7 +17,7 @@ namespace Nistec.Messaging.Server
     /// <summary>
     /// Represent a queue tcp server listner.
     /// </summary>
-    public class TcpServerChannel : TcpServer<IQueueMessage>
+    public class TcpServerChannel : TcpServer<IQueueRequest>
     {
         QueueChannel QueueChannel;
 
@@ -85,7 +85,7 @@ namespace Nistec.Messaging.Server
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override TransStream ExecRequset(IQueueMessage message)
+        protected override TransStream ExecRequset(IQueueRequest message)
         {
             return AgentManager.Queue.ExecRequset(message);
         }
@@ -94,7 +94,7 @@ namespace Nistec.Messaging.Server
         /// </summary>
         /// <param name="stream"></param>
         /// <returns></returns>
-        protected override IQueueMessage ReadRequest(NetworkStream stream)
+        protected override IQueueRequest ReadRequest(NetworkStream stream)
         {
             //IQueueMessage message = null;
             //using (var ntStream = new NetStream())
@@ -102,14 +102,14 @@ namespace Nistec.Messaging.Server
             //    ntStream.CopyFrom(stream, readTimeout, ReceiveBufferSize);
 
             //    if (QueueChannel == QueueChannel.Producer)
-            //        message= new QueueItem(stream, null);
+            //        message= new QueueMessage(stream, null);
             //    else
             //        message= new QueueRequest(stream);
             //}
             //return message;
 
             if (QueueChannel == QueueChannel.Producer)
-                return new QueueItem(stream, null);
+                return new QueueMessage(stream, null);
             else
                 return new QueueRequest(stream);
         }

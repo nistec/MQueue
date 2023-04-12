@@ -36,7 +36,7 @@ namespace Nistec.Messaging.Listeners
         #endregion
 
  
-        //protected override IQueueAck Send(QueueItem message)
+        //protected override IQueueAck Send(QueueMessage message)
         //{
         //    return _api.PublishItem(message);
         //}
@@ -79,7 +79,7 @@ namespace Nistec.Messaging.Listeners
         }
 
 
-        protected override IQueueItem Receive()
+        protected override IQueueMessage Receive()
         {
             QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
             {
@@ -90,7 +90,7 @@ namespace Nistec.Messaging.Listeners
             return _api.Dequeue(request);
         }
 
-        //protected override IQueueAck ReceiveTo()//QueueHost target, int connectTimeout, Action<QueueItem> recieveAction)
+        //protected override IQueueAck ReceiveTo()//QueueHost target, int connectTimeout, Action<QueueMessage> recieveAction)
         //{
         //    return _api.ReceiveTo(TransferTo, ConnectTimeout, null);
         //}
