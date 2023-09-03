@@ -57,7 +57,7 @@ namespace Nistec.Messaging.Proxies
 
         protected override MessageState Send(QueueMessage item)
         {
-            return Proxy.SendMessage(item.BodyStream);
+            return Proxy.SendMessage(item.BodyStream());
         }
     }
 
@@ -71,7 +71,7 @@ namespace Nistec.Messaging.Proxies
 
         protected override MessageState Send(QueueMessage item)
         {
-            return Proxy.SendMessage(item.BodyStream);
+            return Proxy.SendMessage(item.BodyStream());
         }
     }
 

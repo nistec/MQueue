@@ -16,17 +16,17 @@ namespace Nistec.Messaging.Db
                         MessageState tinyint not null,
                         Command tinyint not null,
                         Priority tinyint not null,
-                        UniqueId bigint not null,
+                        Identifier varchar(50) not null,
                         Retry tinyint not null,
                         ArrivedTime datetime null,
-                        SentTime datetime null,
+                        --SentTime datetime null,
                         Modified datetime null,
                         Expiration int null,
-                        MessageId int null,
+                        MessageId varchar(50) null,
                         BodyStream varbinary(max)); 
                     go";
         const string cdxFifoQueue = @"
-                    create clustered index cdxFifoQueue on FifoQueue (UniqueId);
+                    create clustered index cdxFifoQueue on FifoQueue (Identifier);
                     go";
 
         const string QCover = @"
@@ -36,13 +36,13 @@ namespace Nistec.Messaging.Db
                         MessageState tinyint not null,
                         Command tinyint not null,
                         Priority tinyint not null,
-                        UniqueId bigint not null,
+                        Identifier varchar(50) not null,
                         Retry tinyint not null,
                         ArrivedTime datetime null,
-                        SentTime datetime null,
+                        --SentTime datetime null,
                         Modified datetime null,
                         Expiration int null,
-                        MessageId int null,
+                        MessageId varchar(50) null,
                         BodyStream varbinary(max)); 
                     go";
         const string cdxQCover = @"
@@ -56,13 +56,13 @@ namespace Nistec.Messaging.Db
                         MessageState tinyint not null,
                         Command tinyint not null,
                         Priority tinyint not null,
-                        UniqueId bigint not null,
+                        Identifier varchar(50) not null,
                         Retry tinyint not null,
                         ArrivedTime datetime null,
-                        SentTime datetime null,
+                        --SentTime datetime null,
                         Modified datetime null,
                         Expiration int null,
-                        MessageId int null,
+                        MessageId varchar(50) null,
                         BodyStream varbinary(max)); 
                     go";
         const string cdxSuspendQueue = @"
@@ -71,7 +71,7 @@ namespace Nistec.Messaging.Db
 
         const string TransQueue = @"
                     create table TransQueue (  
-                        UniqueId bigint not null,
+                        Identifier varchar(50) not null,
                         Host varchar(50) not null,
                         MessageState tinyint not null,
                         Modified datetime null,
@@ -79,28 +79,27 @@ namespace Nistec.Messaging.Db
                        ); 
                     go";
         const string cdxTransQueue = @"
-                    create clustered index cdxTransQueue on TransQueue (UniqueId);
+                    create clustered index cdxTransQueue on TransQueue (Identifier);
                     go";
-
-
+ 
         const string sp_enqueue_fifo = @"
                     create procedure sp_enqueue_fifo 
                         @Host varchar(50),
                         @MessageState tinyint,
                         @Command tinyint,
                         @Priority tinyint,
-                        @UniqueId bigint,
+                        @Identifier varchar(50),
                         @Retry tinyint,
                         @ArrivedTime datetime,
-                        @SentTime datetime,
+                        --@SentTime datetime,
                         @Modified datetime,
                         @Expiration int,
-                        @MessageId int,
+                        @MessageId varchar(50)=null,
                         @BodyStream varbinary(max)
                         as  
                         set nocount on;  
-                        insert into FifoQueue (Host,MessageState,Command,Priority,UniqueId,Retry,ArrivedTime,SentTime,Modified,Expiration,MessageId,BodyStream) 
-                                        values (@Host,@MessageState,@Command,@Priority,@UniqueId,@Retry,@ArrivedTime,@SentTime,@Modified,@Expiration,@MessageId,@BodyStream); 
+                        insert into FifoQueue (Host,MessageState,Command,Priority,Identifier,Retry,ArrivedTime,Modified,Expiration,MessageId,BodyStream) 
+                                        values (@Host,@MessageState,@Command,@Priority,@Identifier,@Retry,@ArrivedTime,@Modified,@Expiration,@MessageId,@BodyStream); 
                     go";
 
         const string sp_dequeue_fifo_trans = @"
@@ -110,28 +109,28 @@ namespace Nistec.Messaging.Db
                         as  
                         set nocount on;  
                         declare 
-                        @UniqueId bigint
+                        @Identifier varchar(50)
 
                         UPDATE  Q
                         SET     MessageState = 1,
-                                @UniqueId = UniqueId,
+                                @Identifier = Identifier,
                                 Retry=Retry+1
                         FROM    (
-                                select top(1) UniqueId,MessageState,BodyStream      
+                                select top(1) Identifier,MessageState,BodyStream      
                                 from FifoQueue with (rowlock, updlock, readpast) 
                                 where Host=@Host and MessageState=0  
-                                order by Priority,UniqueId
+                                order by Priority,Identifier
                                 ) Q;
-                        if @UniqueId is null
+                        if @Identifier is null
                             return;
-                        insert into TransQueue (UniqueId,Host,Modified,Expiration) 
-                                        values (@UniqueId,@Host,getdate(),@Expiration); 
+                        insert into TransQueue (Identifier,Host,Modified,Expiration) 
+                                        values (@Identifier,@Host,getdate(),@Expiration); 
                     go";
 
         const string sp_dequeue_fifo_trans_item = @"
                     create procedure sp_dequeue_fifo_trans_item
                         @Host varchar(50),
-                        @UniqueId bigint,
+                        @Identifier varchar(50),
                         @Expiration int
                         as  
                         set nocount on;  
@@ -141,34 +140,34 @@ namespace Nistec.Messaging.Db
                         UPDATE  Q
                         SET     MessageState = 1,
                                 Retry=Retry+1,
-                                @ExistsId=UniqueId
+                                @ExistsId=Identifier
                         FROM    (
-                                select top(1) UniqueId,MessageState,BodyStream      
+                                select top(1) Identifier,MessageState,BodyStream      
                                 from FifoQueue with (rowlock, updlock, readpast) 
-                                where Host=@Host and UniqueId=@UniqueId and MessageState=0  
+                                where Host=@Host and Identifier=@Identifier and MessageState=0  
                                 ) Q;
                         if @ExistsId is null
                             return;
-                        insert into TransQueue (UniqueId,Host,Modified,Expiration) 
-                                        values (@UniqueId,@Host,getdate(),@Expiration); 
+                        insert into TransQueue (Identifier,Host,Modified,Expiration) 
+                                        values (@Identifier,@Host,getdate(),@Expiration); 
                     go";
 
         const string sp_fifo_commit = @"
                     create procedure sp_fifo_commit
-                        @UniqueId bigint
+                        @Identifier varchar(50)
                         as  
                         set nocount on;  
                         
                         delete from FifoQueue with (rowlock, readpast)
-                            where UniqueId=@UniqueId;
+                            where Identifier=@Identifier;
 
                         delete from TransQueue with (rowlock, readpast)
-                            where UniqueId=@UniqueId;
+                            where Identifier=@Identifier;
                     go";
 
         const string sp_fifo_abort = @"
                     create procedure sp_fifo_abort
-                        @UniqueId bigint,
+                        @Identifier varchar(50),
                         @MaxRetry tinyint
                         as  
                         set nocount on;  
@@ -181,20 +180,20 @@ namespace Nistec.Messaging.Db
                         MessageState=case when Retry+1 >= @MaxRetry then 2 else 0 end,
                         Retry=Retry+1
                         from FifoQueue Q with (rowlock, updlock, readpast) 
-                        where UniqueId=@UniqueId   
+                        where Identifier=@Identifier   
 
                         delete from TransQueue with (rowlock, readpast)
-                            where UniqueId=@UniqueId;
+                            where Identifier=@Identifier;
 
                         if @Retry >= @MaxRetry
                         begin
-                        insert into SuspendQueue (Host,MessageState,Command,Priority,UniqueId,Retry,ArrivedTime,SentTime,Modified,Expiration,MessageId,BodyStream) 
-                        select Host,MessageState,Command,Priority,UniqueId,Retry,ArrivedTime,SentTime,Modified,Expiration,MessageId,BodyStream
+                        insert into SuspendQueue (Host,MessageState,Command,Priority,Identifier,Retry,ArrivedTime,Modified,Expiration,MessageId,BodyStream) 
+                        select Host,MessageState,Command,Priority,Identifier,Retry,ArrivedTime,Modified,Expiration,MessageId,BodyStream
                         from FifoQueue
-                        where UniqueId=@UniqueId
+                        where Identifier=@Identifier
 
                         delete from FifoQueue with (rowlock, readpast)
-                            where UniqueId=@UniqueId;
+                            where Identifier=@Identifier;
 
                         end
 
@@ -212,30 +211,30 @@ namespace Nistec.Messaging.Db
                         set @curTime=getdate();
                         set @MaxRetry=3;
 
-                        CREATE TABLE #TempTable(UniqueId bigint)
+                        CREATE TABLE #TempTable(Identifier varchar(50))
 
-                        INSERT INTO #TempTable (UniqueId) 
-                        select top 100 UniqueId 
+                        INSERT INTO #TempTable (Identifier) 
+                        select top 100 Identifier 
                         from TransQueue
                         where DATEADD(minute,Expiration,Modified) < @curTime
 
-                        insert into SuspendQueue (Host,MessageState,Command,Priority,UniqueId,Retry,ArrivedTime,SentTime,Modified,Expiration,MessageId,BodyStream) 
-                        select q.Host,q.MessageState,q.Command,q.Priority,q.UniqueId,q.Retry,q.ArrivedTime,q.SentTime,q.Modified,q.Expiration,q.MessageId,q.BodyStream
-                        from FifoQueue q inner join #TempTable t on q.UniqueId=t.UniqueId
+                        insert into SuspendQueue (Host,MessageState,Command,Priority,Identifier,Retry,ArrivedTime,Modified,Expiration,MessageId,BodyStream) 
+                        select q.Host,q.MessageState,q.Command,q.Priority,q.Identifier,q.Retry,q.ArrivedTime,q.Modified,q.Expiration,q.MessageId,q.BodyStream
+                        from FifoQueue q inner join #TempTable t on q.Identifier=t.Identifier
                         where q.Retry>=@MaxRetry
 
                         delete q
-                        from FifoQueue q inner join #TempTable t on q.UniqueId=t.UniqueId
+                        from FifoQueue q inner join #TempTable t on q.Identifier=t.Identifier
                         where q.Retry>=@MaxRetry
 
                         delete q
-                        from TransQueue q inner join #TempTable t on q.UniqueId=t.UniqueId
+                        from TransQueue q inner join #TempTable t on q.Identifier=t.Identifier
 
                         update q
                         set
                         q.Retry=q.Retry+1,
                         Command=0
-                        from FifoQueue q inner join #TempTable t on q.UniqueId=t.UniqueId
+                        from FifoQueue q inner join #TempTable t on q.Identifier=t.Identifier
                         where q.Retry<@MaxRetry
                         
 
@@ -250,7 +249,7 @@ namespace Nistec.Messaging.Db
                             select top(1) BodyStream      
                             from FifoQueue with (rowlock, readpast) 
                             where Host=@Host and MessageState=0  
-                            order by Priority,UniqueId)  
+                            order by Priority,Identifier)  
                         delete from cte
                             output deleted.BodyStream;
                     go";
@@ -264,21 +263,21 @@ namespace Nistec.Messaging.Db
                         from FifoQueue 
                         output deleted.BodyStream
                         where 
-                        UniqueId = (select top(1) UniqueId  
+                        Identifier = (select top(1) Identifier  
                                 from FifoQueue with (rowlock, updlock, readpast)
-                                order by Priority,UniqueId);
+                                order by Priority,Identifier);
                     go";
 
         const string sp_dequeue_fifo_item = @"
                     create procedure sp_dequeue_fifo_item
                         @Host varchar(50),
-                        @UniqueId bigint
+                        @Identifier varchar(50)
                         as  
                         set nocount on;  
                         with cte as (    
                             select top(1) BodyStream      
                             from FifoQueue with (rowlock, readpast) 
-                            where Host=@Host and UniqueId=@UniqueId and MessageState=0)  
+                            where Host=@Host and Identifier=@Identifier and MessageState=0)  
                         delete from cte
                             output deleted.BodyStream;
                     go";
@@ -291,18 +290,18 @@ namespace Nistec.Messaging.Db
                         select top(1) BodyStream      
                         from FifoQueue with (rowlock, readpast) 
                         where Host=@Host and MessageState=0  
-                        order by Priority,UniqueId
+                        order by Priority,Identifier
                     go";
 
         const string sp_peek_fifo_item = @"
                     create procedure sp_peek_fifo_item
                         @Host varchar(50),
-                        @UniqueId bigint
+                        @Identifier varchar(50)
                         as  
                         set nocount on;  
                         select top(1) BodyStream      
                         from FifoQueue with (rowlock, readpast) 
-                        where Host=@Host and UniqueId=@UniqueId and MessageState=0  
+                        where Host=@Host and Identifier=@Identifier and MessageState=0  
                     go";
 
         const string sp_fifo_count = @"

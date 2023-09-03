@@ -22,7 +22,8 @@ namespace Nistec.Messaging.Db
         #region db properties
 
         [EntityProperty(EntityPropertyType.Key, Order=0)]
-        public long UniqueId{ get; set; }
+        public string Identifier { get; set; }
+        //public string UniqueId{ get; set; }
        
         [EntityProperty(EntityPropertyType.Default, Order=1)]
         public string Host{ get; set; }
@@ -42,19 +43,20 @@ namespace Nistec.Messaging.Db
         [EntityProperty(EntityPropertyType.Default, Order=6)]
         public DateTime ArrivedTime{ get; set; }
         
-        [EntityProperty(EntityPropertyType.Default, Order=7)]
-        public DateTime Creation{ get; set; }
+        //[EntityProperty(EntityPropertyType.Default, Order=7)]
+        //public DateTime Creation{ get; set; }
         
-        [EntityProperty(EntityPropertyType.Default, Order=8)]
+        [EntityProperty(EntityPropertyType.Default, Order=7)]
         public DateTime Modified{ get; set; }
 
-        [EntityProperty(EntityPropertyType.Default, Order=9)]
+        [EntityProperty(EntityPropertyType.Default, Order=8)]
         public int Expiration{ get; set; }
-        
+
+        //[EntityProperty(EntityPropertyType.Default, Order=10)]
+        //public string Identifier{ get; set; }
+        [EntityProperty(EntityPropertyType.Default, Order = 9)]
+        public string MessageId { get; set; }
         [EntityProperty(EntityPropertyType.Default, Order=10)]
-        public string Identifier{ get; set; }
-       
-        [EntityProperty(EntityPropertyType.Default, Order=11)]
         public byte[] BodyStream { get; set; }
 
         #endregion
@@ -64,17 +66,18 @@ namespace Nistec.Messaging.Db
             return new DbMessage()
             {
                 ArrivedTime = msg.ArrivedTime,
-                BodyStream = msg.BodyStream.ToArray(),
+                BodyStream = msg.BodyStream().ToArray(),
                 Expiration = msg.Expiration,
                 Host = msg.Host,
                 Identifier = msg.Identifier,
                 MessageState = (byte)msg.MessageState,
                 QCommand = (byte)msg.QCommand,
-                Modified = msg.Modified,
+                Modified = msg.Creation,//.Modified,
                 Priority = (byte)msg.Priority,
                 Retry = (byte)msg.Retry,
-                Creation = msg.Creation,
-                UniqueId =0// msg.UniqueId
+                MessageId= msg.CustomId
+                //Creation = msg.Creation,
+                //UniqueId =0// msg.UniqueId
             };
         }
 

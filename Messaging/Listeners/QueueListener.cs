@@ -20,7 +20,7 @@ namespace Nistec.Messaging.Listeners
     public class QueueListener : SessionListener//ListenerHandler, IListenerHandler
     {
 
-        protected QueueApi _api;
+        protected QueueApi QApi { get; private set; }
 
         #region ctor
 
@@ -28,8 +28,8 @@ namespace Nistec.Messaging.Listeners
         public QueueListener(QueueAdapter adapter)//, int interval)
             : base(adapter)//, interval)
         {
-            _api = new QueueApi(adapter.Source);
-            _api.ReadTimeout = adapter.ReadTimeout;
+            QApi = new QueueApi(adapter.Source);
+            QApi.ReadTimeout = adapter.ReadTimeout;
             //_Listener= new ListenerQ(this, adapter);
         }
 
@@ -46,9 +46,9 @@ namespace Nistec.Messaging.Listeners
         {
             QueueRequest request = new QueueRequest()
             {
-                Host = _api.QueueName,
-                QCommand = QueueCmd.Dequeue,
-                DuplexType = DuplexTypes.WaitOne
+                Host = QApi.QueueName,
+                Command = QueueCmd.Dequeue.ToString(),
+                DuplexType = DuplexTypes.Respond
             };
 
             //void OnNack()
@@ -64,7 +64,7 @@ namespace Nistec.Messaging.Listeners
             //if (EnableResetEvent)
             //    _api.DequeueAsync(request, ConnectTimeout, OnCompleted, OnAck, resetEvent);
             //else
-             _api.DequeueAsync(request, ConnectTimeout, OnCompleted, dw);
+            QApi.DequeueAsync(request, ConnectTimeout, OnDynamicWorkerCompleted, dw);
 
             //_api.ReceiveAsync(
             //    OnFault,
@@ -83,11 +83,11 @@ namespace Nistec.Messaging.Listeners
         {
             QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
             {
-                Host = _api.QueueName,
-                QCommand = QueueCmd.Dequeue,
-                DuplexType = DuplexTypes.WaitOne
+                Host = QApi.QueueName,
+                Command = QueueCmd.Dequeue.ToString(),
+                DuplexType = DuplexTypes.Respond
             };
-            return _api.Dequeue(request);
+            return QApi.Dequeue(request);
         }
 
         //protected override IQueueAck ReceiveTo()//QueueHost target, int connectTimeout, Action<QueueMessage> recieveAction)
@@ -97,12 +97,12 @@ namespace Nistec.Messaging.Listeners
 
         public override void Abort(Ptr ptr)
         {
-            _api.Abort(ptr);
+            QApi.Abort(ptr);
         }
 
         public override void Commit(Ptr ptr)
         {
-            _api.Commit(ptr);
+            QApi.Commit(ptr);
         }
 
 

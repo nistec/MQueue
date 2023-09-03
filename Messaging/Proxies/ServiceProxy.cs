@@ -22,7 +22,7 @@ namespace Nistec.Messaging.Proxies
         }
         protected override MessageState Send(QueueMessage item)
         {
-            return Proxy.SendItem(item.BodyStream);
+            return Proxy.SendItem(item.BodyStream());
         }
     }
 

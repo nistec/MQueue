@@ -885,10 +885,10 @@ namespace Nistec.Messaging.UI
                     return;
                 }
 
-                QueueRequest message = new QueueRequest()
+                QueueRequest message = new QueueRequest(QueueCmd.LoadFromBackup)
                 {
                     Host = name,
-                    QCommand = QueueCmd.LoadFromBackup,
+                    //QCommand = QueueCmd.LoadFromBackup,
                     Args = NameValueArgs.Create("path", path)
                 };
                 

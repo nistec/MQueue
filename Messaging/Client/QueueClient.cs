@@ -74,9 +74,9 @@ namespace Nistec.Messaging.Client
             QueueMessage msg = new QueueMessage();
             msg.SetBody(body);
             msg.Label = label;
-            msg.MessageType = MQTypes.Message;
+            //mqh-msg.MessageType = MQTypes.Message;
             msg.Priority = priority;
-            msg.QCommand = QueueCmd.Enqueue;
+            msg.Command = QueueCmd.Enqueue.ToString();
             //msg.Identifier= identifier;
             msg.CustomId = id;
             //msg.GroupId = groupId;
@@ -89,9 +89,9 @@ namespace Nistec.Messaging.Client
             QueueMessage msg = new QueueMessage();
             msg.SetBody(body, type.Name);
             msg.Label = label;
-            msg.MessageType = MQTypes.Message;
+            //mqh-msg.MessageType = MQTypes.Message;
             msg.Priority = priority;
-            msg.QCommand = QueueCmd.Enqueue;
+            msg.Command = QueueCmd.Enqueue.ToString();
             //msg.Identifier= identifier;
             msg.CustomId = id;
             //msg.GroupId = groupId;
@@ -101,18 +101,18 @@ namespace Nistec.Messaging.Client
 
         public static QueueRequest CreateQueueRequest(QueueCmd command, int version, Priority priority, TransformType transformType, string host, NetStream bodyStream)
         {
-            return new QueueRequest()
+            return new QueueRequest(bodyStream,typeof(NetStream))
             {
                 //Version = version,
                 //MessageType = messageType,
-                QCommand = command,
+                Command = command.ToString(),
                 Priority = priority,
                 TransformType = transformType,
-                Host = host,
+                Host = host
                 //Creation = DateTime.Now,
                 //Modified = DateTime.Now,
                 //ArrivedTime = Assists.NullDate,
-                BodyStream = bodyStream
+                //BodyStream = bodyStream
             };
         }
     }

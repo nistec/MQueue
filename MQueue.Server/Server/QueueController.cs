@@ -265,7 +265,7 @@ namespace Nistec.Messaging.Server
                         {
                             responseAck = true;
                             MQueue mq = null;
-                            return DoResponse(AddQueue(new QProperties(request.BodyStream), out mq));
+                            return DoResponse(AddQueue(new QProperties(request.BodyStream()), out mq));
                         }
                     case QueueCmd.RemoveQueue:
                         responseAck = true;

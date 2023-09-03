@@ -551,10 +551,10 @@ namespace Nistec.QueueConsole
                                     Console.WriteLine("Queue name or path missing");
                                     return;
                                 }
-                                QueueRequest message = new QueueRequest()
+                                QueueRequest message = new QueueRequest(QueueCmd.LoadFromBackup)
                                 {
                                     Host = key,
-                                    QCommand = QueueCmd.LoadFromBackup,
+                                    //QCommand = QueueCmd.LoadFromBackup,
                                     Args = NameValueArgs.Create("path", value)
                                 };
                                 ts = api.OperateQueue(message);

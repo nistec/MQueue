@@ -72,9 +72,9 @@ namespace QueueTasker
             msg.SetBody(body);
 
             msg.Label = label;
-            msg.MessageType = MQTypes.Message;
+            //mqh-msg.MessageType = MQTypes.Message;
             msg.Priority = priority;
-            msg.QCommand = QueueCmd.Enqueue;
+            msg.Command = QueueCmd.Enqueue.ToString();
             //msg.Identifier= identifier;
             msg.CustomId = id;
             //msg.GroupId = groupId;
@@ -89,8 +89,8 @@ namespace QueueTasker
                 Command = "Send",
                 CustomId = i.ToString(),
                 Message = "<response duration=\"0.0244219303131\" end=\"1276683822.25\" queries=\"15\" start=\"1276683822.23\"><status code=\"1\">DISCARDED</status><message queue_id=\"0\"><status code=\"1\">DISCARDED</status><recipients count=\"1\" successful_count=\"0\"><recipient cli=\"972545650999\" mcc=\"425\" mnc=\"99\"><status code=\"401\">BLACKLISTED</status><reason>NOROUTE</reason></recipient></recipients></message></response> ",
-                Query = @"tel:\*\d{4}|(|\()(0|972)(\d{1}|\d{2})(|[\)\/\.-])([0-9]{7})|(|\()(18|17)00(|[\)\/\.-])[0-9]{3}(|[\)\/\.-])[0-9]{3}$",
-                Sender = "MsgQueueDemo",
+                //Query = @"tel:\*\d{4}|(|\()(0|972)(\d{1}|\d{2})(|[\)\/\.-])([0-9]{7})|(|\()(18|17)00(|[\)\/\.-])[0-9]{3}(|[\)\/\.-])[0-9]{3}$",
+                Source = "MsgQueueDemo",
                 SessionId = "MongoCommands",
                 Label = "QDemo"
             };
@@ -102,9 +102,9 @@ namespace QueueTasker
             {
                 Command = "Send",
                 CustomId = i.ToString(),
-                BodyStream = NetStream.WriteTo("<response duration=\"0.0244219303131\" end=\"1276683822.25\" queries=\"15\" start=\"1276683822.23\"><status code=\"1\">DISCARDED</status><message queue_id=\"0\"><status code=\"1\">DISCARDED</status><recipients count=\"1\" successful_count=\"0\"><recipient cli=\"972545650999\" mcc=\"425\" mnc=\"99\"><status code=\"401\">BLACKLISTED</status><reason>NOROUTE</reason></recipient></recipients></message></response> "),
+                Body = NetStream.GetBytes("<response duration=\"0.0244219303131\" end=\"1276683822.25\" queries=\"15\" start=\"1276683822.23\"><status code=\"1\">DISCARDED</status><message queue_id=\"0\"><status code=\"1\">DISCARDED</status><recipients count=\"1\" successful_count=\"0\"><recipient cli=\"972545650999\" mcc=\"425\" mnc=\"99\"><status code=\"401\">BLACKLISTED</status><reason>NOROUTE</reason></recipient></recipients></message></response> "),
                 Args = NameValueArgs.Create("Query", @"tel:\*\d{4}|(|\()(0|972)(\d{1}|\d{2})(|[\)\/\.-])([0-9]{7})|(|\()(18|17)00(|[\)\/\.-])[0-9]{3}(|[\)\/\.-])[0-9]{3}$"),
-                Sender = "MsgQueueDemo",
+                Source = "MsgQueueDemo",
                 SessionId = "MongoCommands",
                 Label = "QDemo"
             };
@@ -114,18 +114,18 @@ namespace QueueTasker
 
         public static QueueRequest GetQRequest(QueueCmd command,int version, Priority priority, TransformType transformType, string host, NetStream bodyStream)
         {
-            return new QueueRequest()
+            return new QueueRequest(bodyStream, typeof(NetStream))
             {
                 //Version = version,
                 //MessageType = messageType,
-                QCommand = command,
+                Command = command.ToString(),
                 Priority = priority,
                 TransformType = transformType,
                 Host = host,
                 //Creation = DateTime.Now,
                 //Modified = DateTime.Now,
                 //ArrivedTime = Assists.NullDate,
-                BodyStream = bodyStream
+                //BodyStream = bodyStream
             };
         }
 
@@ -169,7 +169,7 @@ namespace QueueTasker
             //var item = QueueClient.CreateQueueItem("Hello world " + DateTime.Now.ToString("s"), "test");
             var item = QueueClient.CreateItem(i);
             item.Host = "Netcell";
-            item.QCommand = QueueCmd.Enqueue;
+            item.Command = QueueCmd.Enqueue.ToString();
             //IQueueAck ack = null;
 
             QueueClient.PublishItem(q, item, 0, (IQueueAck ack) =>

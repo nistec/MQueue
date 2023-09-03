@@ -70,6 +70,8 @@ namespace Nistec.Messaging.Listeners
 
         //IListenerHandler _Owner;
 
+        //protected QueueApi QApi { get; private set;}
+
         /*
         const int MaxWait = 1000000;
         const int LargeWait = 5000;
@@ -104,7 +106,7 @@ namespace Nistec.Messaging.Listeners
         #endregion
 
         #region message events
-
+        
         /// <summary>
         /// ErrorOcurred
         /// </summary>
@@ -114,26 +116,29 @@ namespace Nistec.Messaging.Listeners
         /// </summary>
         public event GenericEventHandler<IQueueMessage> MessageReceived;
 
-        void DoMessageReceived(IQueueMessage message)
-        {
-            OnMessageReceived(new GenericEventArgs<IQueueMessage>(message));
-        }
+        //void DoMessageReceived(IQueueMessage message)
+        //{
+        //    OnMessageReceived(message);
+        //    //OnMessageReceived(new GenericEventArgs<IQueueMessage>(message));
+        //}
+                
+        ///// <summary>
+        ///// Occured when message received.
+        ///// </summary>
+        ///// <param name="e"></param>
+        //protected virtual void OnMessageReceived(GenericEventArgs<IQueueMessage> e)
+        //{
+        //    //if (Adapter.MessageReceivedAction != null)
+        //    //    Adapter.MessageReceivedAction(e.Args);
+        //    if (MessageReceived != null)
+        //        MessageReceived(this, e);
+        //}
+        
+        //void DoErrorOcurred(string message)
+        //{
+        //    OnErrorOcurred(message);
+        //}
 
-        void DoErrorOcurred(string message)
-        {
-            OnErrorOcurred(new GenericEventArgs<string>(message));
-        }
-        /// <summary>
-        /// Occured when message received.
-        /// </summary>
-        /// <param name="e"></param>
-        protected virtual void OnMessageReceived(GenericEventArgs<IQueueMessage> e)
-        {
-            if (Adapter.MessageReceivedAction != null)
-                Adapter.MessageReceivedAction(e.Args);
-            if (MessageReceived != null)
-                MessageReceived(this, e);
-        }
 
         protected virtual void OnMessageReceived(IQueueMessage message)
         {
@@ -152,43 +157,51 @@ namespace Nistec.Messaging.Listeners
                     ActionWorker.DynamicWaitAck(false);
             }
 
-            OnMessageReceived(new GenericEventArgs<IQueueMessage>(message));
-        }
-        /// <summary>
-        /// Occured when operation has error.
-        /// </summary>
-        /// <param name="e"></param>
-        protected virtual void OnErrorOcurred(GenericEventArgs<string> e)
-        {
-            if (Adapter.MessageFaultAction != null)
-                Adapter.MessageFaultAction(e.Args);
+            
 
-            if (ErrorOcurred != null)
-                ErrorOcurred(this, e);
         }
+        ///// <summary>
+        ///// Occured when operation has error.
+        ///// </summary>
+        ///// <param name="e"></param>
+        //protected virtual void OnErrorOcurred(GenericEventArgs<string> e)
+        //{
+
+        //    if (ErrorOcurred != null)
+        //        ErrorOcurred(this, e);
+
+        //}
 
         private void OnErrorOcurred(string msg)
         {
             Console.WriteLine("ErrorOcurred: " + msg);
-            OnErrorOcurred(new GenericEventArgs<string>(msg));
+            if (ErrorOcurred != null)
+                ErrorOcurred(this, new GenericEventArgs<string>(msg)); //OnErrorOcurred(new GenericEventArgs<string>(msg));
+            else if (Adapter.MessageFaultAction != null)
+                Adapter.MessageFaultAction(msg);
         }
 
         protected void OnFault(string message)
         {
-            OnErrorOcurred(new GenericEventArgs<string>(message));
+            OnErrorOcurred(message);
+            //OnErrorOcurred(new GenericEventArgs<string>(message));
         }
 
-        protected void OnCompleted(IQueueMessage item)
+        protected void OnDynamicWorkerCompleted(IQueueMessage item)
         {
             OnMessageReceived(item);
+
+            if (MessageReceived != null)
+                MessageReceived(this, new GenericEventArgs<IQueueMessage>(item));
+            else if (Adapter.MessageReceivedAction != null)
+                Adapter.MessageReceivedAction(item);
         }
-
-
+     
         #endregion
 
         #region ctor
 
-        internal SessionListener(QueueAdapter adapter)//, int interval)
+        public SessionListener(QueueAdapter adapter)//, int interval)
         {
             if (adapter == null)
             {
@@ -223,7 +236,8 @@ namespace Nistec.Messaging.Listeners
             //_ActionTransfer = adapter.AckAction;
             //_AdapterOperation = adapter.OperationType;
 
-            //_api = new QueueApi(adapter.Source);
+            //QApi = new QueueApi(adapter.Source);
+            //QApi.ReadTimeout = adapter.ReadTimeout;
 
             State = ListenerState.Initilaized;
         }
@@ -243,9 +257,15 @@ namespace Nistec.Messaging.Listeners
 
         //protected abstract IQueueAck ReceiveTo();// QueueHost target, int connectTimeout, Action<QueueMessage> recieveAction);
 
-        public abstract void Commit(Ptr ptr);
+        public virtual void Commit(Ptr ptr)
+        {
+            QueueApi.Get(Source).Commit(ptr);
+        }
 
-        public abstract void Abort(Ptr ptr);
+        public virtual void Abort(Ptr ptr)
+        {
+            QueueApi.Get(Source).Abort(ptr);
+        }
 
         //protected virtual void OnMessageTransfer(IQueueAck ack)
         //{
@@ -263,9 +283,38 @@ namespace Nistec.Messaging.Listeners
         #endregion
 
         #region ThreadWorker
-              
 
-        DynamicWorker ActionWorker;
+        //public ListenerState State
+        //{
+        //    get
+        //    {
+        //        if (ActionWorker == null)
+        //            return ListenerState.Down;
+        //        return ActionWorker.State;
+        //    }
+        //}
+
+        public bool IsRunning
+        {
+            get
+            {
+                return ActionWorker.State== ListenerState.Started;
+            }
+        }
+
+        public int ActiveConnections
+        {
+            get
+            {
+                return ActionWorker.ActiveConnections;
+            }
+        }
+        public NameValueArgs Report()
+        {
+            return ActionWorker.Report();
+        }
+
+        public DynamicWorker ActionWorker { get; private set; }
         public void Start()
         {
             if (ActionWorker != null)
@@ -283,7 +332,7 @@ namespace Nistec.Messaging.Listeners
 
                         //in case of DynamicWait or fixed interval using
                         var ack = Receive();
-                        OnCompleted(ack);
+                        OnDynamicWorkerCompleted(ack);
                         return ack != null;
                     }
                     catch (Exception ex) {

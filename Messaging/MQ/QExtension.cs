@@ -113,7 +113,7 @@ namespace Nistec.Messaging
             //    File.WriteAllBytes(filename, ToByteArray());
             //}
         }
-
+        /*
         public static object[] MessageItemArray(this QueueMessage msg)
         {
             //return new object[] {
@@ -151,24 +151,38 @@ namespace Nistec.Messaging
             };
 
         }
-
+        */
         public static DataParameter[] MessageDataParameters(this QueueMessage msg)
         {
-
             return new DataParameter[]{
-            new DataParameter("MessageState",msg.MessageState),
-            new DataParameter("Command",msg.Command),
-            new DataParameter("Priority",msg.Priority),
-            //new DataParameter("UniqueId",msg.UniqueId),
-            new DataParameter("Retry",msg.Retry),
-            new DataParameter("ArrivedTime",msg.ArrivedTime),
-            new DataParameter("Creation",msg.Creation),
-            new DataParameter("Modified",msg.Modified),
-            new DataParameter("Duration",msg.Duration),
-            new DataParameter("Identifier",msg.Identifier),
-            new DataParameter("BodyStream",msg.BodyStream)
-
+            new DataParameter("Host", msg.Host),
+            new DataParameter("MessageState", (int)msg.MessageState),
+            new DataParameter("Command", (int)msg.QCommand),
+            new DataParameter("Priority", (int)msg.Priority),
+            new DataParameter("Identifier", msg.Identifier),
+            new DataParameter("Retry", msg.Retry),
+            new DataParameter("ArrivedTime", msg.ArrivedTime),
+            new DataParameter("Modified", msg.Creation),
+            //new DataParameter("Modified",msg.Modified),
+            new DataParameter("Expiration", msg.Expiration),
+            new DataParameter("MessageId", msg.CustomId),
+            new DataParameter("Body", msg.Body)
             };
+
+            //return new DataParameter[]{
+            //new DataParameter("MessageState",msg.MessageState),
+            //new DataParameter("Command",msg.Command),
+            //new DataParameter("Priority",msg.Priority),
+            ////new DataParameter("UniqueId",msg.UniqueId),
+            //new DataParameter("Retry",msg.Retry),
+            //new DataParameter("ArrivedTime",msg.ArrivedTime),
+            //new DataParameter("Creation",msg.Creation),
+            ////new DataParameter("Modified",msg.Modified),
+            //new DataParameter("Duration",msg.Duration),
+            //new DataParameter("Identifier",msg.Identifier),
+            //new DataParameter("BodyStream",msg.BodyStream)
+
+            //};
 
         }
 

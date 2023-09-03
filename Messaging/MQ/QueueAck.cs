@@ -117,10 +117,7 @@ namespace Nistec.Messaging
 
         #region property
 
-        /// <summary>
-        /// Get or Set The ItemId.
-        /// </summary>
-        public object Response { get; internal set; }
+       
         /// <summary>
         /// Get or Set The ItemId.
         /// </summary>
@@ -157,10 +154,17 @@ namespace Nistec.Messaging
         {
             return string.Format("Creation:{0}, MessageState:{1}, Label:{2}, Host:{3}, Identifier:{4}, Duration:{5}", Creation, MessageState, Label, Host, Identifier, Duration);
         }
-        public string Display()
-        {
-            return Strings.ReflatJson(GenericKeyValue.Create("Label", Label, "Response", Response, "State", MessageState.ToString()).ToJson());
-        }
+
+
+
+        #endregion
+
+        #region IAck
+        public string Message { get { return Label; } }
+        //public DateTime Modified { get; protected set; }
+        public object Response { get; set; }
+        public int Status { get { return (int)MessageState; } }
+        public bool IsOk { get { return MessageState.IsStateOk(); } }
         public string ToJson()
         {
             KeyValueArgs a = new KeyValueArgs();
@@ -170,11 +174,14 @@ namespace Nistec.Messaging
             if (!Host.IsNull()) a.Add("Identifier", Identifier);
             if (!Host.IsNull()) a.Add("Host", Host);
             if (!Host.IsNull()) a.Add("Label", Label);
-            
+
             return JsonSerializer.Serialize(a.ToJson());
             //return GenericKeyValue.Create("Label", Label, "Response", Response, "State", MessageState).ToJson();
         }
-
+        public string Display()
+        {
+            return Strings.ReflatJson(GenericKeyValue.Create("Label", Label, "Response", Response, "State", MessageState.ToString()).ToJson());
+        }
         #endregion
 
         #region  ISerialEntity

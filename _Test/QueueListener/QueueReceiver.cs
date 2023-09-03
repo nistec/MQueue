@@ -77,7 +77,7 @@ namespace QueueListenerDemo
         public static void DoQuery(QueueHost host)
         {
             QueueApi q = new QueueApi(host);
-            var req = new QueueRequest() { QCommand = QueueCmd.ReportQueueItems, DuplexType = DuplexTypes.NoWaite, Host = "NC_Quick" };
+            var req = new QueueRequest(QueueCmd.ReportQueueItems) { DuplexType = DuplexTypes.Respond, Host = "NC_Quick" };
             var ts = q.ExecDuplexStream(req, 1000000,0);
 
             if (ts != null)

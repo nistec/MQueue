@@ -31,7 +31,7 @@ namespace Nistec.Messaging
 
         public static string NewIdentifier()
         {
-            return UUID.NewUuid().ToString();
+            return UUID.Identifier();
         }
         public static string NewIdentifier(Guid itemId)
         {
@@ -48,7 +48,18 @@ namespace Nistec.Messaging
         //    m_Retry = 0;
         //}
 
-        public Ptr(string identifier, int timeout, string hostName)//, string rootPath)
+        //public Ptr(string hostName, int timeout=0, MQTypes MQType= MQTypes.Message)//, string rootPath)
+        //{
+        //    m_Identifier = NewIdentifier();
+        //    m_ArrivedTime = DateTime.Now;
+        //    m_TimeOut = timeout;
+        //    m_Host = hostName;
+        //    //m_Location = GetPtrLocation(rootPath, identifier); 
+        //    m_State = 0;
+        //    m_Retry = 0;
+        //    MessageType = MQTypes.Message;
+        //}
+        public Ptr(string identifier, string hostName, int timeout=0)//, string rootPath)
         {
             m_Identifier = identifier;
             m_ArrivedTime = DateTime.Now;
@@ -57,18 +68,19 @@ namespace Nistec.Messaging
             //m_Location = GetPtrLocation(rootPath, identifier); 
             m_State = 0;
             m_Retry = 0;
+            //MessageType = MQTypes.Message;
         }
 
-        public Ptr(IQueueMessage item, string hostName)
-        {
-            m_Identifier = item.Identifier;
-            m_ArrivedTime = item.ArrivedTime;
-            m_TimeOut = 0;// item.Expiration;
-            m_Host = hostName;
-            //m_Location = GetPtrLocation(item, host);
-            m_State = 0;
-            m_Retry = 0;
-        }
+        //public Ptr(IQueueMessage item, string hostName)
+        //{
+        //    m_Identifier = item.Identifier;
+        //    m_ArrivedTime = item.ArrivedTime;
+        //    m_TimeOut = 0;// item.Expiration;
+        //    m_Host = hostName;
+        //    //m_Location = GetPtrLocation(item, host);
+        //    m_State = 0;
+        //    m_Retry = 0;
+        //}
 
        
 
@@ -92,6 +104,7 @@ namespace Nistec.Messaging
             //m_Location = GetPtrLocation(item, host);
             m_State = state;
             m_Retry = item.Retry;
+            //MessageType = item.MessageType;
         }
 
         public bool IsEmpty
@@ -104,18 +117,18 @@ namespace Nistec.Messaging
             get { return new  Ptr(); }
         }
 
-        public static Ptr Get(IQueueMessage item, PtrState state)
-        {
-            return new Ptr()
-            {
-                m_Identifier = item.Identifier,
-                m_ArrivedTime = item.ArrivedTime,
-                m_TimeOut = 0,// item.Expiration,
-                m_Host = item.Host,
-                m_State = state,
-                m_Retry = 0
-            };
-        }
+        //public static Ptr Get(IQueueMessage item, PtrState state)
+        //{
+        //    return new Ptr()
+        //    {
+        //        m_Identifier = item.Identifier,
+        //        m_ArrivedTime = item.ArrivedTime,
+        //        m_TimeOut = 0,// item.Expiration,
+        //        m_Host = item.Host,
+        //        m_State = state,
+        //        m_Retry = 0
+        //    };
+        //}
 
         public static Ptr Get(string identifier, PtrState state)
         {
@@ -166,7 +179,7 @@ namespace Nistec.Messaging
             get { return TimeOut == 0 ? false : TimeSpan.FromSeconds(TimeOut) < DateTime.Now.Subtract(ArrivedTime); }
         }
 
-        public Guid ItemId { get { return new Guid(Identifier); } }
+        //public Guid ItemId { get { return new Guid(Identifier); } }
 
         ///// <summary>
         ///// Get UniqueId
@@ -185,6 +198,11 @@ namespace Nistec.Messaging
         /// Get Item state
         /// </summary>
         public MessageState MessageState { get { return (MessageState)m_State; } }
+
+        /// <summary>
+        /// Get or Set message type.
+        /// </summary>
+        //public MQTypes MessageType { get; set; }
 
         #endregion
 

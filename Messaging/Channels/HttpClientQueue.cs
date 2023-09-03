@@ -194,6 +194,136 @@ namespace Nistec.Messaging.Channels
         #endregion
     }
 
+    public class HttpClientQueueMessage : HttpClient<IQueueMessage>, IDisposable
+    {
+
+        #region static send methods
+
+        public static QueueAck Enqueue(QueueMessage message, string hostAddress, string method, int ProcessTimeout, bool IsAsync, bool enableException = false)
+        {
+            //Type type = request.BodyType;
+            using (HttpClientQueueMessage client = new HttpClientQueueMessage(hostAddress, method, ProcessTimeout))
+            {
+                var response = client.Execute<QueueAck>(message, enableException);
+                return response;
+                //byte[] body = response == null ? null : Encoding.UTF8.GetBytes(response);
+                //var item = request.Copy();
+                //item.SetBodyText(response);
+                //item.SetArrived();
+                //return item;// new QueueMessage(request, body, typeof(string));
+            }
+
+            //return null;
+        }
+
+        #endregion
+
+        #region ctor
+
+        /// <summary>
+        /// Constractor with arguments
+        /// </summary>
+        /// <param name="hostAddress"></param>
+        /// <param name="method"></param>
+        public HttpClientQueueMessage(string hostAddress, string method)
+            : base(hostAddress, method, QueueDefaults.DefaultConnectTimeOut)
+        {
+
+        }
+
+        /// <summary>
+        /// Constractor with arguments
+        /// </summary>
+        /// <param name="hostAddress"></param>
+        /// <param name="method"></param>
+        /// <param name="ProcessTimeout"></param>
+        public HttpClientQueueMessage(string hostAddress, string method, int ProcessTimeout)
+            : base(hostAddress, method, ProcessTimeout)
+        {
+
+        }
+
+
+
+        /// <summary>
+        /// Constractor with extra parameters
+        /// </summary>
+        /// <param name="configHost"></param>
+        public HttpClientQueueMessage(string configHost)
+            : base(configHost)
+        {
+
+        }
+
+        /// <summary>
+        /// Constractor with settings parameters
+        /// </summary>
+        /// <param name="settings"></param>
+        public HttpClientQueueMessage(HttpSettings settings)
+            : base(settings)
+        {
+
+        }
+
+        #endregion
+
+        #region override
+
+        /// <summary>
+        /// Serialize json request
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        protected override NetStream RequestToStream(IQueueMessage message)
+        {
+            return message.ToStream();
+        }
+
+        /// <summary>
+        /// Serialize json request
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        protected override byte[] RequestToBinary(IQueueMessage message)
+        {
+            //return message.ToStream().GetStream().ToArray();
+            return message.ToStream().ToArray();
+        }
+
+
+        /// <summary>
+        /// Serialize json request
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        protected override string RequestToJson(IQueueMessage message)
+        {
+            return message.ToJson();// JsonSerializer.Serialize(message);
+        }
+        /// <summary>
+        ///  Deserialize json response
+        /// </summary>
+        /// <typeparam name="TResponse"></typeparam>
+        /// <param name="response"></param>
+        /// <returns></returns>
+        protected override TResponse ReadJsonResponse<TResponse>(string response)
+        {
+            return JsonSerializer.Deserialize<TResponse>(response);
+        }
+        /// <summary>
+        ///  Deserialize json response
+        /// </summary>
+        /// <param name="response"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        protected override object ReadJsonResponse(string response, Type type)
+        {
+            return JsonSerializer.Deserialize(response, type);
+        }
+
+        #endregion
+    }
+
     /*
     /// <summary>
     /// Represent Http client channel

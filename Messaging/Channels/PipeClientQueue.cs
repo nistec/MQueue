@@ -224,6 +224,8 @@ namespace Nistec.Messaging.Channels
         #endregion
 
     }
+ 
+
     /*
     public class PipeClientRequest : PipeClient<MessageRequest>, IDisposable
     {

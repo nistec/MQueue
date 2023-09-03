@@ -234,6 +234,201 @@ namespace Nistec.Messaging.Channels
         #endregion
 
     }
+
+    /// <summary>
+    /// Represent tcp client channel
+    /// </summary>
+    public class TcpClientQueueMessage: TcpClient<IQueueMessage>, IDisposable
+    {
+
+        #region static send methods
+
+        public static QueueAck Enqueue(QueueMessage message, string hostAddress, int port, int ProcessTimeout, bool IsAsync, bool enableException = false)
+        {
+            //Type type = request.BodyType;
+            using (TcpClientQueue client = new TcpClientQueue(hostAddress, port, ProcessTimeout, IsAsync))
+            {
+                return client.Enqueue(message, enableException);
+            }
+        }
+
+      
+        #endregion
+
+        #region ctor
+
+        /// <summary>
+        /// Constractor with arguments
+        /// </summary>
+        /// <param name="hostAddress"></param>
+        /// <param name="port"></param>
+        /// <param name="connectTimeout"></param>
+        public TcpClientQueueMessage(string hostAddress, int port, int connectTimeout)
+            : base(hostAddress, port, connectTimeout, false)
+        {
+
+        }
+
+        /// <summary>
+        /// Constractor with arguments
+        /// </summary>
+        /// <param name="hostAddress"></param>
+        /// <param name="port"></param>
+        /// <param name="connectTimeout"></param>
+        /// <param name="isAsync"></param>
+        public TcpClientQueueMessage(string hostAddress, int port, int connectTimeout, bool isAsync)
+            : base(hostAddress, port, connectTimeout, isAsync)
+        {
+
+        }
+
+        /// <summary>
+        /// Constractor with arguments
+        /// </summary>
+        /// <param name="hostAddress"></param>
+        /// <param name="port"></param>
+        /// <param name="connectTimeout"></param>
+        /// <param name="ReceiveBufferSize"></param>
+        /// <param name="SendBufferSize"></param>
+        /// <param name="isAsync"></param>
+        public TcpClientQueueMessage(string hostAddress, int port, int connectTimeout, int ReceiveBufferSize, int SendBufferSize, bool isAsync)
+            : base(hostAddress, port, connectTimeout, ReceiveBufferSize, SendBufferSize, isAsync)
+        {
+
+        }
+
+        /// <summary>
+        /// Constractor with extra parameters
+        /// </summary>
+        /// <param name="configHost"></param>
+        public TcpClientQueueMessage(string configHost) : base(configHost)
+        {
+            // Settings = TcpClientQueueSettings.GetTcpClientSettings(configHost);
+        }
+
+        /// <summary>
+        /// Constractor with settings parameters
+        /// </summary>
+        /// <param name="settings"></param>
+        public TcpClientQueueMessage(TcpSettings settings)
+            : base(settings)
+        {
+
+        }
+
+        #endregion
+
+        #region override
+
+        /// <summary>
+        /// ExecuteMessage
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="message"></param>
+        protected override void ExecuteOneWay(NetworkStream stream, IQueueMessage message)
+        {
+            // Send a request from client to server
+            message.EntityWrite(stream, null);
+
+            if (message.DuplexType == DuplexTypes.None)//.TransformType ==  TransformTypes.OneWay)
+            {
+                return;
+            }
+
+            // Receive a response from server.
+            MessageReader.ReadQStream(stream, Settings.ReadTimeout, Settings.ReceiveBufferSize);
+            //message.ReadAck(stream, Settings.ProcessTimeout, Settings.ReceiveBufferSize);
+        }
+
+
+        /// <summary>
+        /// ExecuteMessage
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        protected override object ExecuteMessage(NetworkStream stream, IQueueMessage message)//, Type type)
+        {
+            object response = null;
+
+            // Send a request from client to server
+            message.EntityWrite(stream, null);
+
+
+            if (message.DuplexType == DuplexTypes.None)//if (message.TransformType ==  TransformTypes.OneWay)
+            {
+                return response;
+            }
+
+            // Receive a response from server.
+            //response = message.ReadAck(stream, type, Settings.ProcessTimeout, Settings.ReceiveBufferSize);
+            response = MessageReader.ReadQStream(stream, Settings.ReadTimeout, Settings.ReceiveBufferSize);
+
+            return response;
+        }
+        /// <summary>
+        /// ExecuteMessage
+        /// </summary>
+        /// <typeparam name="TResponse"></typeparam>
+        /// <param name="stream"></param>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        protected override TResponse ExecuteMessage<TResponse>(NetworkStream stream, IQueueMessage message)
+        {
+            TResponse response = default(TResponse);
+
+            // Send a request from client to server
+            message.EntityWrite(stream, null);
+
+
+            if (message.DuplexType == DuplexTypes.None)//if (message.TransformType== TransformTypes.OneWay)
+            {
+                return response;
+            }
+
+            // Receive a response from server.
+
+            //if (message.Command== QueueCmd.Enqueue)
+            if (typeof(IQueueAck).IsAssignableFrom(typeof(TResponse)))
+            {
+                var ack = MessageReader.ReadAckStream(stream, Settings.ReadTimeout, Settings.ReceiveBufferSize);
+
+                return GenericTypes.Cast<TResponse>(ack);
+            }
+
+            var msg = MessageReader.ReadQStream(stream, Settings.ReadTimeout, Settings.ReceiveBufferSize);
+            return GenericTypes.Cast<TResponse>(msg);
+
+            //response = Serialization.BinarySerializer.DeserializeFromStream<TResponse>(msg.BodyStream);
+            //response = message.ReadAck<TResponse>(stream, Settings.ProcessTimeout, Settings.ReceiveBufferSize);
+
+            //return response;
+        }
+
+        /// <summary>
+        /// connect to the tcp channel and execute request.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="enableException"></param>
+        /// <returns></returns>
+        public new QueueMessage Execute(IQueueMessage message, bool enableException = false)
+        {
+            return Execute<QueueMessage>(message, enableException);
+        }
+        public new QueueAck Enqueue(QueueMessage message, bool enableException = false)
+        {
+            return Execute<QueueAck>(message, enableException);
+        }
+        //public new QueueAck Management(IQueueRequest message, bool enableException = false)
+        //{
+        //    return Execute<QueueAck>(message, enableException);
+        //}
+
+        #endregion
+
+    }
+
+
     /*
     /// <summary>
     /// Represent tcp client channel

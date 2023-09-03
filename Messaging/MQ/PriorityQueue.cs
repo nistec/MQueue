@@ -987,7 +987,7 @@ namespace Nistec.Messaging
                     TransactionAdd(item, TransactionExpiryMinuts);
                 }
                 ((QueueMessage)item).SetState(MessageState.Receiving);
-                ((QueueMessage)item).QCommand = QueueCmd.Dequeue;
+                ((QueueMessage)item).Command = QueueCmd.Dequeue.ToString();
                 //item.Status = ItemState.Dequeue;
                 //((QueueMessage)item).SetSentTime();
 
@@ -1339,7 +1339,7 @@ namespace Nistec.Messaging
             }
             ((QueueMessage)item).DoRetry();
 
-            Ptr ptr = new Ptr(item, Name);
+            Ptr ptr = new Ptr(item.Identifier, Name);
 
             switch (item.Priority)
             {

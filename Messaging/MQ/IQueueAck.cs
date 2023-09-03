@@ -11,7 +11,7 @@ using Nistec.Channels;
 namespace Nistec.Messaging
 {
 
-    public interface IQueueAck
+    public interface IQueueAck: IAck
     {
         #region property
 

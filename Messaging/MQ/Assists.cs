@@ -42,7 +42,7 @@ namespace Nistec.Messaging
 
         public static string NewIdentifier()
         {
-            return UUID.NewUuid().ToString();
+            return UUID.Identifier();
         }
 
         public static DateTime NullDate
@@ -164,7 +164,7 @@ namespace Nistec.Messaging
         {
             try
             {
-                item.Modified = DateTime.Now;
+                //item.Modified = DateTime.Now;
                 item.MessageState = state;
                 //item.Header = null;
                 //m_stream.Replace((byte)MessageState, offset + 1);
@@ -179,7 +179,7 @@ namespace Nistec.Messaging
         internal static void DoRetry(this QueueMessage item)
         {
             item.Retry++;
-            item.Modified = DateTime.Now;
+            //item.Modified = DateTime.Now;
             //item.Header = null;
             //m_stream.Replace(Retry, offset + 24);
             //m_stream.Replace(Modified.Ticks, offset + 44);
