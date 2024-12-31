@@ -225,7 +225,7 @@ namespace Nistec.Messaging.Server
         #region queue request
         internal TransStream ExecRequset(IQueueRequest request)
         {
-            bool responseAck = false;
+            //bool responseAck = false;
             try
             {
                 if (request.QCommand == QueueCmd.QueueHasValue)
@@ -242,7 +242,7 @@ namespace Nistec.Messaging.Server
                         return TransStream.WriteState(0, "Reply: " + request.Identifier);//, TransType.Object);
                     case QueueCmd.Enqueue:
                         {
-                            responseAck = true;
+                            //responseAck = true;
                             //MQueue Q = Get(request.Host);
                             var ack = ExecSet((QueueMessage)request);
                             return DoResponse(ack);
@@ -263,12 +263,12 @@ namespace Nistec.Messaging.Server
                     //operation
                     case QueueCmd.AddQueue:
                         {
-                            responseAck = true;
+                            //responseAck = true;
                             MQueue mq = null;
                             return DoResponse(AddQueue(new QProperties(request.BodyStream()), out mq));
                         }
                     case QueueCmd.RemoveQueue:
-                        responseAck = true;
+                        //responseAck = true;
                         return DoResponse(RemoveQueue(request.Host));
                     case QueueCmd.HoldEnqueue:
                         GetValidQ(request.Host).HoldEnqueue = true;
@@ -368,7 +368,7 @@ namespace Nistec.Messaging.Server
                         }
                     //reports
                     case QueueCmd.Exists:
-                        responseAck = true;
+                        //responseAck = true;
                         return Exists(request.Host).ToTransStream();
                     //return QueueAck.DoResponse(Exists(request.Host));
                     case QueueCmd.ReportQueueList:
@@ -388,6 +388,15 @@ namespace Nistec.Messaging.Server
                         return DoReport(QueueCount(request.Host), QueueCmd.QueueCount.ToString() + " for " + request.Host, MessageState.Ok);
                     case QueueCmd.QueueCountAll:
                         return DoReport(QueueCountAll(), QueueCmd.QueueCount.ToString(), MessageState.Ok);
+                    case QueueCmd.DbQueueReport:
+                        return DoReport(DbQueueReport(request.Host), QueueCmd.DbQueueReport.ToString(), MessageState.Ok);
+                    case QueueCmd.DbQueueClear:
+                        return DoReport(DbQueueClear(request.Host), QueueCmd.DbQueueClear.ToString(), MessageState.Ok);
+                    case QueueCmd.DbQueueClearItem:
+                        return DoReport(DbQueueClearItem(request.Host, request.Args.Get("key")), QueueCmd.DbQueueClearItem.ToString(), MessageState.Ok);
+
+
+                        
                 }
             }
             catch (MessageException mex)
@@ -1077,6 +1086,19 @@ namespace Nistec.Messaging.Server
                 g.Add(q.QueueName + " Count", q.Count);
             }
             return g.ToJson();
+        }
+
+        public string DbQueueReport(string queueName)
+        {
+            return QServerExtension.DbQueueReport(queueName,"*");
+        }
+        public int DbQueueClear(string queueName)
+        {
+            return QServerExtension.DbQueueClear(queueName);
+        }
+        public int DbQueueClearItem(string queueName, string key)
+        {
+            return QServerExtension.DbQueueClearItem(queueName, key);
         }
 
         public bool CanQueue(string queueName)

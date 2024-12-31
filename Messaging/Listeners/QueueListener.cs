@@ -42,7 +42,7 @@ namespace Nistec.Messaging.Listeners
         //}
 
 
-        protected override void ReceiveAsync(IDynamicWait dw)
+        protected override void Receive(IDynamicWait dw)
         {
             QueueRequest request = new QueueRequest()
             {
@@ -64,7 +64,7 @@ namespace Nistec.Messaging.Listeners
             //if (EnableResetEvent)
             //    _api.DequeueAsync(request, ConnectTimeout, OnCompleted, OnAck, resetEvent);
             //else
-            QApi.DequeueAsync(request, ConnectTimeout, OnDynamicWorkerCompleted, dw);
+            QApi.Dequeue(request, ConnectTimeout, OnDynamicWorkerCompleted, dw);
 
             //_api.ReceiveAsync(
             //    OnFault,
@@ -78,6 +78,41 @@ namespace Nistec.Messaging.Listeners
             //    (qitem) => OnMessageReceived(qitem));
         }
 
+        protected override async Task ReceiveAsync(IDynamicWait dw)
+        {
+            QueueRequest request = new QueueRequest()
+            {
+                Host = QApi.QueueName,
+                Command = QueueCmd.Dequeue.ToString(),
+                DuplexType = DuplexTypes.Respond
+            };
+
+            //void OnNack()
+            //{
+            //    CalcDynamicWait(false);
+            //}
+
+            //void OnAck(bool ack)
+            //{
+            //    aw.DynamicWaitAck(ack);
+            //}
+
+            //if (EnableResetEvent)
+            //    _api.DequeueAsync(request, ConnectTimeout, OnCompleted, OnAck, resetEvent);
+            //else
+            await QApi.DequeueAsync(request, ConnectTimeout, OnDynamicWorkerCompleted, dw);
+
+            //_api.ReceiveAsync(
+            //    OnFault,
+            //    OnCompleted,
+            //     DuplexTypes.WaitOne,
+            //     resetEvent
+            //    );
+
+            //_api.SendDuplexAsync(message,
+            //    (err) => OnErrorOcurred(new GenericEventArgs<string>(err)),
+            //    (qitem) => OnMessageReceived(qitem));
+        }
 
         protected override IQueueMessage Receive()
         {

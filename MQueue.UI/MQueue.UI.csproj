@@ -6,6 +6,7 @@
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{FBA18A30-9923-4105-8C96-0E06AA9BE07F}</ProjectGuid>
+	<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <OutputType>WinExe</OutputType>
     <RootNamespace>Nistec.Messaging.UI</RootNamespace>
     <AssemblyName>MQueue.UI</AssemblyName>
@@ -75,7 +76,7 @@
       <HintPath>..\..\References\Debug\Nistec.WinForms.dll</HintPath>
     </Reference>
     <Reference Include="Nistec.Wizards">
-      <HintPath>..\..\References\Debug\Nistec.Wizards.dll</HintPath>
+      <HintPath>..\..\References\_WinDll\Nistec.Wizards.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />

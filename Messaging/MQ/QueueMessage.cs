@@ -413,7 +413,7 @@ namespace Nistec.Messaging
                 Label = this.Label,
                 Source = this.Source,
 
-                Body = this.BodyStream().ToArray(),//.Copy(),
+                Body = this.BodyStreamArray(),//.Copy(),
                 TypeName = this.TypeName,
                 //mqh-EncodingName=this.EncodingName,
 
@@ -710,6 +710,8 @@ namespace Nistec.Messaging
         public MessageState MessageState { get; set; }
 
         public byte[] Body { get => base._Body; set => base._Body = value; }
+        [NoSerialize]
+        public object BodyVal { get => GetBody(); set => SetBodyInternal(value); }//base._Body = value; }
 
         /*
         QueueCmd _QCommand;
@@ -1815,12 +1817,12 @@ namespace Nistec.Messaging
             return stream;
         }
 
-        public NetStream ToStream()
-        {
-            NetStream stream = new NetStream();
-            EntityWrite(stream, null);
-            return stream;
-        }
+        //public NetStream ToStream()
+        //{
+        //    NetStream stream = new NetStream();
+        //    EntityWrite(stream, null);
+        //    return stream;
+        //}
 
         /// <summary>
         /// Get body stream after set the position to first byte in buffer, This method is a part of <see cref="IMessageStream"/> implementation.
@@ -2327,11 +2329,13 @@ namespace Nistec.Messaging
             catch (IOException ioex)
             {
                 //Netlog.Exception("ReadFile IOException ", ioex);
+                Console.WriteLine(ioex.Message);
                 item = null;
                 return ReadFileState.IOException;
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 //Netlog.Exception("ReadFile Exception ", ex);
                 item = null;
                 return ReadFileState.Exception;

@@ -112,7 +112,7 @@ namespace Nistec.Messaging
         }
 
 
-        public static QueueHost Parse(string hostAddress)
+        public new static QueueHost Parse(string hostAddress)
         {
             QueueHost host = new QueueHost(hostAddress);
             return host;

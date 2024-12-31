@@ -18,7 +18,7 @@ namespace Nistec.Messaging
         //string Label { get; }
         string Host { get; }
     }
-
+    /*
     public interface c__IQueueRequest : IMessageStream, ISerialEntity, ITransformMessage, IDisposable
     {
         /// <summary>
@@ -329,89 +329,89 @@ namespace Nistec.Messaging
         bool IsExpired { get; }
 
         #region property
-        /*
-        /// <summary>
-        /// Get MessageState
-        /// </summary>
-        MessageState MessageState { get;}
-        /// <summary>
-        /// Get Command
-        /// </summary>
-        QueueCmd Command { get;}
-        /// <summary>
-        /// Get or Set transformation type.
-        /// </summary>
-        TransformTypes TransformType { get; set; }
+        
+        ///// <summary>
+        ///// Get MessageState
+        ///// </summary>
+        //MessageState MessageState { get;}
+        ///// <summary>
+        ///// Get Command
+        ///// </summary>
+        //QueueCmd Command { get;}
+        ///// <summary>
+        ///// Get or Set transformation type.
+        ///// </summary>
+        //TransformTypes TransformType { get; set; }
 
-        /// <summary>
-        /// Get ItemId
-        /// </summary>
-        Guid ItemId { get;}
-        /// <summary>
-        /// Get MessageId
-        /// </summary>
-        int MessageId { get; }
-        /// <summary>
-        /// Get Priority
-        /// </summary>
-        Priority Priority { get;}
-        /// <summary>
-        /// Get Retry
-        /// </summary>
-        byte Retry { get; }
-        /// <summary>
-        /// Get ArrivedTime
-        /// </summary>
-        DateTime ArrivedTime { get; }
-        /// <summary>
-        /// Get SentTime
-        /// </summary>
-        DateTime SentTime { get;}
+        ///// <summary>
+        ///// Get ItemId
+        ///// </summary>
+        //Guid ItemId { get;}
+        ///// <summary>
+        ///// Get MessageId
+        ///// </summary>
+        //int MessageId { get; }
+        ///// <summary>
+        ///// Get Priority
+        ///// </summary>
+        //Priority Priority { get;}
+        ///// <summary>
+        ///// Get Retry
+        ///// </summary>
+        //byte Retry { get; }
+        ///// <summary>
+        ///// Get ArrivedTime
+        ///// </summary>
+        //DateTime ArrivedTime { get; }
+        ///// <summary>
+        ///// Get SentTime
+        ///// </summary>
+        //DateTime SentTime { get;}
        
-        /// <summary>
-        /// Get or Set timeout in seconds
-        /// </summary>
-        int Expiration { get; }
-
-        /// <summary>
-        /// Get the last modified time.
-        /// </summary>
-        DateTime Modified { get;}
+        ///// <summary>
+        ///// Get or Set timeout in seconds
+        ///// </summary>
+        //int Expiration { get; }
 
         ///// <summary>
-        ///// Get indicate wether the item is timeout 
+        ///// Get the last modified time.
         ///// </summary>
-        //bool IsTimeOut { get;}
+        //DateTime Modified { get;}
+
+        /////// <summary>
+        /////// Get indicate wether the item is timeout 
+        /////// </summary>
+        ////bool IsTimeOut { get;}
         
+        /////// <summary>
+        /////// Get UniqueId
+        /////// </summary>
+        ////long UniqueId { get;}
+
         ///// <summary>
-        ///// Get UniqueId
+        ///// Get Identifier
         ///// </summary>
-        //long UniqueId { get;}
-
-        /// <summary>
-        /// Get Identifier
-        /// </summary>
-        string Identifier { get; }
+        //string Identifier { get; }
         
-        //string Filename { get;}
+        ////string Filename { get;}
 
 
-        //string FolderId { get; }
+        ////string FolderId { get; }
 
-        /// <summary>
-        /// Get the current body stream.
-        /// </summary>
-        NetStream BodyStream { get; }
+        ///// <summary>
+        ///// Get the current body stream.
+        ///// </summary>
+        //NetStream BodyStream { get; }
 
-        /// <summary>
-        /// Get or Set The message queue name.
-        /// </summary>
-        string QueueName { get; }
-        */
+        ///// <summary>
+        ///// Get or Set The message queue name.
+        ///// </summary>
+        //string QueueName { get; }
+        
         #endregion
 
     }
-
+    */
 
     public interface IQueueRequest : ISerialEntity, ITransformMessage, IDisposable
     {

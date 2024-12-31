@@ -102,7 +102,7 @@ namespace QueueTasker
             {
                 Command = "Send",
                 CustomId = i.ToString(),
-                Body = NetStream.GetBytes("<response duration=\"0.0244219303131\" end=\"1276683822.25\" queries=\"15\" start=\"1276683822.23\"><status code=\"1\">DISCARDED</status><message queue_id=\"0\"><status code=\"1\">DISCARDED</status><recipients count=\"1\" successful_count=\"0\"><recipient cli=\"972545650999\" mcc=\"425\" mnc=\"99\"><status code=\"401\">BLACKLISTED</status><reason>NOROUTE</reason></recipient></recipients></message></response> "),
+                BodyVal = "<response duration=\"0.0244219303131\" end=\"1276683822.25\" queries=\"15\" start=\"1276683822.23\"><status code=\"1\">DISCARDED</status><message queue_id=\"0\"><status code=\"1\">DISCARDED</status><recipients count=\"1\" successful_count=\"0\"><recipient cli=\"972545650999\" mcc=\"425\" mnc=\"99\"><status code=\"401\">BLACKLISTED</status><reason>NOROUTE</reason></recipient></recipients></message></response>",
                 Args = NameValueArgs.Create("Query", @"tel:\*\d{4}|(|\()(0|972)(\d{1}|\d{2})(|[\)\/\.-])([0-9]{7})|(|\()(18|17)00(|[\)\/\.-])[0-9]{3}(|[\)\/\.-])[0-9]{3}$"),
                 Source = "MsgQueueDemo",
                 SessionId = "MongoCommands",
@@ -146,10 +146,16 @@ namespace QueueTasker
             q.PublishItem(item, connectTimeOut, action);
         }
 
+
+        public static async Task PublishItemAsync(QueueApi q, QueueMessage item, int connectTimeOut, Action<IQueueAck> action)
+        {
+            await q.PublishItemAsync(item, connectTimeOut, action);
+        }
+
         public static void EnqueueItem(QueueApi q, QueueMessage item, int connectTimeOut, Action<IQueueAck> action)
         {
 
-            q.EnqueueAsync(item, connectTimeOut, action);
+            q.Enqueue(item, connectTimeOut, action);
 
             //DateTime start = DateTime.Now;
             //q.SendAsync(item, connectTimeOut, (ack) =>
@@ -177,19 +183,35 @@ namespace QueueTasker
                 Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item.Identifier);
 
             });
+        }
 
+        public static void PublishItemAsync(int i)
+        {
+            var host = QueueHost.Parse("tcp:127.0.0.1:15000?Netcell");
+            QueueApi q = QueueClient.GetApi(host);
+            //var item = QueueClient.CreateQueueItem("Hello world " + DateTime.Now.ToString("s"), "test");
+            var item = QueueClient.CreateItem(i);
+            item.Host = "Netcell";
+            item.Command = QueueCmd.Enqueue.ToString();
+            //IQueueAck ack = null;
+
+            QueueClient.PublishItemAsync(q, item, 0, (IQueueAck ack) =>
+            {
+                Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item.Identifier);
+
+            }).ConfigureAwait(false);
         }
 
         public static void PublishMulti(int maxItems)
         {
             long counter = 0;
-            int interval = 1;
+            int interval = 100;
             DateTime start = DateTime.Now;
 
             for (int i = 0; i < maxItems; i++)
             {
-                PublishItem(i);
-                //Thread.Sleep(interval);
+                PublishItemAsync(i);
+                Thread.Sleep(interval);
             }
 
             var duration = DateTime.Now.Subtract(start);

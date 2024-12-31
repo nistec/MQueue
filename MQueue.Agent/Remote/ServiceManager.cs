@@ -33,8 +33,8 @@ namespace Nistec.Services
         private PipeServerChannel m_PipeServerQueueManager;
         private TcpServerChannel m_TcpServerQueueManager;
 
-        bool m_enableQueueController;
-        bool m_enableTopicController;
+        //bool m_enableQueueController;
+        //bool m_enableTopicController;
 
 
         //private FolderServerListener m_FolderServer;

@@ -211,7 +211,20 @@ namespace Nistec.Messaging.Channels
 
             //return response;
         }
-        
+
+        /// <summary>
+        /// ExecuteMessage
+        /// </summary>
+        /// <typeparam name="TResponse"></typeparam>
+        /// <param name="stream"></param>
+        /// <param name="message"></param>
+        /// <param name="onCompleted"></param>
+        protected override void ExecuteMessage<TResponse>(NetworkStream stream, IQueueRequest message, Action<TResponse> onCompleted)
+        {
+            var response= ExecuteMessage<TResponse>(stream, message);
+            onCompleted(response);
+        }
+
         /// <summary>
         /// connect to the tcp channel and execute request.
         /// </summary>
@@ -222,7 +235,7 @@ namespace Nistec.Messaging.Channels
         {
             return Execute<QueueMessage>(message, enableException);
         }
-        public new QueueAck Enqueue(QueueMessage message, bool enableException = false)
+        public QueueAck Enqueue(QueueMessage message, bool enableException = false)
         {
             return Execute<QueueAck>(message, enableException);
         }
@@ -406,6 +419,19 @@ namespace Nistec.Messaging.Channels
         }
 
         /// <summary>
+        /// ExecuteMessage
+        /// </summary>
+        /// <typeparam name="TResponse"></typeparam>
+        /// <param name="stream"></param>
+        /// <param name="message"></param>
+        /// <param name="onCompleted"></param>
+        protected override void ExecuteMessage<TResponse>(NetworkStream stream, IQueueMessage message, Action<TResponse> onCompleted)
+        {
+            var response = ExecuteMessage<TResponse>(stream, message);
+            onCompleted(response);
+        }
+
+        /// <summary>
         /// connect to the tcp channel and execute request.
         /// </summary>
         /// <param name="message"></param>
@@ -415,7 +441,7 @@ namespace Nistec.Messaging.Channels
         {
             return Execute<QueueMessage>(message, enableException);
         }
-        public new QueueAck Enqueue(QueueMessage message, bool enableException = false)
+        public QueueAck Enqueue(QueueMessage message, bool enableException = false)
         {
             return Execute<QueueAck>(message, enableException);
         }

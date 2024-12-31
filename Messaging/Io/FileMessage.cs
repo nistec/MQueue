@@ -1020,6 +1020,14 @@ namespace Nistec.Messaging.Io
 
         #region DequeueFolder
 
+        public async Task<int> DequeueFolderAsync(int maxItemsPerSession, Action<QueueMessage> onTake)
+        {
+            return await Task.Run(() =>
+            {
+               return DequeueFolder(maxItemsPerSession, onTake);
+            });
+        }
+
         public int DequeueFolder(int maxItemsPerSession, Action<QueueMessage> onTake)
         {
             int count = 0;

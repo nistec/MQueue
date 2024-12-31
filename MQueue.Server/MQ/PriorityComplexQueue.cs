@@ -123,20 +123,36 @@ namespace Nistec.Messaging
         {
 
             IQueueMessage persistItem = null;
+            //return m_db.TryRemove(ptr.Identifier, out persistItem);
 
-            Task tsk = Task.Factory.StartNew(() =>
-                m_db.TryRemove(ptr.Identifier, out persistItem)
-            );
+            Task.Run(() =>
+            {
+                m_db.TryRemove(ptr.Identifier, out persistItem);
+            });
             return true;
+            //Task tsk = Task.Factory.StartNew(() =>
+            //    m_db.TryRemove(ptr.Identifier, out persistItem)
+            //);
+            //return true;
         }
 
         bool PersistItemAdd(Ptr ptr, IQueueMessage item)
         {
+            //return m_db.TryAdd(ptr.Identifier, item);
 
-            Task tsk = Task.Factory.StartNew(() =>
-                m_db.TryAdd(ptr.Identifier, item)
-            );
+            Task.Run(() =>
+            {
+                if(m_db.TryAdd(ptr.Identifier, item))
+                {
+                    OnTryAdd(ptr, item, true);
+                }
+            });
             return true;
+
+            //Task tsk = Task.Factory.StartNew(() =>
+            //    m_db.TryAdd(ptr.Identifier, item)
+            //);
+            //return true;
         }
         #endregion
 

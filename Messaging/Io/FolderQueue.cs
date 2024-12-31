@@ -29,7 +29,7 @@ namespace Nistec.Messaging.Io
         int _WaitInterval = DefaultWaitInterval;
         public int WaitInterval { get { return _WaitInterval; } set { _WaitInterval = value <= 10 ? DefaultWaitInterval : value; } }
 
-        QueueMessage CurrentItem = null;
+        //QueueMessage CurrentItem = null;
 
 
         FileMessage m_fileMessage;
@@ -345,6 +345,11 @@ namespace Nistec.Messaging.Io
             return m_fileMessage.DequeueFolder(1, onTake);
         }
 
+        public async Task<int> DequeueAsync(Action<IQueueMessage> onTake)
+        {
+            return await m_fileMessage.DequeueFolderAsync(1, onTake);
+        }
+
         public IQueueMessage Dequeue()
         {
             return m_fileMessage.DequeueFolder(1).FirstOrDefault();
@@ -398,7 +403,7 @@ namespace Nistec.Messaging.Io
         {
             try
             {
-                CurrentItem = null;
+                //CurrentItem = null;
                 //EnsureOperations();
                 EnsureRecieve();
 

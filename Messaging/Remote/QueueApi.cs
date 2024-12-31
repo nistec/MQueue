@@ -266,7 +266,7 @@ namespace Nistec.Messaging.Remote
             //return ack;
         }
 
-        public void EnqueueAsync(QueueMessage message, int connectTimeout, Action<IQueueAck> onCompleted)
+        public void Enqueue(QueueMessage message, int connectTimeout, Action<IQueueAck> onCompleted)
         {
             message.Command = QueueCmd.Enqueue.ToString();
             //message.Host = this._QueueName;
@@ -288,6 +288,33 @@ namespace Nistec.Messaging.Remote
             //        //ack.HostAddress = message.HostAddress;
             //    }
  
+            //    Assists.SetArrived(ack);
+
+            //    onCompleted(ack);
+            //});
+        }
+        public async Task EnqueueAsync(QueueMessage message, int connectTimeout, Action<IQueueAck> onCompleted)
+        {
+            message.Command = QueueCmd.Enqueue.ToString();
+            //message.Host = this._QueueName;
+            //message.MessageState = MessageState.Sending;
+
+            await PublishItemAsync(message, EnsureConnectTimeout(connectTimeout), onCompleted);
+
+            //PublishItem(message, connectTimeout, OnFault, (TransStream ts) =>
+            //{
+            //    QueueAck ack = (ts == null) ? null: ts.ReadValue<QueueAck>(OnFault) ;
+
+            //    if (ack == null)
+            //    {
+            //        if (message.IsDuplex)
+            //            ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+            //        else
+            //            ack = new QueueAck(MessageState.Arrived, "Message Arrived on way", message.Identifier, message.Host);
+
+            //        //ack.HostAddress = message.HostAddress;
+            //    }
+
             //    Assists.SetArrived(ack);
 
             //    onCompleted(ack);
@@ -324,13 +351,21 @@ namespace Nistec.Messaging.Remote
 
         }
  
-        public void DequeueAsync(QueueRequest message, int connectTimeout, Action<IQueueMessage> onCompleted, IDynamicWait aw)
+        public void Dequeue(QueueRequest message, int connectTimeout, Action<IQueueMessage> onCompleted, IDynamicWait aw)
         {
             message.Command = QueueCmd.Dequeue.ToString();
             //message.Host = this._QueueName;
             //message.MessageState = MessageState.Sending;
 
             RequestItem(message, connectTimeout, onCompleted, aw);
+
+        }
+        public async Task DequeueAsync(QueueRequest message, int connectTimeout, Action<IQueueMessage> onCompleted, IDynamicWait aw)
+        {
+            await Task.Run(() =>
+            {
+                Dequeue(message, connectTimeout, onCompleted, aw);
+            });
 
         }
         //public void DequeueAsync(QueueRequest message, int connectTimeout, Action<IQueueMessage> onCompleted, Action<bool> onAck, AutoResetEvent resetEvenet)
@@ -380,6 +415,49 @@ namespace Nistec.Messaging.Remote
             return ConsumeItem(message, maxWaitSecond);
 
         }
+        public void Consume(int maxWaitSecond, Action<IQueueMessage> onCompleted)
+        {
+            QueueRequest message = new QueueRequest()
+            {
+                Command = QueueCmd.Consume.ToString(),
+                Host = QueueName,
+                DuplexType = DuplexTypes.Respond
+            };
+
+            ConsumeItem(message, maxWaitSecond, onCompleted);
+        }
+
+        public async Task ConsumeAsync(int maxWaitSecond, Action<IQueueMessage> onCompleted)
+        {
+            QueueRequest message = new QueueRequest()
+            {
+                Command = QueueCmd.Consume.ToString(),
+                Host = QueueName,
+                DuplexType = DuplexTypes.Respond
+            };
+            await Task.Run(() =>
+            {
+                ConsumeItem(message, maxWaitSecond, onCompleted);
+            });
+            
+        }
+        /*
+        long _CosumeWait = 0;
+        public void CancelWait()
+        {
+            Interlocked.Exchange(ref _CosumeWait, 0);
+        }
+
+        public async Task ConsumeAwait(int maxWaitSecond, Action<IQueueMessage> onCompleted)
+        {
+            Interlocked.Exchange(ref _CosumeWait,1);
+            do
+            {
+                await ConsumeAsync(maxWaitSecond, onCompleted);
+                Thread.Sleep(100);
+            } while (Interlocked .Read(ref _CosumeWait)>0);
+        }
+        */
         #endregion
 
         #region Peek

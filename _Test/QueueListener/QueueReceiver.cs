@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace QueueListenerDemo
 {
@@ -95,6 +96,66 @@ namespace QueueListenerDemo
             {
                 Console.WriteLine("Get nothing!");
             }
+        }
+
+        public static void StartConsume(QueueHost host)
+        {
+            ListenerApi api = new ListenerApi(host);
+            api.ConnectTimeout = 500000000;
+            api.ReadTimeout = -1;
+
+            Task.Run(() =>
+            {
+                //ConsumeTask(host).ConfigureAwait(false);// RunSynchronously();
+
+                api.ConsumeAwait(60, (item) => {
+
+                    if (item != null)
+                    {
+                        Console.WriteLine(item.Print());
+                    }
+                    else
+                    {
+                        Console.WriteLine("Get nothing!");
+                    }
+                }).ConfigureAwait(false);
+            });
+        }
+
+        public static async Task ConsumeTask(QueueHost host)
+        {
+            ListenerApi api = new ListenerApi(host);
+            api.ConnectTimeout = 500000000;
+            api.ReadTimeout = -1;
+
+            await api.ConsumeAwait(60, (item) =>{
+
+                if (item != null)
+                {
+                    Console.WriteLine(item.Print());
+                }
+                else
+                {
+                    Console.WriteLine("Get nothing!");
+                }
+            });
+        }
+
+        public static void StartListnning(QueueHost host)
+        {
+            ListenerApi api = new ListenerApi(host);
+            api.QueueListnning(null, (message) =>
+            {
+                Console.WriteLine("State:{0},Arrived:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}", message.MessageState, message.ArrivedTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), message.Host, message.Label, message.Identifier, message.Duration);
+
+                var body = message.GetBody();
+                string sbody = body == null ? "null" : body.ToString();
+                Console.WriteLine("body: " + sbody);
+
+            }, (message) =>
+            {
+                Console.WriteLine(message);
+            });
         }
 
 

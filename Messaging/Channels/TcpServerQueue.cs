@@ -19,7 +19,7 @@ namespace Nistec.Messaging.Channels
     /// <summary>
     /// Represent a queue tcp server listner.
     /// </summary>
-    public class TcpServerQueue : TcpServer<IQueueMessage>, IChannelService
+    public class TcpServerQueue : TcpServerAsync<IQueueMessage>, IChannelService
     {
         QueueChannel QueueChannel = QueueChannel.Consumer;
         IControllerHandler Controller;
@@ -71,24 +71,24 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override TransStream ExecRequset(IQueueMessage message)
+        protected override Task<TransStream> ExecRequset(IQueueMessage message)
         {
-            return Controller.OnMessageReceived(message);
+            return Task.FromResult(Controller.OnMessageReceived(message));
         }
         /// <summary>
         /// Read Request
         /// </summary>
         /// <param name="stream"></param>
         /// <returns></returns>
-        protected override IQueueMessage ReadRequest(NetworkStream stream)
+        protected override Task<IQueueMessage> ReadRequest(NetworkStream stream)
         {
-            return new QueueMessage(stream, null);
+            return Task.FromResult<IQueueMessage>(new QueueMessage(stream, null) as IQueueMessage);
         }
        
         #endregion
     }
 
-    public class TcpServerGeneric<T> : TcpServer<T>, IChannelService where T : IHostMessage
+    public class TcpServerGeneric<T> : TcpServerAsync<T>, IChannelService where T : IHostMessage
     {
         QueueChannel QueueChannel = QueueChannel.Consumer;
         IControllerHandler<T> Controller;
@@ -140,18 +140,18 @@ namespace Nistec.Messaging.Channels
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        protected override TransStream ExecRequset(T message)
+        protected override Task<TransStream> ExecRequset(T message)
         {
-            return Controller.OnMessageReceived(message);
+            return Task.FromResult(Controller.OnMessageReceived(message));
         }
         /// <summary>
         /// Read Request
         /// </summary>
         /// <param name="stream"></param>
         /// <returns></returns>
-        protected override T ReadRequest(NetworkStream stream)
+        protected override Task<T> ReadRequest(NetworkStream stream)
         {
-            return Nistec.Runtime.ActivatorUtil.CreateInstance<T>().Parse<T>(NetStream.CopyStream(stream));
+            return Task.FromResult(Nistec.Runtime.ActivatorUtil.CreateInstance<T>().Parse<T>(NetStream.CopyStream(stream)));
             //return new QueueMessage(stream, null);
         }
 

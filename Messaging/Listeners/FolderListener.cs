@@ -85,7 +85,7 @@ namespace Nistec.Messaging.Listeners
         //    return _api.Enqueue(message);
         //}
 
-        protected override void ReceiveAsync(IDynamicWait dw)
+        protected override void Receive(IDynamicWait dw)
         {
             _api.Dequeue((IQueueMessage item) => {
 
@@ -100,6 +100,16 @@ namespace Nistec.Messaging.Listeners
             //     DuplexTypes.WaitOne,
             //     resetEvent
             //    );
+        }
+
+        protected override async Task ReceiveAsync(IDynamicWait aw)
+        {
+            await _api.DequeueAsync((IQueueMessage item) =>
+            {
+                if (aw != null)
+                    aw.DynamicWaitAck(item != null);
+                OnMessageReceived(item);
+            });
         }
 
         protected override IQueueMessage Receive()

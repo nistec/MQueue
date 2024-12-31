@@ -498,7 +498,7 @@ namespace Nistec.QueueConsole
             var api = ManagementApi.Get(hostAddress,cmdProtocol);
             bool ok = true;
             string json = null;
-            IQueueMessage qi = null;
+            //IQueueMessage qi = null;
             TransStream ts = null;
             Stopwatch watch = Stopwatch.StartNew();
             try
@@ -680,6 +680,18 @@ namespace Nistec.QueueConsole
                                 ts = api.Report(QueueCmdReport.QueueCountAll);
                                 Display(cmd, ts);
                             }
+                            break;
+                        case "dbqueuereport":
+                                ts = api.Report(QueueCmdReport.DbQueueReport, key);
+                                Display(cmd, ts);
+                            break;
+                        case "dbcqueuelear":
+                            ts = api.Report(QueueCmdReport.DbQueueClear, key);
+                            Display(cmd, ts);
+                            break;
+                        case "dbcqueuelearitem":
+                            ts = api.Report(QueueCmdReport.DbQueueClearItem, key);
+                            Display(cmd, ts);
                             break;
                         case "usage":
                             ConsoleController.GetUsage();
@@ -900,6 +912,9 @@ namespace Nistec.QueueConsole
             Console.WriteLine("performance-counter");
             Console.WriteLine("queue-count  [/start monitor]");
             Console.WriteLine("queue-count-all  [/start monitor]");
+            Console.WriteLine("dbqueuereport");
+            Console.WriteLine("dbqueueclear");
+            Console.WriteLine("dbqueueclearitem  [/key]");
             Console.WriteLine("usage    [/start monitor]");
             Console.WriteLine("reply");
         }
@@ -2101,7 +2116,7 @@ namespace Nistec.QueueConsole
                         QueueMessage item = QueueMessage.ReadFile(message);
                         if (item != null)
                         {
-                            api.EnqueueAsync(item, 5000, (ack)=> {
+                            api.Enqueue(item, 5000, (ack)=> {
                                 Console.WriteLine(ack.Print());
                             });
                         }

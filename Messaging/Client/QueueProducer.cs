@@ -28,26 +28,35 @@ namespace Nistec.Messaging.Client
             return _Api.PublishItem(item, connectTimeOut);
         }
 
-        public void PublishItem(QueueApi q, QueueMessage item, int connectTimeOut, Action<IQueueAck> action)
+        public async Task PublishItemAsync(QueueApi q, QueueMessage item, int connectTimeOut, Action<IQueueAck> action)
         {
-            _Api.PublishItem(item, connectTimeOut, action);
+           await _Api.PublishItemAsync(item, connectTimeOut, action);
         }
 
-
-        public void EnqueueAsync(QueueApi api, QueueMessage item, int connectTimeOut, Action<IQueueAck> action)
+        public async Task EnqueueAsync(QueueApi api, QueueMessage item, int connectTimeOut, Action<IQueueAck> action)
         {
-            _Api.EnqueueAsync(item, connectTimeOut, action);
+            await _Api.EnqueueAsync(item, connectTimeOut, action);
+        }
+
+        public void Enqueue(QueueApi api, QueueMessage item, int connectTimeOut, Action<IQueueAck> action)
+        {
+            _Api.Enqueue(item, connectTimeOut, action);
         }
         public IQueueAck Enqueue(QueueApi api, string queueName, QueueMessage item, int connectTimeOut)
         {
             return _Api.Enqueue(item, connectTimeOut);
         }
-
-        public static void EnqueueAsync(string hostAddress, string queueName, QueueMessage item, int connectTimeOut, Action<IQueueAck> action)
+        public static async Task EnqueueAsync(string hostAddress, string queueName, QueueMessage item, int connectTimeOut, Action<IQueueAck> action)
         {
             var api = GetApi(queueName, hostAddress);
 
-            api.EnqueueAsync(item, connectTimeOut, action);
+            await api.EnqueueAsync(item, connectTimeOut, action);
+        }
+        public static void Enqueue(string hostAddress, string queueName, QueueMessage item, int connectTimeOut, Action<IQueueAck> action)
+        {
+            var api = GetApi(queueName, hostAddress);
+
+            api.Enqueue(item, connectTimeOut, action);
         }
         public static IQueueAck Enqueue(string hostAddress, string queueName, QueueMessage item, int connectTimeOut)
         {

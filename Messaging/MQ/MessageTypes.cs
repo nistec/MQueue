@@ -111,6 +111,10 @@ namespace Nistec.Messaging
         PerformanceCounter = 65,
         QueueCount = 66,
         QueueCountAll = 67,
+        DbQueueReport = 68,
+        DbQueueClear = 69,
+        DbQueueClearItem = 70,
+
         /// <summary>
         /// A normal Message Queuing message.
         /// </summary>
@@ -176,6 +180,9 @@ namespace Nistec.Messaging
         PerformanceCounter = 65,
         QueueCount = 66,
         QueueCountAll = 67,
+        DbQueueReport = 68,
+        DbQueueClear = 69,
+        DbQueueClearItem = 70,
     };
 
     //public enum QueueManagerCmd : byte

@@ -134,6 +134,7 @@
     <Compile Include="MQ\TopicItem.cs" />
     <Compile Include="Remote\ChannelSettings.cs" />
     <Compile Include="Channels\HttpClientQueue.cs" />
+    <Compile Include="Remote\ListenerApi.cs" />
     <Compile Include="Remote\ManagementApi.cs" />
     <Compile Include="Remote\RemoteExtension.cs" />
     <Compile Include="Remote\QueueApi.cs" />

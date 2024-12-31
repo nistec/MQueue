@@ -469,7 +469,7 @@ namespace Nistec.Messaging
         #endregion
 
         #region Convert
-
+        /*
         /// <summary>
         /// Deserialize body stream to object, This method is a part of <see cref="IMessageStream"/> implementation.
         /// </summary>
@@ -490,7 +490,7 @@ namespace Nistec.Messaging
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public T DecodeBody<T>()
+        public new T DecodeBody<T>()
         {
             return GenericTypes.Cast<T>(DecodeBody(), true);
         }
@@ -499,7 +499,7 @@ namespace Nistec.Messaging
         /// Convert body to string.
         /// </summary>
         /// <returns></returns>
-        public string BodyToString()
+        public new string BodyToString()
         {
             if (_Body == null)
                 return null;
@@ -542,16 +542,17 @@ namespace Nistec.Messaging
         {
             return BinarySerializer.DeserializeFromBase64<T>(base64);
         }
-
+        */
         #endregion
 
+        /*
         public NetStream ToStream()
         {
             NetStream stream = new NetStream();
             EntityWrite(stream, null);
             return stream;
         }
-
+        */
         public byte[] ToBinary()
         {
 

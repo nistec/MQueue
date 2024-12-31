@@ -101,10 +101,10 @@ namespace Nistec.Messaging.Remote
             EnableRemoteException = ChannelSettings.DefaultEnableRemoteException;
         }
 
-        protected void OnFault(string message)
-        {
-            Console.WriteLine("QueueApi Fault: " + message);
-        }
+        //protected void OnFault(string message)
+        //{
+        //    Console.WriteLine("QueueApi Fault: " + message);
+        //}
         protected void OnCompleted(QueueMessage message)
         {
             Console.WriteLine("QueueApi Completed: " + message.Identifier);

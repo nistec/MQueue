@@ -28,11 +28,12 @@ namespace Nistec.Messaging.Server
     {
         #region members
         Dictionary<string, SubscriberTask> Tasks;
-         int SenderInterval = 100;
-        bool Initialized = false;
+        //int SenderInterval = 100;
+        //bool Initialized = false;
+
         //bool _SendDirect = true;
         //public bool SendDirect { get { return _SendDirect; } set { if (!Initialized) _SendDirect = value; } }
-        QueueController Controller;
+        //QueueController Controller;
         public ILogger Logger { get; set; }
         public ListenerState State { get; private set; }
          DynamicWaitType WaitType;
@@ -48,7 +49,7 @@ namespace Nistec.Messaging.Server
 
             maxTopicConnections=AgentManager.Settings.MaxTopicConnections;
             MaxRetry = AgentManager.Settings.MaxRetry;
-            Initialized = false;
+            //Initialized = false;
             //SendDirect = true;
             Logger = QLogger.Logger.ILog;
             WaitType = waitType;
@@ -507,7 +508,7 @@ namespace Nistec.Messaging.Server
     {
         #region members
         Task task;
-        int wait = 10;
+        //int wait = 10;
         bool EnableResetEvent;
         bool lockWasTaken = false;
         object _locker = new object();

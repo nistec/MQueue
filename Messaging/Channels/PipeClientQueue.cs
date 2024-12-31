@@ -32,7 +32,7 @@ namespace Nistec.Messaging.Channels
             //Type type = request.BodyType;
             using (PipeClientQueue client = new PipeClientQueue(PipeName, true, options))
             {
-                return client.Execute(request, enableException);
+                return client.Execute<QueueMessage>(request, enableException);
             }
         }
 
@@ -203,14 +203,17 @@ namespace Nistec.Messaging.Channels
         }
 
 
+        ///// <summary>
+        ///// connect to the named pipe and execute request.
+        ///// </summary>
+        //public QueueMessage Execute(IQueueMessage message, bool enableException = false)
+        //{
+        //    return Execute<QueueMessage>(message, enableException);
+        //}
+
         /// <summary>
         /// connect to the named pipe and execute request.
         /// </summary>
-        public QueueMessage Execute(IQueueMessage message, bool enableException = false)
-        {
-            return Execute<QueueMessage>(message, enableException);
-        }
-
         public QueueAck Enqueue(QueueMessage message, bool enableException = false)
         {
             return Execute<QueueAck>(message, enableException);

@@ -249,7 +249,14 @@ namespace Nistec.Messaging.Listeners
         //protected abstract IQueueAck Send(QueueMessage message);
 
         protected abstract IQueueMessage Receive();
-        protected abstract void ReceiveAsync(IDynamicWait aw);
+        protected abstract void Receive(IDynamicWait aw);
+        protected virtual async Task ReceiveAsync(IDynamicWait aw)
+        {
+            await Task.Run(() =>
+            {
+                Receive(aw);
+            });
+        }
 
         //protected abstract IQueueMessage ReceiveRound();
 
@@ -332,8 +339,12 @@ namespace Nistec.Messaging.Listeners
 
                         //in case of DynamicWait or fixed interval using
                         var ack = Receive();
-                        OnDynamicWorkerCompleted(ack);
-                        return ack != null;
+                        if (ack != null)
+                        {
+                            OnDynamicWorkerCompleted(ack);
+                            return true;
+                        }
+                        return false;// ack != null;
                     }
                     catch (Exception ex) {
 

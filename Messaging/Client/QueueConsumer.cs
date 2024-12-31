@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Nistec.Messaging.Client
 {
@@ -27,14 +28,22 @@ namespace Nistec.Messaging.Client
         {
 
         }
-
-        public void DequeueAsync(QueueRequest item, int connectTimeOut, Action<IQueueMessage> action, IDynamicWait dw)
+        public async Task DequeueAsync(QueueRequest item, int connectTimeOut, Action<IQueueMessage> action, IDynamicWait dw)
         {
-            _Api.DequeueAsync(item, connectTimeOut, action, dw);
+            await _Api.DequeueAsync(item, connectTimeOut, action, dw);
         }
-        public void DequeueAsync(QueueRequest item, int connectTimeOut, Action<IQueueMessage> action)
+        public async Task DequeueAsync(QueueRequest item, int connectTimeOut, Action<IQueueMessage> action)
         {
-            _Api.DequeueAsync(item, connectTimeOut, action, DynamicWait.Empty);
+            await _Api.DequeueAsync(item, connectTimeOut, action, DynamicWait.Empty);
+        }
+
+        public void Dequeue(QueueRequest item, int connectTimeOut, Action<IQueueMessage> action, IDynamicWait dw)
+        {
+            _Api.Dequeue(item, connectTimeOut, action, dw);
+        }
+        public void Dequeue(QueueRequest item, int connectTimeOut, Action<IQueueMessage> action)
+        {
+            _Api.Dequeue(item, connectTimeOut, action, DynamicWait.Empty);
         }
         public IQueueMessage Denqueue(QueueRequest item, int connectTimeOut)
         {

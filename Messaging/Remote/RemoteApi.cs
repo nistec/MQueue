@@ -493,7 +493,7 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public void PublishItemAsync(QueueMessage message, Action<IAck> ack)
+        public void PublishItem(QueueMessage message, Action<IAck> ack)
         {
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Sending;
@@ -501,7 +501,27 @@ namespace Nistec.Messaging.Remote
             {
                 Logger.Instance.Debug("RemoteApi PublishItem : Host:{0}, Identifier:{1}", message.Host, message.Identifier);
 
-                ExecDuplexStreamAsync(message, ConnectTimeout,(ts)=> {
+                ExecDuplexStream(message, ConnectTimeout,(ts)=> {
+                    ack(OnItemCompleted(ts, message));
+                });
+                //return OnItemCompleted(ts, message);
+            }
+            catch (Exception ex)
+            {
+                OnFault("PublishItem error:" + ex.Message);
+                ack(OnItemCompleted(null, message));
+            }
+        }
+
+        public async Task PublishItemAsync(QueueMessage message, Action<IAck> ack)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            try
+            {
+                Logger.Instance.Debug("RemoteApi PublishItem : Host:{0}, Identifier:{1}", message.Host, message.Identifier);
+
+                await ExecDuplexStreamAsync(message, ConnectTimeout, (ts) => {
                     ack(OnItemCompleted(ts, message));
                 });
                 //return OnItemCompleted(ts, message);
@@ -535,53 +555,63 @@ namespace Nistec.Messaging.Remote
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Sending;
             timeout = EnsureConnectTimeout(timeout);
-            bool isCompleted = false;
+            //bool isCompleted = false;
             EnableRemoteException = true;
-            
-            Task task = Task.Factory.StartNew(() =>
+
+            ExecDuplexStream(message, timeout, (TransStream ts) =>
             {
-                ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
-                {
-                    onCompleted(ts);
-                    isCompleted = true;
-                }, IsAsync);
+                onCompleted(ts);
+                //isCompleted = true;
+            }, IsAsync);
 
-                //while (!isCompleted)
-                //{
-                //    Thread.Sleep(100);
-                //}
+            //Task task = Task.Factory.StartNew(() =>
+            //{
+            //    ExecDuplexStream(message, timeout, (TransStream ts) =>
+            //    {
+            //        onCompleted(ts);
+            //        //isCompleted = true;
+            //    }, IsAsync);
 
-            });
+            //    //while (!isCompleted)
+            //    //{
+            //    //    Thread.Sleep(100);
+            //    //}
 
-            task.Wait(WaitTimeout);
+            //});
+
+            //task.Wait(WaitTimeout);
         }
-
         public void PublishItem(QueueMessage message, int timeout, Action<IQueueAck> onCompleted)
         {
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Sending;
             timeout = EnsureConnectTimeout(timeout);
-            bool isCompleted = false;
+            //bool isCompleted = false;
 
             try
             {
-
-                Task task = Task.Factory.StartNew(() =>
+                ExecDuplexStream(message, timeout, (TransStream ts) =>
                 {
-                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
-                    {
-                        OnItemCompleted(ts, message,onCompleted);
-                        isCompleted = true;
-                    }, IsAsync);
+                    OnItemCompleted(ts, message, onCompleted);
+                    //isCompleted = true;
+                }, IsAsync);
 
-                    //while (!isCompleted)
-                    //{
-                    //    Thread.Sleep(100);
-                    //}
+                //Task task = Task.Factory.StartNew(() =>
+                //{
+                //    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                //    {
+                //        OnItemCompleted(ts, message,onCompleted);
+                //        isCompleted = true;
+                //    }, IsAsync);
 
-                });
+                //    //while (!isCompleted)
+                //    //{
+                //    //    Thread.Sleep(100);
+                //    //}
 
-                task.Wait(WaitTimeout);
+                //});
+
+                //task.Wait(WaitTimeout);
             }
             catch (Exception ex)
             {
@@ -590,32 +620,77 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public void PublishItemStream(QueueMessage message, int timeout, Action<string> onFault, Action<TransStream> onCompleted)
+        public async Task PublishItemAsync(QueueMessage message, int timeout, Action<IQueueAck> onCompleted)
         {
             message.Host = EnsureHost(message.Host);
             message.MessageState = MessageState.Sending;
             timeout = EnsureConnectTimeout(timeout);
-            bool isCompleted = false;
+            //bool isCompleted = false;
+
+            try
+            {
+                await ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                {
+                    OnItemCompleted(ts, message, onCompleted);
+                    //isCompleted = true;
+                });
+
+                //Task task = Task.Factory.StartNew(() =>
+                //{
+                //    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                //    {
+                //        OnItemCompleted(ts, message,onCompleted);
+                //        isCompleted = true;
+                //    }, IsAsync);
+
+                //    //while (!isCompleted)
+                //    //{
+                //    //    Thread.Sleep(100);
+                //    //}
+
+                //});
+
+                //task.Wait(WaitTimeout);
+            }
+            catch (Exception ex)
+            {
+                OnFault("PublishItem error:" + ex.Message);
+                OnItemCompleted(null, message, onCompleted);
+            }
+        }
+
+        public async Task PublishItemStreamAsync(QueueMessage message, int timeout, Action<string> onFault, Action<TransStream> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            //bool isCompleted = false;
 
             try
             {
 
-                Task task = Task.Factory.StartNew(() =>
+                await ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
                 {
-                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
-                    {
-                        onCompleted(ts);
-                        isCompleted = true;
-                    }, IsAsync);
-
-                    //while (!isCompleted)
-                    //{
-                    //    Thread.Sleep(100);
-                    //}
-
+                    onCompleted(ts);
+                    //isCompleted = true;
                 });
 
-                task.Wait(WaitTimeout);
+                //Task task = Task.Factory.StartNew(() =>
+                //{
+                //    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                //    {
+                //        onCompleted(ts);
+                //        isCompleted = true;
+                //    }, IsAsync);
+
+                //    //while (!isCompleted)
+                //    //{
+                //    //    Thread.Sleep(100);
+                //    //}
+
+                //});
+
+                //task.Wait(WaitTimeout);
             }
             catch (Exception ex)
             {
@@ -641,7 +716,7 @@ namespace Nistec.Messaging.Remote
                     {
                         ct.ThrowIfCancellationRequested();
                     }
-                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                    ExecDuplexStream(message, timeout, (TransStream ts) =>
                     {
                         onCompleted(ts);
                         isCompleted = true;
@@ -720,37 +795,78 @@ namespace Nistec.Messaging.Remote
             }
         }
 
-        public void ConsumeItem(QueueRequest message, int maxWaitSecond, Action<IQueueMessage> onCompleted)//, IDynamicWait dw)//Action<bool> onAck)
+        public void ConsumeItem(QueueRequest message, int maxWaitSecond, Action<IQueueMessage> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.Expiration = maxWaitSecond;
+            //message.MessageState = MessageState.Receiving;
+            int timeout = 24 * 60 * 60 * 1000;
+            try
+            {
+
+                ExecDuplexStream(message, timeout, ReadTimeout, (TransStream ts) =>
+                {
+                    if (!TransStream.IsEmptyStream(ts))
+                    {
+                        OnQItemCompleted(ts, onCompleted);
+                    }
+                },true);
+            }
+            catch (Exception ex)
+            {
+                OnFault("ConsumeItem error:" + ex.Message);
+            }
+        }
+
+        public async Task ConsumeItemAsync(QueueRequest message, int maxWaitSecond, Action<IQueueMessage> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.Expiration = maxWaitSecond;
+            //message.MessageState = MessageState.Receiving;
+            int timeout = 24 * 60 * 60 * 1000;
+            try
+            {
+
+                await ExecDuplexStreamAsync(message, timeout, ReadTimeout, (TransStream ts) =>
+                {
+                    if (!TransStream.IsEmptyStream(ts))
+                    {
+                        OnQItemCompleted(ts, onCompleted);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                OnFault("ConsumeItem error:" + ex.Message);
+            }
+        }
+
+        public void ConsumeTask(QueueRequest message, int maxWaitSecond, Action<IQueueMessage> onCompleted)//, IDynamicWait dw)//Action<bool> onAck)
         {
             message.Host = EnsureHost(message.Host);
             message.Expiration = maxWaitSecond;
             //message.MessageState = MessageState.Receiving;
             int timeout = 24 * 60 * 60 * 1000;
             int maxWait = Math.Max(maxWaitSecond, WaitTimeout);
-            bool isCompleted = false;
-            bool ack = false;
+            //bool isCompleted = false;
+            //bool ack = false;
             try
             {
 
                 Task task = Task.Factory.StartNew(() =>
                 {
-                    ExecDuplexStreamAsync(message, timeout,ReadTimeout, (TransStream ts) =>
+                    ExecDuplexStream(message, timeout,ReadTimeout, (TransStream ts) =>
                     {
-                        if (TransStream.IsEmptyStream(ts))
-                        {
-                            ack = false;
-                        }
-                        else
+                        if (!TransStream.IsEmptyStream(ts))
                         {
                             OnQItemCompleted(ts, onCompleted);
-                            ack = true;
                         }
                         //if (onAck != null)
                         //    onAck(ack);
                         //if (dw != null)
                         //    dw.DynamicWaitAck(ack);
 
-                        isCompleted = true;
+                        //isCompleted = true;
                     }, IsAsync);
 
                     //while (!isCompleted)
@@ -790,45 +906,127 @@ namespace Nistec.Messaging.Remote
         }
 
         //Dequeue DynamicWait was ConsumItem
+        public async Task RequestItemAsync(QueueRequest message, int timeout, Action<IQueueMessage> onCompleted, IDynamicWait dw)//Action<bool> onAck)
+        {
+            message.Host = EnsureHost(message.Host);
+            //message.MessageState = MessageState.Receiving;
+            timeout = EnsureConnectTimeout(timeout);
+            //bool isCompleted = false;
+            bool ack = false;
+            try
+            {
+                await ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                {
+                    if (!TransStream.IsEmptyStream(ts))
+                    {
+                        OnQItemCompleted(ts, onCompleted);
+                        ack = true;
+                    }
+                    //if (onAck != null)
+                    //    onAck(ack);
+                    if (dw != null)
+                        dw.DynamicWaitAck(ack);
+
+                    //isCompleted = true;
+                });
+
+
+                //Task task = Task.Factory.StartNew(() =>
+                //{
+                //    ExecDuplexStream(message, timeout, (TransStream ts) =>
+                //    {
+                //        if (TransStream.IsEmptyStream(ts))
+                //        {
+                //            ack = false;
+                //        }
+                //        else
+                //        {
+                //            OnQItemCompleted(ts, onCompleted);
+                //            ack = true;
+                //        }
+                //        //if (onAck != null)
+                //        //    onAck(ack);
+                //        if (dw != null)
+                //            dw.DynamicWaitAck(ack);
+
+                //        isCompleted = true;
+                //    }, IsAsync);
+
+                //    //while (!isCompleted)
+                //    //{
+                //    //    Thread.Sleep(WaitInterval);
+                //    //}
+
+                //});
+
+                //task.Wait(WaitTimeout);
+            }
+            catch (Exception ex)
+            {
+                OnFault("RequestItem error:" + ex.Message);
+                //OnQItemCompleted(null, message, onCompleted);
+            }
+        }
+
+
+        //Dequeue DynamicWait was ConsumItem
         public void RequestItem(QueueRequest message, int timeout, Action<IQueueMessage> onCompleted, IDynamicWait dw)//Action<bool> onAck)
         {
             message.Host = EnsureHost(message.Host);
             //message.MessageState = MessageState.Receiving;
             timeout = EnsureConnectTimeout(timeout);
-            bool isCompleted = false;
+            //bool isCompleted = false;
             bool ack = false;
             try
             {
-
-                Task task = Task.Factory.StartNew(() =>
+                ExecDuplexStream(message, timeout, (TransStream ts) =>
                 {
-                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                    if (TransStream.IsEmptyStream(ts))
                     {
-                        if (TransStream.IsEmptyStream(ts))
-                        {
-                            ack = false;
-                        }
-                        else
-                        {
-                            OnQItemCompleted(ts, onCompleted);
-                            ack = true;
-                        }
-                        //if (onAck != null)
-                        //    onAck(ack);
-                        if (dw != null)
-                            dw.DynamicWaitAck(ack);
+                        ack = false;
+                    }
+                    else
+                    {
+                        OnQItemCompleted(ts, onCompleted);
+                        ack = true;
+                    }
+                    //if (onAck != null)
+                    //    onAck(ack);
+                    if (dw != null)
+                        dw.DynamicWaitAck(ack);
 
-                        isCompleted = true;
-                    }, IsAsync);
+                    //isCompleted = true;
+                }, IsAsync);
 
-                    //while (!isCompleted)
-                    //{
-                    //    Thread.Sleep(WaitInterval);
-                    //}
+                //Task task = Task.Factory.StartNew(() =>
+                //{
+                //    ExecDuplexStream(message, timeout, (TransStream ts) =>
+                //    {
+                //        if (TransStream.IsEmptyStream(ts))
+                //        {
+                //            ack = false;
+                //        }
+                //        else
+                //        {
+                //            OnQItemCompleted(ts, onCompleted);
+                //            ack = true;
+                //        }
+                //        //if (onAck != null)
+                //        //    onAck(ack);
+                //        if (dw != null)
+                //            dw.DynamicWaitAck(ack);
 
-                });
+                //        isCompleted = true;
+                //    }, IsAsync);
 
-                task.Wait(WaitTimeout);
+                //    //while (!isCompleted)
+                //    //{
+                //    //    Thread.Sleep(WaitInterval);
+                //    //}
+
+                //});
+
+                //task.Wait(WaitTimeout);
             }
             catch (Exception ex)
             {
@@ -883,26 +1081,31 @@ namespace Nistec.Messaging.Remote
         public void RequestItem(QueueRequest message, Action<string> onFault, Action<IQueueMessage> onCompleted)
         {
             message.Host = EnsureHost(message.Host);
-            bool isCompleted = false;
+            //bool isCompleted = false;
 
             try
             {
-
-                Task task = Task.Factory.StartNew(() =>
+                ExecDuplexStream(message, ConnectTimeout, (TransStream ts) =>
                 {
-                    ExecDuplexStreamAsync(message, ConnectTimeout, (TransStream ts) =>
-                    {
-                        OnQItemCompleted(ts, onCompleted);
-                        isCompleted = true;
-                    }, IsAsync);
+                    OnQItemCompleted(ts, onCompleted);
+                    //isCompleted = true;
+                }, IsAsync);
 
-                    //while (!isCompleted)
-                    //{
-                    //    Thread.Sleep(WaitInterval);
-                    //}
+                //Task task = Task.Factory.StartNew(() =>
+                //{
+                //    ExecDuplexStream(message, ConnectTimeout, (TransStream ts) =>
+                //    {
+                //        OnQItemCompleted(ts, onCompleted);
+                //        isCompleted = true;
+                //    }, IsAsync);
 
-                });
-                task.Wait(WaitTimeout);
+                //    //while (!isCompleted)
+                //    //{
+                //    //    Thread.Sleep(WaitInterval);
+                //    //}
+
+                //});
+                //task.Wait(WaitTimeout);
             }
             catch (Exception ex)
             {
@@ -933,27 +1136,32 @@ namespace Nistec.Messaging.Remote
         {
             message.Host = EnsureHost(message.Host);
             timeout = EnsureConnectTimeout(timeout);
-            bool isCompleted = false;
+            //bool isCompleted = false;
 
             try
             {
-
-                Task task = Task.Factory.StartNew(() =>
+                ExecDuplexStream(message, timeout, (TransStream ts) =>
                 {
-                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
-                    {
-                        onCompleted(ts);
-                        isCompleted = true;
-                    }, IsAsync);
+                    onCompleted(ts);
+                    //isCompleted = true;
+                }, IsAsync);
 
-                    //while (!isCompleted)
-                    //{
-                    //    Thread.Sleep(100);
-                    //}
+                //Task task = Task.Factory.StartNew(() =>
+                //{
+                //    ExecDuplexStream(message, timeout, (TransStream ts) =>
+                //    {
+                //        onCompleted(ts);
+                //        isCompleted = true;
+                //    }, IsAsync);
 
-                });
+                //    //while (!isCompleted)
+                //    //{
+                //    //    Thread.Sleep(100);
+                //    //}
 
-                task.Wait(WaitTimeout);
+                //});
+
+                //task.Wait(WaitTimeout);
             }
             catch (Exception ex)
             {
@@ -978,7 +1186,7 @@ namespace Nistec.Messaging.Remote
                     {
                         ct.ThrowIfCancellationRequested();
                     }
-                    ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                    ExecDuplexStream(message, timeout, (TransStream ts) =>
                     {
                         onCompleted(ts);
                         isCompleted = true;
@@ -1523,7 +1731,7 @@ namespace Nistec.Messaging.Remote
         //    return (CacheState)ts.ReadState();
         //}
 
-        public void ExecDuplexStreamAsync(QueueMessage message, int connectTimeout,  Action<TransStream> onCompleted, bool isChannelAsync = false)
+        public void ExecDuplexStream(QueueMessage message, int connectTimeout,  Action<TransStream> onCompleted, bool isChannelAsync = false)
         {
             message.TransformType = TransformType.Stream;
 
@@ -1537,7 +1745,7 @@ namespace Nistec.Messaging.Remote
                     PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
-                    TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, isChannelAsync, EnableRemoteException);
+                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, isChannelAsync, EnableRemoteException);
                     break;
             }
         }
@@ -1564,7 +1772,68 @@ namespace Nistec.Messaging.Remote
 
         #region Exec RequestItem Stream 
 
-        public void ExecDuplexStreamAsync(QueueRequest message, int connectTimeout,int readTimeout, Action<TransStream> onCompleted, bool isChannelAsync = false)
+        public async Task ExecDuplexStreamAsync(QueueMessage message, int connectTimeout, Action<TransStream> onCompleted)
+        {
+            message.TransformType = TransformType.Stream;
+            await Task.Run(() =>
+            {
+                switch (Protocol)
+                {
+                    case NetProtocol.Http:
+                        HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+                        break;
+                    case NetProtocol.Pipe:
+                        //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                        PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException, System.IO.Pipes.PipeOptions.Asynchronous);
+                        break;
+                    case NetProtocol.Tcp:
+                        TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
+                        break;
+                }
+            });
+        }
+
+        public async Task ExecDuplexStreamAsync(QueueRequest message, int connectTimeout, int readTimeout, Action<TransStream> onCompleted)
+        {
+            message.TransformType = TransformType.Stream;
+            await Task.Run(() =>
+            {
+                switch (Protocol)
+                {
+                    case NetProtocol.Http:
+                        HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+                        break;
+                    case NetProtocol.Pipe:
+                        //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                        PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException, System.IO.Pipes.PipeOptions.Asynchronous);
+                        break;
+                    case NetProtocol.Tcp:
+                        TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout, onCompleted,true, EnableRemoteException);
+                        break;
+                }
+            });
+        }
+        public async Task ExecDuplexStreamAsync(QueueRequest message, int connectTimeout, Action<TransStream> onCompleted)
+        {
+            message.TransformType = TransformType.Stream;
+            await Task.Run(() =>
+            {
+                switch (Protocol)
+                {
+                    case NetProtocol.Http:
+                        HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+                        break;
+                    case NetProtocol.Pipe:
+                        //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                        PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException, System.IO.Pipes.PipeOptions.Asynchronous);
+                        break;
+                    case NetProtocol.Tcp:
+                        TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
+                        break;
+                }
+            });
+        }
+        public void ExecDuplexStream(QueueRequest message, int connectTimeout,int readTimeout, Action<TransStream> onCompleted, bool isChannelAsync)
         {
             message.TransformType = TransformType.Stream;
 
@@ -1578,12 +1847,12 @@ namespace Nistec.Messaging.Remote
                     PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
-                    TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout,onCompleted, isChannelAsync, EnableRemoteException);
+                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout,onCompleted, isChannelAsync, EnableRemoteException);
                     break;
             }
         }
 
-        public void ExecDuplexStreamAsync(QueueRequest message, int connectTimeout, Action<TransStream> onCompleted, bool isChannelAsync = false)
+        public void ExecDuplexStream(QueueRequest message, int connectTimeout, Action<TransStream> onCompleted, bool isChannelAsync = false)
         {
             message.TransformType = TransformType.Stream;
 
@@ -1597,7 +1866,7 @@ namespace Nistec.Messaging.Remote
                     PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
-                    TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, isChannelAsync, EnableRemoteException);
+                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, isChannelAsync, EnableRemoteException);
                     break;
             }
         }

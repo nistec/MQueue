@@ -15,10 +15,10 @@ namespace Nistec.Messaging
     {
         #region property
 
-        /// <summary>
-        /// Get or Set The ItemId.
-        /// </summary>
-        string Identifier { get; }
+        ///// <summary>
+        ///// Get or Set The ItemId.
+        ///// </summary>
+        //string Identifier { get; }
         /// <summary>
         /// Get the message state
         /// </summary>
