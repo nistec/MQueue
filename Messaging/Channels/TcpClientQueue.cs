@@ -222,7 +222,7 @@ namespace Nistec.Messaging.Channels
         protected override void ExecuteMessage<TResponse>(NetworkStream stream, IQueueRequest message, Action<TResponse> onCompleted)
         {
             var response= ExecuteMessage<TResponse>(stream, message);
-            onCompleted(response);
+            onCompleted.Invoke(response);
         }
 
         /// <summary>
@@ -428,7 +428,7 @@ namespace Nistec.Messaging.Channels
         protected override void ExecuteMessage<TResponse>(NetworkStream stream, IQueueMessage message, Action<TResponse> onCompleted)
         {
             var response = ExecuteMessage<TResponse>(stream, message);
-            onCompleted(response);
+            onCompleted.Invoke(response);
         }
 
         /// <summary>

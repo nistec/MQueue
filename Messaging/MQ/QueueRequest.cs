@@ -127,21 +127,21 @@ namespace Nistec.Messaging
         //    return stream;
         //}
 
-        /// <summary>
-        /// Deserialize body stream to object.
-        /// </summary>
-        /// <returns></returns>
-        public object GetBody()
-        {
-            if (_Body == null)
-                return null;
-            //BodyStream.Position = 0;
-            using (var stream = BodyStream())
-            {
-                var ser = new BinarySerializer();
-                return ser.Deserialize(stream, true);
-            }
-        }
+        ///// <summary>
+        ///// Deserialize body stream to object.
+        ///// </summary>
+        ///// <returns></returns>
+        //public object GetBody()
+        //{
+        //    if (_Body == null)
+        //        return null;
+        //    //BodyStream.Position = 0;
+        //    using (var stream = BodyStream())
+        //    {
+        //        var ser = new BinarySerializer();
+        //        return ser.Deserialize(stream, true);
+        //    }
+        //}
 
         public string Print()
         {

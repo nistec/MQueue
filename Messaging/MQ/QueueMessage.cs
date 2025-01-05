@@ -710,8 +710,9 @@ namespace Nistec.Messaging
         public MessageState MessageState { get; set; }
 
         public byte[] Body { get => base._Body; set => base._Body = value; }
-        [NoSerialize]
-        public object BodyVal { get => GetBody(); set => SetBodyInternal(value); }//base._Body = value; }
+        
+        //[NoSerialize]
+        //public object BodyVal { get => GetBody(); set => SetBodyInternal(value); }//base._Body = value; }
 
         /*
         QueueCmd _QCommand;
@@ -1837,21 +1838,22 @@ namespace Nistec.Messaging
             return BodyStream();
         }
 
-        /// <summary>
-        /// Deserialize body stream to object, This method is a part of <see cref="IMessageStream"/> implementation.
-        /// </summary>
-        /// <returns></returns>
-        public object GetBody()
-        {
-            if (Body == null)
-                return null;
-            //BodyStream.Position = 0;
-            using (var stream = BodyStream())
-            {
-                var ser = new BinarySerializer();
-                return ser.Deserialize(stream, true);
-            }
-        }
+        ///// <summary>
+        ///// Deserialize body stream to object, This method is a part of <see cref="IMessageStream"/> implementation.
+        ///// </summary>
+        ///// <returns></returns>
+        //public object GetBody()
+        //{
+        //    if (Body == null)
+        //        return null;
+        //    //BodyStream.Position = 0;
+        //    using (var stream = BodyStream())
+        //    {
+        //        var ser = new BinarySerializer();
+        //        return ser.Deserialize(stream, true);
+        //    }
+        //}
+
         /// <summary>
         ///  Deserialize body stream to generic object.
         /// </summary>

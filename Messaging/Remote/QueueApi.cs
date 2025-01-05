@@ -362,11 +362,10 @@ namespace Nistec.Messaging.Remote
         }
         public async Task DequeueAsync(QueueRequest message, int connectTimeout, Action<IQueueMessage> onCompleted, IDynamicWait aw)
         {
-            await Task.Run(() =>
-            {
-                Dequeue(message, connectTimeout, onCompleted, aw);
-            });
-
+            message.Command = QueueCmd.Dequeue.ToString();
+            //message.Host = this._QueueName;
+            //message.MessageState = MessageState.Sending;
+            await RequestItemAsync(message, connectTimeout, onCompleted, aw);
         }
         //public void DequeueAsync(QueueRequest message, int connectTimeout, Action<IQueueMessage> onCompleted, Action<bool> onAck, AutoResetEvent resetEvenet)
         //{
@@ -435,11 +434,7 @@ namespace Nistec.Messaging.Remote
                 Host = QueueName,
                 DuplexType = DuplexTypes.Respond
             };
-            await Task.Run(() =>
-            {
-                ConsumeItem(message, maxWaitSecond, onCompleted);
-            });
-            
+            await ConsumeItemAsync(message, maxWaitSecond, onCompleted);
         }
         /*
         long _CosumeWait = 0;

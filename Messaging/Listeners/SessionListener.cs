@@ -156,9 +156,6 @@ namespace Nistec.Messaging.Listeners
                 if (EnableDynamicWait)
                     ActionWorker.DynamicWaitAck(false);
             }
-
-            
-
         }
         ///// <summary>
         ///// Occured when operation has error.
@@ -334,7 +331,7 @@ namespace Nistec.Messaging.Listeners
                     try
                     {
                         //in case of ResetEvent and fixed interval using
-                        //ReceiveAsync(ActionWorker);
+                        ReceiveAsync(ActionWorker).ConfigureAwait(false);
                         //return false;
 
                         //in case of DynamicWait or fixed interval using
