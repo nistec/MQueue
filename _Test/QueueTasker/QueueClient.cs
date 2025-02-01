@@ -102,7 +102,7 @@ namespace QueueTasker
             {
                 Command = "Send",
                 CustomId = i.ToString(),
-                BodyVal = "<response duration=\"0.0244219303131\" end=\"1276683822.25\" queries=\"15\" start=\"1276683822.23\"><status code=\"1\">DISCARDED</status><message queue_id=\"0\"><status code=\"1\">DISCARDED</status><recipients count=\"1\" successful_count=\"0\"><recipient cli=\"972545650999\" mcc=\"425\" mnc=\"99\"><status code=\"401\">BLACKLISTED</status><reason>NOROUTE</reason></recipient></recipients></message></response>",
+                Content = "<response duration=\"0.0244219303131\" end=\"1276683822.25\" queries=\"15\" start=\"1276683822.23\"><status code=\"1\">DISCARDED</status><message queue_id=\"0\"><status code=\"1\">DISCARDED</status><recipients count=\"1\" successful_count=\"0\"><recipient cli=\"972545650999\" mcc=\"425\" mnc=\"99\"><status code=\"401\">BLACKLISTED</status><reason>NOROUTE</reason></recipient></recipients></message></response>",
                 Args = NameValueArgs.Create("Query", @"tel:\*\d{4}|(|\()(0|972)(\d{1}|\d{2})(|[\)\/\.-])([0-9]{7})|(|\()(18|17)00(|[\)\/\.-])[0-9]{3}(|[\)\/\.-])[0-9]{3}$"),
                 Source = "MsgQueueDemo",
                 SessionId = "MongoCommands",
