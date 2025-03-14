@@ -492,41 +492,20 @@ namespace Nistec.Messaging
         //    //m_BodyStream = new NetStream(Body);
         //}
 
-        //public QueueMessage(QueueMessage message, byte[] body, Type type)
-        //{
-
-        //    Message msg = message.ToMessage();
-        //    msg.SetBody(body,type);
-
-        //    Command = message.Command;
-        //    Priority = message.Priority;
-        //    TransformType = message.TransformType;
-        //    Label = message.Label;
-        //    Host = message.Host;
-        //    m_BodyStream = new NetStream(body);
-
-        //    //NetStream ns = new NetStream();
-        //    //msg.EntityWrite(ns,null);
-        //    //ItemBinary = ns.ToArray();
-
-
-        //    //MessageType = MQTypes.MessageRequest;
-        //    //Command = message.Command;
-        //    //Priority = message.Priority;
-        //    //TransformType = message.TransformType;
-        //    //Host = message.Host;
-        //    //m_BodyStream = new NetStream(body);
-        //    ////ArrivedTime = DateTime.Now;
-        //    //SetArrived();
-        //    //SetItemBinary();
-
-        //    //NetStream ns = new NetStream();
-        //    //this.EntityWrite(ns,null);
-
-        //    //message.EntityWrite(ns);
-        //    //m_BodyStream = ns;
-        //    //ItemBinary = body;// Encoding.UTF8.GetBytes(body);
-        //}
+        public QueueMessage(MessageStream message, string host) : this(message.Identifier)
+        {
+            Command = message.Command;
+            TransformType = message.TransformType;
+            SessionId = message.SessionId;
+            _Body = message.BodyStreamArray();
+            TypeName = message.TypeName;
+            Label = message.Label;
+            CustomId = message.CustomId;
+            Expiration = message.Expiration;
+            Args = message.Args;
+            Source = message.Source;
+            Host = host;
+        }
 
         public QueueMessage(QueueRequest message) : base()
         {
@@ -539,6 +518,7 @@ namespace Nistec.Messaging
             Creation = message.Creation;
             //mqh-Modified = DateTime.Now;
             ArrivedTime = Assists.NullDate;
+            SessionId = message.SessionId;
             //m_BodyStream = null;
             Body = null;
             //mqh-EncodingName = message.EncodingName;
@@ -999,84 +979,6 @@ namespace Nistec.Messaging
         //    }
         //}
 
-        #endregion
-
-        #region Header
-        /*
-        byte[] _Header;
-        public byte[] Header
-        {
-            get
-            {
-                if(_Header==null)
-                {
-                    SetHeader();
-                }
-                return _Header;
-            }
-            set {
-
-                if (value != null)
-                {
-                    var header = MessageHeader.Get(value);
-
-                    MessageState = header.MessageState;
-                    MessageType = header.MessageType;
-                    Command = header.Command;
-                    Priority = header.Priority;
-                    Identifier = header.Identifier;
-                    Retry = header.Retry;
-                    ArrivedTime = header.ArrivedTime;
-                    Creation = header.Creation;
-                    Modified = header.Modified;
-                    Duration = header.Duration;
-                    TransformType = header.TransformType;
-                    Host = header.Host;
-                    Sender = header.Sender;
-                    Label = header.Label;
-                }
-                _Header = value;
-            }
-        }
-
-        internal void SetHeader()
-        {
-            var header = new MessageHeader()
-            {
-                MessageState = this.MessageState,
-                MessageType = this.MessageType,
-                Command = this.Command,
-                Priority = this.Priority,
-                Identifier = this.Identifier,
-                Retry = this.Retry,
-                ArrivedTime = this.ArrivedTime,
-                Creation = this.Creation,
-                Modified = this.Modified,
-                Duration = this.Duration,
-                TransformType = this.TransformType,
-                Host = this.Host,
-                Sender = this.Sender,
-                Label = this.Label,
-            };
-            _Header = header.ToBinary();
-        }
-
-        /// <summary>
-        /// Get Header stream after set the position to first byte in buffer.
-        /// </summary>
-        /// <returns></returns>
-        public NetStream GetHeaderStream()
-        {
-            return new NetStream(Header);
-        }
-
-        public MessageHeader GetHeader()
-        {
-            var header = new MessageHeader();
-            header.EntityWrite(GetHeaderStream(), null);
-            return header;
-        }
-        */
         #endregion
 
         #region  ISerialEntity
@@ -1704,102 +1606,12 @@ namespace Nistec.Messaging
         public string ToJson()
         {
             return JsonSerializer.Serialize(this);
-
-            //switch (MessageType)
-            //{
-            //    case MQTypes.Ack:
-            //        QueueAck ack = new QueueAck(ToStream());// GetMessageStream());
-            //        return JsonSerializer.Serialize(ack);
-            //    case MQTypes.Message:
-            //        //Message message = new Message(GetMessageStream());
-            //        //return JsonSerializer.Serialize(message);
-            //        return JsonSerializer.Serialize(this);
-            //    case MQTypes.MessageRequest:
-            //        QueueRequest mr = new QueueRequest(ToStream());// GetMessageStream());
-            //        return JsonSerializer.Serialize(mr);
-            //    case MQTypes.Json:
-            //        //var stream = (ToStream();// GetMessageStream);
-            //        //return Encoding.UTF8.GetString(stream.ToArray());
-            //        return JsonSerializer.Serialize(this);
-            //}
-            //return null;
         }
         public static QueueMessage Deserialize(string json)
         {
             return JsonSerializer.Deserialize<QueueMessage>(json);
 
         }
-
-        //public IQueueAck ToAck()
-        //{
-        //    return this;
-        //    //return new QueueAck()
-        //    //{
-        //    //    ArrivedTime = ArrivedTime,
-        //    //    Count = 0,
-        //    //    Host = Host,
-        //    //    Identifier = Identifier,
-        //    //    Label = Label,
-        //    //    MessageState = this.MessageState
-        //    //};
-        //}
-
-        //public Message ToMessage()
-        //{
-        //    //return new Message()
-        //    //{
-        //    //    MessageState = this.MessageState,
-        //    //    MessageType = this.MessageType,
-        //    //    Command = this.Command,
-        //    //    Priority = this.Priority,
-        //    //    Identifier = this.Identifier,
-        //    //    Retry = this.Retry,
-        //    //    ArrivedTime = this.ArrivedTime,
-        //    //    Modified = this.Modified,
-        //    //    TransformType = this.TransformType,
-        //    //    Label = this.Label,
-        //    //    Host = this.Host,
-        //    //    m_BodyStream = this.BodyStream.Copy(),
-        //    //    //Header = this.Header,
-        //    //    ItemBinary = this.ItemBinary
-        //    //}
-
-        //    return GetMessage();// new Message(GetBodyStream());
-        //}
-
-        ///// <summary>
-        ///// Get body stream after set the position to first byte in buffer, This method is a part of <see cref="IQueueMessage"/> implementation.
-        ///// </summary>
-        ///// <returns></returns>
-        //public NetStream GetMessageStream()
-        //{
-        //    if (ItemBinary == null)
-        //        return null;
-        //    return new NetStream(ItemBinary);
-        //}
-
-        //public NetStream ToStream()
-        //{
-        //    NetStream stream = new NetStream();
-        //    EntityWrite(stream, null);
-        //    return stream;
-        //}
-
-        ///// <summary>
-        ///// Get body stream after set the position to first byte in buffer, This method is a part of <see cref="IMessageStream"/> implementation.
-        ///// </summary>
-        ///// <returns></returns>
-        //public NetStream GetBodyStream()
-        //{
-        //    return new NetStream(ItemBinary);
-
-        //    //if (BodyStream == null)
-        //    //    return null;
-        //    //if (BodyStream.Position > 0)
-        //    //    BodyStream.Position = 0;
-        //    //return BodyStream;
-        //}
-
 
         #endregion
 
@@ -2393,7 +2205,6 @@ namespace Nistec.Messaging
         }
 
         #endregion
-
     }
 
 

@@ -297,7 +297,21 @@ namespace Nistec.Messaging.Listeners
         //        return ActionWorker.State;
         //    }
         //}
-
+        public string Command(string cmd, bool wait)
+        {
+            switch (cmd)
+            {
+                case "Stop":
+                    Stop(); break;
+                case "Start":
+                    Start(); break;
+                case "Shutdown":
+                    Shutdown(wait); break;
+                default:
+                    return "Commnd not suppported, " + cmd;
+            }
+            return State.ToString();
+        }
         public bool IsRunning
         {
             get
@@ -374,7 +388,7 @@ namespace Nistec.Messaging.Listeners
             ActionWorker.Stop();
             State = ListenerState.Stoped;
             if (_Logger != null)
-                _Logger.Info("SessionListener Stoped: {0}", HostName); 
+                _Logger.Info("SessionListener Stoped: {0}", HostName);
         }
         public bool Pause(OnOffState onOff)
         {

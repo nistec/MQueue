@@ -15,11 +15,15 @@ namespace QueueTasker
 {
     public class QueueClient
     {
+        internal static string Config_QHost;// = NetConfig.AppSettings.Get("QueueHost", "tcp:127.0.0.1:15000?Netcell");
+        internal static string Config_QName;// = NetConfig.AppSettings.Get("QueueName", "Netcell");
+        internal static string Config_Content;// = NetConfig.AppSettings.Get("Message", "NA");
+        internal static string Config_Args;// = NetConfig.AppSettings.Get("Message", "NA");
 
         public static QueueHost GetHost(string host_address, string queueName) {
 
             //"tcp:127.0.0.1:15000?NC_Quick"
-            var host = QueueHost.Parse("tcp:127.0.0.1:15000?"+ queueName);
+            var host = QueueHost.Parse(Config_QHost+"?"+ Config_QName);// "tcp:127.0.0.1:15000?"+ queueName);
             return host;
         }
         public static QueueHost GetHost(string protocol, string host_address, string queueName)
@@ -88,7 +92,8 @@ namespace QueueTasker
             {
                 Command = "Send",
                 CustomId = i.ToString(),
-                Message = "<response duration=\"0.0244219303131\" end=\"1276683822.25\" queries=\"15\" start=\"1276683822.23\"><status code=\"1\">DISCARDED</status><message queue_id=\"0\"><status code=\"1\">DISCARDED</status><recipients count=\"1\" successful_count=\"0\"><recipient cli=\"972545650999\" mcc=\"425\" mnc=\"99\"><status code=\"401\">BLACKLISTED</status><reason>NOROUTE</reason></recipient></recipients></message></response> ",
+                Message = Config_Content,
+                //Message = "<response duration=\"0.0244219303131\" end=\"1276683822.25\" queries=\"15\" start=\"1276683822.23\"><status code=\"1\">DISCARDED</status><message queue_id=\"0\"><status code=\"1\">DISCARDED</status><recipients count=\"1\" successful_count=\"0\"><recipient cli=\"972545650999\" mcc=\"425\" mnc=\"99\"><status code=\"401\">BLACKLISTED</status><reason>NOROUTE</reason></recipient></recipients></message></response> ",
                 //Query = @"tel:\*\d{4}|(|\()(0|972)(\d{1}|\d{2})(|[\)\/\.-])([0-9]{7})|(|\()(18|17)00(|[\)\/\.-])[0-9]{3}(|[\)\/\.-])[0-9]{3}$",
                 Source = "MsgQueueDemo",
                 SessionId = "MongoCommands",
@@ -102,8 +107,10 @@ namespace QueueTasker
             {
                 Command = "Send",
                 CustomId = i.ToString(),
-                Content = "<response duration=\"0.0244219303131\" end=\"1276683822.25\" queries=\"15\" start=\"1276683822.23\"><status code=\"1\">DISCARDED</status><message queue_id=\"0\"><status code=\"1\">DISCARDED</status><recipients count=\"1\" successful_count=\"0\"><recipient cli=\"972545650999\" mcc=\"425\" mnc=\"99\"><status code=\"401\">BLACKLISTED</status><reason>NOROUTE</reason></recipient></recipients></message></response>",
-                Args = NameValueArgs.Create("Query", @"tel:\*\d{4}|(|\()(0|972)(\d{1}|\d{2})(|[\)\/\.-])([0-9]{7})|(|\()(18|17)00(|[\)\/\.-])[0-9]{3}(|[\)\/\.-])[0-9]{3}$"),
+                Content = Config_Content,
+                Args = NameValueArgs.Create("Query", Config_Args),
+                //Content = "<response duration=\"0.0244219303131\" end=\"1276683822.25\" queries=\"15\" start=\"1276683822.23\"><status code=\"1\">DISCARDED</status><message queue_id=\"0\"><status code=\"1\">DISCARDED</status><recipients count=\"1\" successful_count=\"0\"><recipient cli=\"972545650999\" mcc=\"425\" mnc=\"99\"><status code=\"401\">BLACKLISTED</status><reason>NOROUTE</reason></recipient></recipients></message></response>",
+                //Args = NameValueArgs.Create("Query", @"tel:\*\d{4}|(|\()(0|972)(\d{1}|\d{2})(|[\)\/\.-])([0-9]{7})|(|\()(18|17)00(|[\)\/\.-])[0-9]{3}(|[\)\/\.-])[0-9]{3}$"),
                 Source = "MsgQueueDemo",
                 SessionId = "MongoCommands",
                 Label = "QDemo"
@@ -168,13 +175,14 @@ namespace QueueTasker
 
     public static class QueueClientDemo {
 
+
         public static void PublishItem(int i)
         {
-            var host = QueueHost.Parse("tcp:127.0.0.1:15000?Netcell");
+            var host = QueueHost.Parse(QueueClient.Config_QHost + "?" + QueueClient.Config_QName);
             QueueApi q = QueueClient.GetApi(host);
             //var item = QueueClient.CreateQueueItem("Hello world " + DateTime.Now.ToString("s"), "test");
             var item = QueueClient.CreateItem(i);
-            item.Host = "Netcell";
+            item.Host = QueueClient.Config_QName;
             item.Command = QueueCmd.Enqueue.ToString();
             //IQueueAck ack = null;
 
@@ -187,11 +195,11 @@ namespace QueueTasker
 
         public static void PublishItemAsync(int i)
         {
-            var host = QueueHost.Parse("tcp:127.0.0.1:15000?Netcell");
+            var host = QueueHost.Parse(QueueClient.Config_QHost + "?" + QueueClient.Config_QName);
             QueueApi q = QueueClient.GetApi(host);
             //var item = QueueClient.CreateQueueItem("Hello world " + DateTime.Now.ToString("s"), "test");
             var item = QueueClient.CreateItem(i);
-            item.Host = "Netcell";
+            item.Host = QueueClient.Config_QName;
             item.Command = QueueCmd.Enqueue.ToString();
             //IQueueAck ack = null;
 
@@ -204,6 +212,11 @@ namespace QueueTasker
 
         public static void PublishMulti(int maxItems)
         {
+            QueueClient.Config_QHost = NetConfig.AppSettings.Get("QueueHost", "tcp:127.0.0.1:15000?Netcell");
+            QueueClient.Config_QName = NetConfig.AppSettings.Get("QueueName", "Netcell");
+            QueueClient.Config_Content = NetConfig.AppSettings.Get("Message", "NA");
+            QueueClient.Config_Args = NetConfig.AppSettings.Get("Message", "NA");
+
             long counter = 0;
             int interval = 100;
             DateTime start = DateTime.Now;

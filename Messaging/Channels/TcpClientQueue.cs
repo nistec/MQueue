@@ -71,7 +71,7 @@ namespace Nistec.Messaging.Channels
         /// <param name="port"></param>
         /// <param name="connectTimeout"></param>
         public TcpClientQueue(string hostAddress, int port, int connectTimeout)
-            : base(hostAddress, port, connectTimeout, false)
+            : base(hostAddress, port, connectTimeout)//, false)
         {
 
         }
@@ -82,9 +82,8 @@ namespace Nistec.Messaging.Channels
         /// <param name="hostAddress"></param>
         /// <param name="port"></param>
         /// <param name="connectTimeout"></param>
-        /// <param name="isAsync"></param>
         public TcpClientQueue(string hostAddress, int port, int connectTimeout, bool isAsync)
-            : base(hostAddress, port, connectTimeout, isAsync)
+            : base(hostAddress, port, connectTimeout)//, isAsync)
         {
 
         }
@@ -97,9 +96,8 @@ namespace Nistec.Messaging.Channels
         /// <param name="connectTimeout"></param>
         /// <param name="ReceiveBufferSize"></param>
         /// <param name="SendBufferSize"></param>
-        /// <param name="isAsync"></param>
         public TcpClientQueue(string hostAddress, int port, int connectTimeout, int ReceiveBufferSize, int SendBufferSize,bool isAsync)
-            : base(hostAddress, port, connectTimeout, ReceiveBufferSize, SendBufferSize, isAsync)
+            : base(hostAddress, port, connectTimeout, ReceiveBufferSize, SendBufferSize)//, isAsync)
         {
 
         }
@@ -277,23 +275,22 @@ namespace Nistec.Messaging.Channels
         /// <param name="port"></param>
         /// <param name="connectTimeout"></param>
         public TcpClientQueueMessage(string hostAddress, int port, int connectTimeout)
-            : base(hostAddress, port, connectTimeout, false)
+            : base(hostAddress, port, connectTimeout)//, false)
         {
 
         }
 
-        /// <summary>
-        /// Constractor with arguments
-        /// </summary>
-        /// <param name="hostAddress"></param>
-        /// <param name="port"></param>
-        /// <param name="connectTimeout"></param>
-        /// <param name="isAsync"></param>
-        public TcpClientQueueMessage(string hostAddress, int port, int connectTimeout, bool isAsync)
-            : base(hostAddress, port, connectTimeout, isAsync)
-        {
+        ///// <summary>
+        ///// Constractor with arguments
+        ///// </summary>
+        ///// <param name="hostAddress"></param>
+        ///// <param name="port"></param>
+        ///// <param name="connectTimeout"></param>
+        //public TcpClientQueueMessage(string hostAddress, int port, int connectTimeout)//, bool isAsync)
+        //    : base(hostAddress, port, connectTimeout)//, isAsync)
+        //{
 
-        }
+        //}
 
         /// <summary>
         /// Constractor with arguments
@@ -303,9 +300,8 @@ namespace Nistec.Messaging.Channels
         /// <param name="connectTimeout"></param>
         /// <param name="ReceiveBufferSize"></param>
         /// <param name="SendBufferSize"></param>
-        /// <param name="isAsync"></param>
-        public TcpClientQueueMessage(string hostAddress, int port, int connectTimeout, int ReceiveBufferSize, int SendBufferSize, bool isAsync)
-            : base(hostAddress, port, connectTimeout, ReceiveBufferSize, SendBufferSize, isAsync)
+        public TcpClientQueueMessage(string hostAddress, int port, int connectTimeout, int ReceiveBufferSize, int SendBufferSize)//, bool isAsync)
+            : base(hostAddress, port, connectTimeout, ReceiveBufferSize, SendBufferSize)//, isAsync)
         {
 
         }

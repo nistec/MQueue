@@ -1672,7 +1672,7 @@ namespace Nistec.Messaging.Remote
                     break;
                 case NetProtocol.Tcp:
                 default:
-                    TcpStreamClient.SendOut(message, RemoteHostAddress, RemoteHostPort, ConnectTimeout, IsAsync, EnableRemoteException);
+                    TcpStreamClient.SendOut(message, RemoteHostAddress, RemoteHostPort, ConnectTimeout, EnableRemoteException);
                     break;
             }
         }
@@ -1745,7 +1745,7 @@ namespace Nistec.Messaging.Remote
                     PipeClient.SendDuplexStream(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
-                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, isChannelAsync, EnableRemoteException);
+                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
                     break;
             }
         }
@@ -1766,7 +1766,7 @@ namespace Nistec.Messaging.Remote
                 case NetProtocol.Tcp:
                     break;
             }
-            return TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, isAsync, EnableRemoteException);
+            return TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, EnableRemoteException);
         }
         #endregion
 
@@ -1840,7 +1840,7 @@ namespace Nistec.Messaging.Remote
                     PipeClient.SendDuplexStream(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
-                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout,onCompleted, isChannelAsync, EnableRemoteException);
+                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout,onCompleted, EnableRemoteException);
                     break;
             }
         }
@@ -1859,7 +1859,7 @@ namespace Nistec.Messaging.Remote
                     PipeClient.SendDuplexStream(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
-                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, isChannelAsync, EnableRemoteException);
+                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
                     break;
             }
         }
@@ -1905,7 +1905,7 @@ namespace Nistec.Messaging.Remote
                     break;
             }
             //return TcpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, isAsync, EnableRemoteException);
-            using (TcpStreamClient client = new TcpStreamClient(RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout, isAsync))
+            using (TcpStreamClient client = new TcpStreamClient(RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout))//, isAsync))
             {
                 message.TransformType = TransformType.Stream;
                 //message.IsDuplex = true;
