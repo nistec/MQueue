@@ -10,6 +10,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Net;
+using System.Net.Sockets;
 
 namespace QueueTasker
 {
@@ -205,9 +207,12 @@ namespace QueueTasker
 
             QueueClient.PublishItemAsync(q, item, 0, (IQueueAck ack) =>
             {
-                Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item.Identifier);
+                if (ack == null)
+                    Console.WriteLine("Ack is null, Identifier:{0}", item.Identifier);
+                else
+                    Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item.Identifier);
 
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public static void PublishMulti(int maxItems)
@@ -338,5 +343,53 @@ namespace QueueTasker
 
         }
 
+    }
+
+    class FastTcpClient
+    {
+        private const string ServerIp = "127.0.0.1";
+        private const int Port = 5000;
+
+        public static async Task StartClientAsync()
+        {
+            try
+            {
+                using (Socket clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+                {
+                    await clientSocket.ConnectAsync(new IPEndPoint(IPAddress.Parse(ServerIp), Port));
+                    Console.WriteLine("🔗 Connected to server!");
+
+                    await SendDataAsync(clientSocket, "Hello, Server!");
+                    await ReceiveDataAsync(clientSocket);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Error: {ex.Message}");
+            }
+        }
+
+        private static async Task SendDataAsync(Socket clientSocket, string message)
+        {
+            byte[] data = Encoding.UTF8.GetBytes(message);
+            await clientSocket.SendAsync(new ArraySegment<byte>(data), SocketFlags.None);
+            Console.WriteLine($"📤 Sent: {message}");
+        }
+
+        private static async Task ReceiveDataAsync(Socket clientSocket)
+        {
+            byte[] buffer = new byte[8192];
+            int bytesRead = await clientSocket.ReceiveAsync(new ArraySegment<byte>(buffer), SocketFlags.None);
+            if (bytesRead > 0)
+            {
+                string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                Console.WriteLine($"📥 Received: {response}");
+            }
+        }
+
+        //static void Main()
+        //{
+        //    StartClientAsync().GetAwaiter().GetResult();
+        //}
     }
 }

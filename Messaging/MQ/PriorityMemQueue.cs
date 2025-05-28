@@ -108,6 +108,29 @@ namespace Nistec.Messaging
             }
             return list;
         }
+        public override IEnumerable<IPersistEntity> QueryLabels()
+        {
+
+            List<IPersistEntity> list = new List<IPersistEntity>();
+            try
+            {
+                if (Count() > 0)
+                {
+                    int i = 0;
+                    foreach (var g in QueueItems)
+                    {
+                        i++;
+                        list.Add(new PersistEntity() { body = g.Value.Label, key = g.Key.Identifier + " #" + i.ToString(), name = Name, timestamp = g.Value.ArrivedTime });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return list;
+        }
+        
 
         protected override void ClearItems()
         {

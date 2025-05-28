@@ -18,44 +18,994 @@ using Nistec.Logging;
 namespace Nistec.Messaging.Remote
 {
 
-    //internal static class PollRepeat
-    //{
-    //    public static Task Interval(
-    //        TimeSpan pollInterval,
-    //        Func<TransStream> action,
-    //        CancellationToken token)
-    //    {
-    //        // We don't use Observable.Interval:
-    //        // If we block, the values start bunching up behind each other.
-    //        return Task.Factory.StartNew(
-    //            () =>
-    //            {
-    //                for (;;)
-    //                {
-    //                    if (token.WaitCancellationRequested(pollInterval))
-    //                        break;
+    public abstract class RemoteApi : ChannelSettings
+    {
+      
+        /// <summary>
+        /// CConvert stream to json format.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="format"></param>
+        /// <returns></returns>
+        public static string ToJson(NetStream stream, JsonFormat format)
+        {
+            using (BinaryStreamer streamer = new BinaryStreamer(stream))
+            {
+                var obj = streamer.Decode();
+                if (obj == null)
+                    return null;
+                else
+                    return JsonSerializer.Serialize(obj, null, format);
+            }
+        }
 
-    //                  var ts=  action();
-    //                  bool  ok = (ts != null && ts.GetLength() > 0);
-    //                    if (ok)
-    //                    {
-    //                        break;
-    //                    }
-    //                }
-    //            }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-    //    }
-    //}
+        #region on completed
 
-    //static class CancellationTokenExtensions
-    //{
-    //    public static bool WaitCancellationRequested(
-    //        this CancellationToken token,
-    //        TimeSpan timeout)
-    //    {
-    //        return token.WaitHandle.WaitOne(timeout);
-    //    }
-    //}
+        protected void OnFault(string message)
+        {
+            Logger.Instance.Debug("QueueApi OnFault: " + message);
+        }
+        
+        protected void OnItemCompleted(TransStream ts, IQueueRequest message, Action<IQueueAck> onCompleted)
+        {
 
+            IQueueAck ack = OnItemCompleted(ts, message);
+
+            onCompleted.Invoke(ack);
+        }
+
+        protected QueueAck OnItemCompleted(TransStream ts, IQueueRequest message)
+        {
+
+            QueueAck ack = (ts == null || ts.IsEmpty) ? null : ts.ReadValue<QueueAck>(OnFault);
+
+            if (ack == null)
+            {
+                if (message.DuplexType.IsDuplex())
+                    ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+                else
+                    ack = new QueueAck(MessageState.Arrived, "Message Arrived on way", message.Identifier, message.Host);
+
+                //ack.HostAddress = message.HostAddress;
+            }
+
+            Assists.SetArrived(ack);
+
+            return ack;
+        }
+
+        protected bool OnQItemCompleted(TransStream ts, Action<IQueueMessage> onCompleted)
+        {
+
+            IQueueMessage item = OnQItemCompleted(ts);
+            if (item != null)
+            {
+                onCompleted.Invoke(item);
+                return true;
+            }
+            return false;
+        }
+
+        protected IQueueMessage OnQItemCompleted(TransStream ts)//, IQueueRequest message)
+        {
+
+            QueueMessage item = (ts == null || ts.IsEmpty) ? null : ts.ReadValue<QueueMessage>(OnFault);
+
+            if (item == null)
+            {
+                return null;
+            }
+
+            Assists.SetArrived(item);
+
+            return item;
+        }
+        
+        #endregion
+
+        #region onCompleted TransBinary
+        /*
+        protected void OnItemCompleted(TransBinary ts, IQueueRequest message, Action<IQueueAck> onCompleted)
+        {
+
+            IQueueAck ack = OnItemCompleted(ts, message);
+
+            onCompleted.Invoke(ack);
+        }
+
+        protected QueueAck OnItemCompleted(TransBinary ts, IQueueRequest message)
+        {
+
+            QueueAck ack = (ts == null || ts.IsEmpty) ? null : ts.ReadBody<QueueAck>();
+
+            if (ack == null)
+            {
+                if (message.DuplexType.IsDuplex())
+                    ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+                else
+                    ack = new QueueAck(MessageState.Arrived, "Message Arrived on way", message.Identifier, message.Host);
+
+                //ack.HostAddress = message.HostAddress;
+            }
+
+            Assists.SetArrived(ack);
+
+            return ack;
+        }
+
+        protected bool OnQItemCompleted(TransBinary ts, Action<IQueueMessage> onCompleted)
+        {
+
+            IQueueMessage item = OnQItemCompleted(ts);
+            if (item != null)
+            {
+                onCompleted.Invoke(item);
+                return true;
+            }
+            return false;
+        }
+
+        protected IQueueMessage OnQItemCompleted(TransBinary ts)//, IQueueRequest message)
+        {
+
+            QueueMessage item = (ts == null || ts.IsEmpty) ? null : ts.ReadBody<QueueMessage>();
+
+            if (item == null)
+            {
+                return null;
+            }
+
+            Assists.SetArrived(item);
+
+            return item;
+        }
+        */
+        #endregion
+
+        #region onCompleted NetStream
+
+        protected void OnItemCompleted(IDataStream ts, IQueueRequest message, Action<IQueueAck> onCompleted)
+        {
+
+            IQueueAck ack = OnItemCompleted(ts, message);
+
+            onCompleted.Invoke(ack);
+        }
+
+        protected QueueAck OnItemCompleted(IDataStream ts, IQueueRequest message)
+        {
+
+            QueueAck ack;
+            if(!TransStream.TryGetValue<QueueAck>(ts, out ack))//binary
+            {
+                if (message.DuplexType.IsDuplex())
+                    ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+                else
+                    ack = new QueueAck(MessageState.Arrived, "Message Arrived on way", message.Identifier, message.Host);
+
+            }
+            //QueueAck ack = (ts == null || ts.IsEmpty) ? null : (QueueAck)ts.ReadBody();
+
+            //if (ack == null)
+            //{
+            //    if (message.DuplexType.IsDuplex())
+            //        ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+            //    else
+            //        ack = new QueueAck(MessageState.Arrived, "Message Arrived on way", message.Identifier, message.Host);
+
+            //    //ack.HostAddress = message.HostAddress;
+            //}
+
+            Assists.SetArrived(ack);
+
+            return ack;
+        }
+
+        protected bool OnQItemCompleted(IDataStream ts, Action<IQueueMessage> onCompleted)
+        {
+
+            IQueueMessage item = OnQItemCompleted(ts);
+            if (item != null)
+            {
+                onCompleted.Invoke(item);
+                return true;
+            }
+            return false;
+        }
+
+        protected IQueueMessage OnQItemCompleted(IDataStream ts)//, IQueueRequest message)
+        {
+            QueueMessage item;
+            if (!TransStream.TryGetValue<QueueMessage>(ts, out item)) //binary
+            {
+
+            }
+
+            //QueueMessage item = (ts == null || ts.IsEmpty) ? null : ts.ReadBody<QueueMessage>();
+
+            //if (item == null)
+            //{
+            //    return null;
+            //}
+
+            Assists.SetArrived(item);
+
+            return item;
+        }
+
+        #endregion
+
+        #region onCompleted NetStream
+
+        protected void OnItemCompleted(NetStream ts, IQueueRequest message, Action<IQueueAck> onCompleted)
+        {
+
+            IQueueAck ack = OnItemCompleted(ts, message);
+
+            onCompleted.Invoke(ack);
+        }
+
+        protected QueueAck OnItemCompleted(NetStream ts, IQueueRequest message)
+        {
+
+            QueueAck ack = (ts == null || ts.IsEmpty) ? null : ts.Deserialize<QueueAck>();
+
+            if (ack == null)
+            {
+                if (message.DuplexType.IsDuplex())
+                    ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+                else
+                    ack = new QueueAck(MessageState.Arrived, "Message Arrived on way", message.Identifier, message.Host);
+
+                //ack.HostAddress = message.HostAddress;
+            }
+
+            Assists.SetArrived(ack);
+
+            return ack;
+        }
+
+        protected bool OnQItemCompleted(NetStream ts, Action<IQueueMessage> onCompleted)
+        {
+
+            IQueueMessage item = OnQItemCompleted(ts);
+            if (item != null)
+            {
+                onCompleted.Invoke(item);
+                return true;
+            }
+            return false;
+        }
+
+        protected IQueueMessage OnQItemCompleted(NetStream ts)//, IQueueRequest message)
+        {
+
+            QueueMessage item = (ts == null || ts.IsEmpty) ? null : ts.Deserialize<QueueMessage>();
+
+            if (item == null)
+            {
+                return null;
+            }
+
+            Assists.SetArrived(item);
+
+            return item;
+        }
+
+        #endregion
+
+        #region Publish
+
+        public TransStream PublishItemStream(QueueMessage message, int timeout)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            EnableRemoteException = true;
+            TransStream ts = ExecDuplexStream(message, timeout);
+            return ts;
+        }
+
+        public IQueueAck PublishItem(QueueMessage message)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            try
+            {
+                Logger.Instance.Debug("RemoteApi PublishItem : Host:{0}, Identifier:{1}", message.Host, message.Identifier);
+
+                TransStream ts = ExecDuplexStream(message, ConnectTimeout);
+                return OnItemCompleted(ts, message);
+            }
+            catch (Exception ex)
+            {
+                OnFault("PublishItem error:" + ex.Message);
+                return OnItemCompleted((TransStream)null, message);//binary
+            }
+        }
+
+        public void PublishItem(QueueMessage message, Action<IAck> ack)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            try
+            {
+                Logger.Instance.Debug("RemoteApi PublishItem : Host:{0}, Identifier:{1}", message.Host, message.Identifier);
+
+                TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb)=>{ //binary
+                    ack(OnItemCompleted(tb, message));
+                });
+
+
+                //ExecDuplexStream(message, ConnectTimeout, (ts) => {
+                //    ack(OnItemCompleted(ts, message));
+                //});
+            }
+            catch (Exception ex)
+            {
+                OnFault("PublishItem error:" + ex.Message);
+                ack(OnItemCompleted((TransStream)null, message));//binary
+            }
+        }
+
+        public async Task PublishItemAsync(QueueMessage message, Action<IAck> ack)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            try
+            {
+                Logger.Instance.Debug("RemoteApi PublishItem : Host:{0}, Identifier:{1}", message.Host, message.Identifier);
+
+                await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                    ack(OnItemCompleted(tb, message));
+                });
+
+                //await ExecDuplexStreamAsync(message, ConnectTimeout, (ts) => {
+                //    ack(OnItemCompleted(ts, message));
+                //});
+            }
+            catch (Exception ex)
+            {
+                OnFault("PublishItem error:" + ex.Message);
+                ack(OnItemCompleted((TransStream)null, message));//binary
+            }
+        }
+
+        public IQueueAck PublishItem(QueueMessage message, int timeout)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            try
+            {
+                var response = TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);//binary
+                return OnItemCompleted(response, message);
+                
+                //TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout));
+                //return OnItemCompleted(ts, message);
+            }
+            catch (Exception ex)
+            {
+                OnFault("PublishItem error:" + ex.Message);
+                return OnItemCompleted((TransStream)null, message);//binary
+            }
+        }
+
+        public void PublishItemStream(QueueMessage message, int timeout, Action<IDataStream> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            //bool isCompleted = false;
+            EnableRemoteException = true;
+
+            TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted);//binary
+
+
+            //ExecDuplexStream(message, timeout, (TransStream ts) =>
+            //{
+            //    onCompleted.Invoke(ts);
+            //    //isCompleted = true;
+            //}, IsAsync);
+        }
+        public void PublishItem(QueueMessage message, int timeout, Action<IQueueAck> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            //bool isCompleted = false;
+
+            try
+            {
+                TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                    onCompleted(OnItemCompleted(tb, message));
+                });
+
+                //ExecDuplexStream(message, timeout, (TransStream ts) =>
+                //{
+                //    OnItemCompleted(ts, message, onCompleted);
+                //    //isCompleted = true;
+                //}, IsAsync);
+            }
+            catch (Exception ex)
+            {
+                OnFault("PublishItem error:" + ex.Message);
+                OnItemCompleted((TransStream)null, message, onCompleted); //binary
+            }
+        }
+
+        public async Task PublishItemAsync(QueueMessage message, int timeout, Action<IQueueAck> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            //bool isCompleted = false;
+
+            try
+            {
+                await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                    onCompleted(OnItemCompleted(tb, message));
+                });
+                //await ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                //{
+                //    OnItemCompleted(ts, message, onCompleted);
+                //    //isCompleted = true;
+                //});
+            }
+            catch (Exception ex)
+            {
+                OnFault("PublishItem error:" + ex.Message);
+                OnItemCompleted((TransStream)null, message, onCompleted); //binary
+            }
+        }
+
+        public async Task PublishItemStreamAsync(QueueMessage message, int timeout, Action<string> onFault, Action<IDataStream> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            //bool isCompleted = false;
+
+            try
+            {
+                await TcpSocketClient.SendAsync((IDataStream) new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted); //binary
+
+                //await ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                //{
+                //    onCompleted.Invoke(ts);
+                //    //isCompleted = true;
+                //});
+
+            }
+            catch (Exception ex)
+            {
+                onFault("PublishItem error:" + ex.Message);
+            }
+        }
+
+        #endregion
+
+        #region Consume
+
+        public IQueueAck __ConsumItem(QueueMessage message, int timeout)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Receiving;
+            timeout = EnsureConnectTimeout(timeout);
+
+            try
+            {
+
+                var ts = TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort); //binary
+                return OnItemCompleted(ts, message);
+
+                //TransStream ts = ExecDuplexStream(message, timeout);
+                //return OnItemCompleted(ts, message);
+            }
+            catch (Exception ex)
+            {
+                OnFault("ConsumItem error:" + ex.Message);
+                return OnItemCompleted((TransStream)null, message); //binary
+            }
+        }
+
+        public IQueueMessage ConsumeItem(QueueRequest message, int maxWaitSecond)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.Expiration = maxWaitSecond;
+            //message.MessageState = MessageState.Receiving;
+            int timeout = 24 * 60 * 60 * 1000;
+            try
+            {
+                var ts = TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort); //binary
+                return OnQItemCompleted(ts);
+
+                //TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout), ReadTimeout);
+                //return OnQItemCompleted(ts);
+            }
+            catch (Exception ex)
+            {
+                OnFault("ConsumeItem error:" + ex.Message);
+                return null;// OnQItemCompleted(null, message);
+            }
+        }
+
+        public void ConsumeItem(QueueRequest message, int maxWaitSecond, Action<IQueueMessage> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.Expiration = maxWaitSecond;
+            //message.MessageState = MessageState.Receiving;
+            int timeout = 24 * 60 * 60 * 1000;
+            try
+            {
+                TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                    onCompleted(OnQItemCompleted(tb));
+                });
+                //ExecDuplexStream(message, timeout, ReadTimeout, (TransStream ts) =>
+                //{
+                //    if (!TransStream.IsEmptyStream(ts))
+                //    {
+                //        OnQItemCompleted(ts, onCompleted);
+                //    }
+                //}, true);
+            }
+            catch (Exception ex)
+            {
+                OnFault("ConsumeItem error:" + ex.Message);
+            }
+        }
+
+        public async Task ConsumeItemAsync(QueueRequest message, int maxWaitSecond, Action<IQueueMessage> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            message.Expiration = maxWaitSecond;
+            //message.MessageState = MessageState.Receiving;
+            int timeout = 24 * 60 * 60 * 1000;
+            try
+            {
+                await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => //binary
+                {
+                    var res = tb.ReadBody();
+                    if (res is IQueueMessage)
+                        onCompleted((IQueueMessage)res);
+                    else
+                        OnFault("ConsumeItemAsync error:" + res);
+                });
+
+                //await ExecDuplexStreamAsync(message, timeout, ReadTimeout, (TransStream ts) =>
+                //{
+                //    if (!TransStream.IsEmptyStream(ts))
+                //    {
+                //        OnQItemCompleted(ts, onCompleted);
+                //    }
+                //});
+            }
+            catch (Exception ex)
+            {
+                OnFault("ConsumeItem error:" + ex.Message);
+            }
+        }
+        #endregion
+
+        #region RequestItem
+
+        public IQueueMessage RequestItem(QueueRequest message, int timeout)
+        {
+            message.Host = EnsureHost(message.Host);
+            //message.MessageState = MessageState.Receiving;
+
+            try
+            {
+                //TransBinary ts=TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);
+                //return OnQItemCompleted(ts);
+
+                TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout), ReadTimeout);
+                return OnQItemCompleted(ts);
+            }
+            catch (Exception ex)
+            {
+                OnFault("RequestItem error:" + ex.Message);
+                return null;// OnQItemCompleted(null, message);
+            }
+        }
+
+        //Dequeue DynamicWait was ConsumItem
+        public async Task RequestItemAsync(QueueRequest message, int timeout, Action<IQueueMessage> onCompleted, IDynamicWait dw)//Action<bool> onAck)
+        {
+            message.Host = EnsureHost(message.Host);
+            //message.MessageState = MessageState.Receiving;
+            timeout = EnsureConnectTimeout(timeout);
+            //bool isCompleted = false;
+            bool ack = false;
+            try
+            {
+                await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                    if (!tb.IsEmpty)// TransBinary.IsEmptyStream(tb))
+                    {
+                        OnQItemCompleted(tb, onCompleted);
+                        ack = true;
+                    }
+                    //if (onAck != null)
+                    //    onAck(ack);
+                    if (dw != null)
+                        dw.DynamicWaitAck(ack);
+
+                });
+
+                //await ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
+                //{
+                //    if (!TransStream.IsEmptyStream(ts))
+                //    {
+                //        OnQItemCompleted(ts, onCompleted);
+                //        ack = true;
+                //    }
+                //    //if (onAck != null)
+                //    //    onAck(ack);
+                //    if (dw != null)
+                //        dw.DynamicWaitAck(ack);
+
+                //    //isCompleted = true;
+                //});
+
+           }
+            catch (Exception ex)
+            {
+                OnFault("RequestItem error:" + ex.Message);
+                //OnQItemCompleted(null, message, onCompleted);
+            }
+        }
+
+
+        //Dequeue DynamicWait was ConsumItem
+        public void RequestItem(QueueRequest message, int timeout, Action<IQueueMessage> onCompleted, IDynamicWait dw)//Action<bool> onAck)
+        {
+            message.Host = EnsureHost(message.Host);
+            //message.MessageState = MessageState.Receiving;
+            timeout = EnsureConnectTimeout(timeout);
+            //bool isCompleted = false;
+            bool ack = false;
+            try
+            {
+                TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => //binary
+                {
+                    if (tb.IsEmpty)//TransBinary.IsEmptyStream(tb))
+                    {
+                        ack = false;
+                    }
+                    else
+                    {
+                        OnQItemCompleted(tb, onCompleted);
+                        ack = true;
+                    }
+                    //if (onAck != null)
+                    //    onAck(ack);
+                    if (dw != null)
+                        dw.DynamicWaitAck(ack);
+
+                });
+
+                //ExecDuplexStream(message, timeout, (TransStream ts) =>
+                //{
+                //    if (TransStream.IsEmptyStream(ts))
+                //    {
+                //        ack = false;
+                //    }
+                //    else
+                //    {
+                //        OnQItemCompleted(ts, onCompleted);
+                //        ack = true;
+                //    }
+                //    //if (onAck != null)
+                //    //    onAck(ack);
+                //    if (dw != null)
+                //        dw.DynamicWaitAck(ack);
+
+                //    //isCompleted = true;
+                //}, IsAsync);
+
+            }
+            catch (Exception ex)
+            {
+                OnFault("RequestItem error:" + ex.Message);
+                //OnQItemCompleted(null, message, onCompleted);
+            }
+        }
+        public void RequestItem(QueueRequest message, Action<string> onFault, Action<IQueueMessage> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            //bool isCompleted = false;
+
+            try
+            {
+                //TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) =>
+                //{
+                //    OnQItemCompleted(tb, onCompleted);
+                //});
+
+                ExecDuplexStream(message, ConnectTimeout, (TransStream ts) =>
+                {
+                    OnQItemCompleted(ts, onCompleted);
+                    //isCompleted = true;
+                }, IsAsync);
+
+            }
+            catch (Exception ex)
+            {
+                onFault("RequestItem error:" + ex.Message);
+                //OnQItemCompleted(null, message, onCompleted);
+            }
+        }
+
+        //Used for ManagementApi
+        public TransStream RequestItemStream(QueueRequest message, int timeout)
+        {
+            message.Host = EnsureHost(message.Host);
+
+            try
+            {
+
+                //return TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);
+
+
+                TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout), ReadTimeout);
+                return ts;
+            }
+            catch (Exception ex)
+            {
+                OnFault("RequestItem error:" + ex.Message);
+                return null;
+            }
+        }
+
+        public void ConsumeItemStream(QueueRequest message, int timeout, Action<string> onFault, Action<TransStream> onCompleted)
+        {
+            message.Host = EnsureHost(message.Host);
+            timeout = EnsureConnectTimeout(timeout);
+            //bool isCompleted = false;
+
+            try
+            {
+                //TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) =>
+                //{
+                //    onCompleted.Invoke(tb);
+                //});
+
+                ExecDuplexStream(message, timeout, (TransStream ts) =>
+                {
+                    onCompleted.Invoke(ts);
+                    //isCompleted = true;
+                }, IsAsync);
+
+            }
+            catch (Exception ex)
+            {
+                onFault("RequestItemStream error:" + ex.Message);
+            }
+        }
+
+        #endregion
+
+        internal void SendOut(QueueMessage message)
+        {
+            //message.Host = this._QueueName;
+            //QueueMessage qs = new QueueMessage(message);
+
+            switch (Protocol)
+            {
+                case NetProtocol.Http:
+                    HttpClient.SendOut(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, EnableRemoteException);
+                    break;
+                case NetProtocol.Pipe:
+                    PipeClient.SendOut(message, RemoteHostAddress, EnableRemoteException, IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
+                    break;
+                case NetProtocol.Tcp:
+                default:
+                    TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort); //binary
+
+                    //TcpStreamClient.SendOut(message, RemoteHostAddress, RemoteHostPort, ConnectTimeout, EnableRemoteException);
+                    break;
+            }
+        }
+
+        #region message json
+
+        public string SendHttpJsonDuplex(QueueRequest message, bool pretty = false)
+        {
+            string response = null;
+
+            message.TransformType = TransformType.Json;
+            //message.IsDuplex = true;
+            message.DuplexType = DuplexTypes.Respond;
+            response = HttpClient.SendDuplexJson(message, RemoteHostAddress, false);
+            //response = HttpClientCache.SendDuplexJson(message, RemoteHostName, false);
+
+            if (pretty)
+            {
+                if (response != null)
+                    response = JsonSerializer.Print(response);
+            }
+            return response;
+        }
+
+        public void SendHttpJsonOut(QueueRequest message)
+        {
+            HttpClient.SendOutJson(message, RemoteHostAddress, false);
+            //HttpClientCache.SendOut(message, RemoteHostName, false);
+        }
+
+        #endregion
+
+        #region Exec QueueMessage Stream 
+
+
+        public void ExecDuplexStream(QueueMessage message, int connectTimeout, Action<TransStream> onCompleted, bool isChannelAsync = false)
+        {
+            message.TransformType = TransformType.Stream;
+
+            switch (Protocol)
+            {
+                case NetProtocol.Http:
+                    HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+                    break;
+                case NetProtocol.Pipe:
+                    //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                    PipeClient.SendDuplexStream(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
+                    break;
+                case NetProtocol.Tcp:
+                    var response=TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort); //binary
+                    onCompleted(TransStream.FromBytes(response.GetBytes()));// response.ToTransStream());
+                    //TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
+                    break;
+            }
+        }
+
+        public TransStream ExecDuplexStream(QueueMessage message, int connectTimeout, bool isAsync = false)
+        {
+            message.TransformType = TransformType.Stream;
+
+            switch (Protocol)
+            {
+                case NetProtocol.Http:
+                    return HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, EnableRemoteException);
+
+                case NetProtocol.Pipe:
+                    //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                    return PipeClient.SendDuplexStream(message, RemoteHostAddress, EnableRemoteException, isAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
+
+                case NetProtocol.Tcp:
+                    break;
+            }
+            var response = TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort); //binary
+            return TransStream.FromBytes(response.GetBytes());//response.ToTransStream();
+
+            //return TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, EnableRemoteException);
+        }
+        #endregion
+
+        #region Exec RequestItem Stream 
+        
+        //public async Task ExecDuplexStreamAsync(QueueMessage message, int connectTimeout, Action<TransStream> onCompleted)
+        //{
+        //    message.TransformType = TransformType.Stream;
+
+        //    switch (Protocol)
+        //    {
+        //        case NetProtocol.Http:
+        //            await HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+        //            break;
+        //        case NetProtocol.Pipe:
+        //            await PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException);
+        //            break;
+        //        case NetProtocol.Tcp:
+        //            await TcpSocketClient.SendAsync(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted);
+
+        //            //await TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
+        //            break;
+        //    }
+        //}
+
+        //public async Task ExecDuplexStreamAsync(QueueRequest message, int connectTimeout, int readTimeout, Action<TransStream> onCompleted)
+        //{
+        //    message.TransformType = TransformType.Stream;
+        //    switch (Protocol)
+        //    {
+        //        case NetProtocol.Http:
+        //            await HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+        //            break;
+        //        case NetProtocol.Pipe:
+        //            //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+        //            await PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException);
+        //            break;
+        //        case NetProtocol.Tcp:
+        //            await TcpSocketClient.SendAsync(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted);
+        //            //await TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout, onCompleted, EnableRemoteException);
+        //            break;
+        //    }
+        //}
+        //public async Task ExecDuplexStreamAsync(QueueRequest message, int connectTimeout, Action<TransStream> onCompleted)
+        //{
+        //    message.TransformType = TransformType.Stream;
+
+        //    switch (Protocol)
+        //    {
+        //        case NetProtocol.Http:
+        //            await HttpClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+        //            break;
+        //        case NetProtocol.Pipe:
+        //            //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+        //            await PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException);
+        //            break;
+        //        case NetProtocol.Tcp:
+        //            await TcpSocketClient.SendAsync(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted);
+        //            //await TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
+        //            break;
+        //    }
+        //}
+
+        public void ExecDuplexStream(QueueRequest message, int connectTimeout, int readTimeout, Action<TransStream> onCompleted, bool isChannelAsync)
+        {
+            message.TransformType = TransformType.Stream;
+
+            switch (Protocol)
+            {
+                case NetProtocol.Http:
+                    HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+                    break;
+                case NetProtocol.Pipe:
+                    //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                    PipeClient.SendDuplexStream(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
+                    break;
+                case NetProtocol.Tcp:
+                    TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted).ConfigureAwait(false);
+                    //TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout,onCompleted, EnableRemoteException);
+                    break;
+            }
+        }
+
+        public void ExecDuplexStream(QueueRequest message, int connectTimeout, Action<TransStream> onCompleted, bool isChannelAsync = false)
+        {
+            message.TransformType = TransformType.Stream;
+
+            switch (Protocol)
+            {
+                case NetProtocol.Http:
+                    HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, onCompleted, EnableRemoteException);
+                    break;
+                case NetProtocol.Pipe:
+                    //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                    PipeClient.SendDuplexStream(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
+                    break;
+                case NetProtocol.Tcp:
+                    TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted).ConfigureAwait(false);
+                    //TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
+                    break;
+            }
+        }
+
+        public TransStream ExecDuplexStream(QueueRequest message, int connectTimeout, int readTimeout, bool isAsync = false)
+        {
+            message.TransformType = TransformType.Stream;
+
+            switch (Protocol)
+            {
+                case NetProtocol.Http:
+                    return HttpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, HttpMethod, ConnectTimeout, EnableRemoteException);
+
+                case NetProtocol.Pipe:
+                    //ChannelSettings.IsAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None
+                    return PipeClient.SendDuplexStream(message, RemoteHostAddress, EnableRemoteException, isAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
+
+                case NetProtocol.Tcp:
+                    break;
+            }
+            var response = TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);//binary
+            return TransStream.FromBytes(response.GetBytes());// response.ToTransStream();
+
+        }
+        
+        #endregion
+    }
+
+#if(false)
     public abstract class RemoteApi: ChannelSettings
     {
  /*
@@ -1672,7 +2622,9 @@ namespace Nistec.Messaging.Remote
                     break;
                 case NetProtocol.Tcp:
                 default:
-                    TcpStreamClient.SendOut(message, RemoteHostAddress, RemoteHostPort, ConnectTimeout, EnableRemoteException);
+                    TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);
+
+                    //TcpStreamClient.SendOut(message, RemoteHostAddress, RemoteHostPort, ConnectTimeout, EnableRemoteException);
                     break;
             }
         }
@@ -1745,7 +2697,8 @@ namespace Nistec.Messaging.Remote
                     PipeClient.SendDuplexStream(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
-                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
+                    TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);
+                    //TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
                     break;
             }
         }
@@ -1766,7 +2719,10 @@ namespace Nistec.Messaging.Remote
                 case NetProtocol.Tcp:
                     break;
             }
-            return TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, EnableRemoteException);
+            var response = TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);
+            return response.ToTransStream();
+
+            //return TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, EnableRemoteException);
         }
         #endregion
 
@@ -1785,7 +2741,9 @@ namespace Nistec.Messaging.Remote
                     await PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException);
                     break;
                 case NetProtocol.Tcp:
-                    await TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
+                    await TcpSocketClient.SendAsync(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort,onCompleted);
+
+                    //await TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
                     break;
             }
         }
@@ -1803,7 +2761,8 @@ namespace Nistec.Messaging.Remote
                     await PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException);
                     break;
                 case NetProtocol.Tcp:
-                    await TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout, onCompleted, EnableRemoteException);
+                    await TcpSocketClient.SendAsync(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted);
+                    //await TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout, onCompleted, EnableRemoteException);
                     break;
             }
         }
@@ -1821,7 +2780,8 @@ namespace Nistec.Messaging.Remote
                     await PipeClient.SendDuplexStreamAsync(message, RemoteHostAddress, onCompleted, EnableRemoteException);
                     break;
                 case NetProtocol.Tcp:
-                    await TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
+                    await TcpSocketClient.SendAsync(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted);
+                    //await TcpStreamClient.SendDuplexStreamAsync(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
                     break;
             }
         }
@@ -1840,7 +2800,8 @@ namespace Nistec.Messaging.Remote
                     PipeClient.SendDuplexStream(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
-                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout,onCompleted, EnableRemoteException);
+                    TcpSocketClient.SendAsync(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted).ConfigureAwait(false);
+                    //TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout,onCompleted, EnableRemoteException);
                     break;
             }
         }
@@ -1859,7 +2820,8 @@ namespace Nistec.Messaging.Remote
                     PipeClient.SendDuplexStream(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
-                    TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
+                    TcpSocketClient.SendAsync(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted).ConfigureAwait(false);
+                    //TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
                     break;
             }
         }
@@ -1904,14 +2866,17 @@ namespace Nistec.Messaging.Remote
                 case NetProtocol.Tcp:
                     break;
             }
+            var response= TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);
+            return response.ToTransStream();
+
             //return TcpClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, isAsync, EnableRemoteException);
-            using (TcpStreamClient client = new TcpStreamClient(RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout))//, isAsync))
-            {
-                message.TransformType = TransformType.Stream;
-                //message.IsDuplex = true;
-                message.DuplexType = DuplexTypes.Respond;
-                return client.Execute<TransStream>(message, EnableRemoteException);
-            }
+            //using (TcpStreamClient client = new TcpStreamClient(RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout))//, isAsync))
+            //{
+            //    message.TransformType = TransformType.Stream;
+            //    //message.IsDuplex = true;
+            //    message.DuplexType = DuplexTypes.Respond;
+            //    return client.Execute<TransStream>(message, EnableRemoteException);
+            //}
 
         }
         /*
@@ -1996,4 +2961,5 @@ namespace Nistec.Messaging.Remote
         }
         */
     }
+#endif
 }

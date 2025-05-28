@@ -35,8 +35,8 @@ namespace Nistec.Messaging
     {
         Producer,
         Consumer,
-        Manager,
-        All
+        Manager
+        //All
     }
 
     // Summary:

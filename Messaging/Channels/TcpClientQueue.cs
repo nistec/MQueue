@@ -12,10 +12,72 @@ using System.Threading;
 using Nistec.Channels.Tcp;
 using System.Net.Sockets;
 using Nistec.Channels.Config;
-
+using System.Threading.Tasks;
+using System.Net;
 
 namespace Nistec.Messaging.Channels
 {
+
+    public class FastTcpClient
+    {
+
+        //public static async Task SendDuplexStreamAsync(MessageStream request, string HostAddress, int port, int connectTimeout, int readTimeout, Action<TransStream> onCompleted, bool enableException = false)
+        //{
+        //    request.TransformType = TransformType.Stream;
+        //    request.DuplexType = DuplexTypes.Respond;
+        //    FastTcpClient.StartClientAsync()
+        //    using (TcpStreamClient client = new TcpStreamClient(HostAddress, port, connectTimeout, readTimeout))//, true))
+        //    {
+        //        await client.ExecuteAsync<TransStream>(request, onCompleted, enableException);
+        //    }
+        //}
+
+        //private const string ServerIp = "127.0.0.1";
+        //private const int Port = 5000;
+
+        public static async Task StartClientAsync(MessageStream request , string HostAddress, int Port)
+        {
+            try
+            {
+                using (Socket clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+                {
+                    await clientSocket.ConnectAsync(new IPEndPoint(IPAddress.Parse(HostAddress), Port));
+                    Console.WriteLine("🔗 Connected to server!");
+
+                    await SendDataAsync(clientSocket, request);
+                    await ReceiveDataAsync(clientSocket);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Error: {ex.Message}");
+            }
+        }
+
+        private static async Task SendDataAsync(Socket clientSocket, MessageStream request)
+        {
+            byte[] data = request.GetBytes();// Encoding.UTF8.GetBytes(message);
+            await clientSocket.SendAsync(new ArraySegment<byte>(data), SocketFlags.None);
+            Console.WriteLine($"Sent: {request.Label}");
+        }
+
+        private static async Task ReceiveDataAsync(Socket clientSocket)
+        {
+            byte[] buffer = new byte[8192];
+            int bytesRead = await clientSocket.ReceiveAsync(new ArraySegment<byte>(buffer), SocketFlags.None);
+            if (bytesRead > 0)
+            {
+                string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                new TransStream(new NetStream(buffer, 0, bytesRead));
+                Console.WriteLine($"📥 Received: {response}");
+            }
+        }
+
+        //static void Main()
+        //{
+        //    StartClientAsync().GetAwaiter().GetResult();
+        //}
+    }
 
     /// <summary>
     /// Represent tcp client channel

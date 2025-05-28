@@ -168,8 +168,12 @@ namespace Nistec.Messaging.Listeners
         //        ErrorOcurred(this, e);
 
         //}
+        protected virtual void OnEvent(string source,string msg)
+        {
 
-        private void OnErrorOcurred(string msg)
+        }
+
+        protected virtual void OnErrorOcurred(string msg)
         {
             Console.WriteLine("ErrorOcurred: " + msg);
             if (ErrorOcurred != null)
@@ -358,7 +362,7 @@ namespace Nistec.Messaging.Listeners
                         return false;// ack != null;
                     }
                     catch (Exception ex) {
-
+                        OnErrorOcurred(ex.Message);
                         if (_Logger != null)
                             _Logger.Exception("Session listener "+ HostName + " ActionTask error " , ex);
                         return false;
@@ -366,6 +370,7 @@ namespace Nistec.Messaging.Listeners
                 },
                 ActionLog = (LogLevel level, string message) =>
                 {
+                    OnEvent("SessionListener.Start.ActionLog", message);
                     if (_Logger != null)
                         _Logger.Log((LoggerLevel)level, message);
                 },
@@ -378,6 +383,8 @@ namespace Nistec.Messaging.Listeners
             };
             ActionWorker.Start();
             State = ListenerState.Started;
+            OnEvent("SessionListener.Started", string.Format("SessionListener Started: {0}", HostName));
+
             if (_Logger != null)
                 _Logger.Info("SessionListener Started: {0}", HostName);
         }
@@ -387,6 +394,7 @@ namespace Nistec.Messaging.Listeners
                 return;
             ActionWorker.Stop();
             State = ListenerState.Stoped;
+            OnEvent("SessionListener.Stoped", string.Format("SessionListener Stoped: {0}", HostName));
             if (_Logger != null)
                 _Logger.Info("SessionListener Stoped: {0}", HostName);
         }
@@ -395,6 +403,7 @@ namespace Nistec.Messaging.Listeners
             if (ActionWorker == null)
                 return false;
             bool paused = ActionWorker.Pause(onOff);
+            OnEvent("SessionListener.Pause", string.Format("SessionListener Pause: {0}", HostName));
             if (_Logger != null)
                 _Logger.Info("SessionListener Paused: {0}, {1}", paused, HostName);
 
@@ -409,6 +418,7 @@ namespace Nistec.Messaging.Listeners
             ActionWorker.Shutdown(waitForWorkers);
             State = ListenerState.Down;
             Adapter.Dispose();
+            OnEvent("SessionListener.Shutdown", string.Format("SessionListener Shutdown: {0}", HostName));
             if (_Logger != null)
                 _Logger.Info("SessionListener Shutdown: {0}", HostName);
         }

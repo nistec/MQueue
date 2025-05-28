@@ -545,6 +545,29 @@ namespace Nistec.Messaging
         */
         #endregion
 
+        #region Converters
+
+        public byte[] Serialize()
+        {
+            return BinarySerializer.SerializeToBytes(this);
+        }
+        public static QueueRequest Deserialize(byte[] bytes)
+        {
+            return BinarySerializer.Deserialize<QueueRequest>(bytes);
+        }
+
+        //public string ToJson()
+        //{
+        //    return JsonSerializer.Serialize(this);
+        //}
+        public static QueueRequest Deserialize(string json)
+        {
+            return JsonSerializer.Deserialize<QueueRequest>(json);
+
+        }
+
+        #endregion
+
         /*
         public NetStream ToStream()
         {

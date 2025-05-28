@@ -305,7 +305,7 @@ namespace Nistec.Messaging.Server
                         {
                             MessageState state= MessageState.None;
                             GetValidQ(request.Host).LoadFromBackup(request.Args.Get("path"), ref state);
-                            return new TransStream("Load From Backup to queue "+ request.Host, TransType.State, (int)state);
+                            return new TransStream((int)state,"Load From Backup to queue " + request.Host, TransType.State);
                         }
 
 
@@ -377,6 +377,7 @@ namespace Nistec.Messaging.Server
                         return new TransStream(list, TransType.Object);
                     case QueueCmd.QueueProperty:
                     case QueueCmd.ReportQueueItems:
+                    case QueueCmd.QueryLabels:
                         return ExecQuery(request);
                     case QueueCmd.ReportQueueStatistic:
                         return GetQueueReport(request);
@@ -593,6 +594,9 @@ namespace Nistec.Messaging.Server
                 case QueueCmd.ReportQueueItems:
                     var items = Q.QueryItems();
                     return new TransStream(items, TransType.Object);
+                case QueueCmd.QueryLabels:
+                    var qlabels = Q.QueryLabels();
+                    return new TransStream(qlabels, TransType.Object);
                 default:
                     throw new NotSupportedException(request.QCommand.ToString());
             }

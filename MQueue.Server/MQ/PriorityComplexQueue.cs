@@ -304,7 +304,7 @@ namespace Nistec.Messaging
                         List<IPersistEntity> list = new List<IPersistEntity>();
                         foreach (var g in QueueItems)
                         {
-                            list.Add(new PersistItem() { body = g.Value, key = g.Key.Identifier, name = Name, timestamp = g.Key.ArrivedTime });
+                            list.Add(new PersistItem() { body = g.Value , key = g.Key.Identifier, name = Name, timestamp = g.Key.ArrivedTime });
                         }
                         return list;
                     }
@@ -319,6 +319,31 @@ namespace Nistec.Messaging
 
         }
 
+        public override IEnumerable<IPersistEntity> QueryLabels()
+        {
+            try
+            {
+                if (Count() > 0)
+                {
+                    int i = 0;
+                    List<IPersistEntity> list = new List<IPersistEntity>();
+                    foreach (var g in QueueItems)
+                    {
+                        i++;
+                        list.Add(new PersistItem() { body = g.Value.Label, key = g.Key.Identifier + " #"+i.ToString(), name = Name, timestamp = g.Value.ArrivedTime });
+                    }
+                    return list;
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception("QueryLabels ", ex);
+            }
+            //if no items
+            return new List<IPersistEntity>();
+
+        }
         protected override void ClearItems()
         {
             QueueItems.Clear();

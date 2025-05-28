@@ -1280,6 +1280,15 @@ namespace Nistec.Messaging
         }
 
         /// <summary>
+        /// Get persist items label
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<IPersistEntity> QueryLabels()
+        {
+            return Q.QueryLabels();
+        }
+
+        /// <summary>
         /// Get persist items
         /// </summary>
         /// <returns></returns>

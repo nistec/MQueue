@@ -56,6 +56,12 @@ namespace Nistec.Messaging
 
         #endregion
 
+        #region Converters
+
+        byte[] Serialize();
+
+        #endregion
+
         /// <summary>
         /// Read stream to the current object include the body and properties using <see cref="IBinaryStreamer"/>, This method is a part of <see cref="ISerialEntity"/> implementation.
         /// </summary>

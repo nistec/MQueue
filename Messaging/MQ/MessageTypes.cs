@@ -114,7 +114,7 @@ namespace Nistec.Messaging
         DbQueueReport = 68,
         DbQueueClear = 69,
         DbQueueClearItem = 70,
-
+        QueryLabels=71,
         /// <summary>
         /// A normal Message Queuing message.
         /// </summary>
@@ -183,6 +183,7 @@ namespace Nistec.Messaging
         DbQueueReport = 68,
         DbQueueClear = 69,
         DbQueueClearItem = 70,
+        QueryLabels=71
     };
 
     //public enum QueueManagerCmd : byte

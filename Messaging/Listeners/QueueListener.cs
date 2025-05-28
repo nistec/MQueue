@@ -10,10 +10,10 @@ using System.Collections.ObjectModel;
 using Nistec.Messaging.Remote;
 using Nistec.Runtime;
 using Nistec.Threading;
+using System.Security;
 
 namespace Nistec.Messaging.Listeners
 {
-
     /// <summary>
     /// Represents a thread-safe queue listener (FIFO) collection for client.
     /// </summary>
@@ -44,6 +44,7 @@ namespace Nistec.Messaging.Listeners
 
         protected override void Receive(IDynamicWait dw)
         {
+            OnEvent("QueueListener.Receive", string.Format("SessionListener IDynamicWait QueueName: {0}", QApi.QueueName));
             QueueRequest request = new QueueRequest()
             {
                 Host = QApi.QueueName,
@@ -80,6 +81,7 @@ namespace Nistec.Messaging.Listeners
 
         protected override async Task ReceiveAsync(IDynamicWait dw)
         {
+            OnEvent("QueueListener.ReceiveAsync", string.Format("SessionListener QueueName: {0}", QApi.QueueName));
             QueueRequest request = new QueueRequest()
             {
                 Host = QApi.QueueName,
@@ -116,6 +118,8 @@ namespace Nistec.Messaging.Listeners
 
         protected override IQueueMessage Receive()
         {
+            OnEvent("QueueListener.ReceiveAsync", string.Format("SessionListener IQueueMessage QueueName: {0}", QApi.QueueName));
+
             QueueRequest request = new QueueRequest()//_QueueName, QueueCmd.Dequeue, null);
             {
                 Host = QApi.QueueName,

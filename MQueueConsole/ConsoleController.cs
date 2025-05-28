@@ -642,7 +642,11 @@ namespace Nistec.QueueConsole
                             Display(cmd, ts);
                             break;
                         case "reportqueueitems":
-                            ts = api.Report(QueueCmdReport.ReportQueueItems, key);
+                            ts = api.Report(QueueCmdReport.ReportQueueItems, key); 
+                            Display(cmd, ts);
+                            break;
+                        case "querylabels":
+                            ts = api.Report(QueueCmdReport.QueryLabels, key);
                             Display(cmd, ts);
                             break;
                         case "reportqueuestatistic":

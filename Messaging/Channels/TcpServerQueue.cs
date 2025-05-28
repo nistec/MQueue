@@ -16,10 +16,11 @@ using Nistec.Logging;
 
 namespace Nistec.Messaging.Channels
 {
+
     /// <summary>
     /// Represent a queue tcp server listner.
     /// </summary>
-    public class TcpServerQueue : TcpServer<IQueueMessage>, IChannelService
+    public class TcpServerQueue : TcpServer<IQueueMessage, TransStream>, IChannelService// TcpServer<IQueueMessage>, IChannelService
     {
         QueueChannel QueueChannel = QueueChannel.Consumer;
         IControllerHandler Controller;
@@ -88,7 +89,7 @@ namespace Nistec.Messaging.Channels
         #endregion
     }
 
-    public class TcpServerGeneric<T> : TcpServer<T>, IChannelService where T : IHostMessage
+    public class TcpServerGeneric<T> : TcpServer<T, TransStream>, IChannelService where T : IHostMessage//TcpServer<T>, IChannelService where T : IHostMessage
     {
         QueueChannel QueueChannel = QueueChannel.Consumer;
         IControllerHandler<T> Controller;

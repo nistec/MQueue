@@ -1,4 +1,5 @@
 ﻿using Nistec;
+using Nistec.Channels;
 using Nistec.Data.Entities;
 using Nistec.Messaging;
 using Nistec.Messaging.Remote;
@@ -18,6 +19,18 @@ namespace QueueTasker
         {
 
             Console.WriteLine("QueueTasker started...");
+
+            TransStream tbwrite = new TransStream("Verify that the instance name is correct and that SQL Server is configured to allow remote connections.", "Otp", TransType.Text);
+
+            var bytes= tbwrite.GetBytes();
+
+            TransStream tbread = TransStream.FromBytes(bytes);
+
+            var strbody= tbread.GetBodyString();
+
+            Console.WriteLine(strbody);
+
+
             int items = 0;
             string k = null;
             do

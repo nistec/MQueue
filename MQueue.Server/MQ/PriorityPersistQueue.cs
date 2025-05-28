@@ -94,6 +94,26 @@ namespace Nistec.Messaging
             return new List<IPersistEntity>();
         }
 
+        public override IEnumerable<IPersistEntity> QueryLabels()
+        {
+
+            try
+            {
+                if (Count() > 0)
+                {
+                    var items = m_db.QueryLabels("*", null);
+                    return items == null ? null : items.Cast<IPersistEntity>();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception("QueryItems", ex);
+            }
+            //if no items
+            return new List<IPersistEntity>();
+        }
+        
+
         protected override void ClearItems()
         {
             m_db.Clear();

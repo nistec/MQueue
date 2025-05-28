@@ -220,19 +220,23 @@ namespace Nistec.Messaging
         {
             if (ErrorOccured != null)
                 ErrorOccured(this, e);
+            Logger.Error("PriorityQueue OnError ", e.Message);
         }
 
         protected virtual void OnTryAdd(Ptr ptr, IQueueMessage item, bool result)
         {
-            Logger.Debug("OnTryAdd {0} item:{1}", result, item.Print());
+            if (item != null)
+                Logger.Debug("OnTryAdd {0} item:{1}", result, item.Print());
         }
         protected virtual void OnTryDequeue(Ptr ptr, IQueueMessage item, bool result)
         {
-            Logger.Debug("TryDequeue {0} item:{1}", result, item.Print());
+            if (item != null)
+                Logger.Debug("TryDequeue {0} item:{1}", result, item.Print());
         }
         protected virtual void OnTryPeek(Ptr ptr, IQueueMessage item, bool result)
         {
-            Logger.Debug("TryPeek {0} item:{1}", result, item.Print());
+            if (item != null)
+                Logger.Debug("TryPeek {0} item:{1}", result, item.Print());
         }
         #endregion
 
@@ -254,6 +258,8 @@ namespace Nistec.Messaging
 
         public abstract IEnumerable<IPersistEntity> QueryItems();
 
+        public abstract IEnumerable<IPersistEntity> QueryLabels();
+        
         public abstract bool ItemExists(Ptr ptr);
 
         //protected abstract bool TransBegin(Ptr ptr, out IQueueMessage item);
@@ -821,6 +827,7 @@ namespace Nistec.Messaging
             highQ.Clear();
 
             ClearItems();
+            Logger.Info("PriorityQueue Cleared");
         }
 
 
@@ -1013,17 +1020,19 @@ namespace Nistec.Messaging
                 if (TryDequeue(ptr, out item))
                 {
                     DequeueScopEvent(item);
+                    if (item != null)
+                        Logger.Info("PriorityQueue Dequeue Ptr ", item.Print());
                     return item;
                 }
                 //return DequeueScop(ptr);
             }
             catch (TransactionAbortedException tex)
             {
-                Logger.Exception("PriorityQueue Dequeue error ", tex);
+                Logger.Exception("PriorityQueue Dequeue Ptr error ", tex);
             }
             catch (Exception ex)
             {
-                Logger.Exception("PriorityQueue Dequeue error ", ex);
+                Logger.Exception("PriorityQueue Dequeue Ptr error ", ex);
             }
 
             return null;
@@ -1075,6 +1084,8 @@ namespace Nistec.Messaging
                     //}
                 }
                 DequeueScopEvent(item);
+                if (item != null)
+                    Logger.Info("PriorityQueue Dequeue Priority ", item.Print());
             }
             catch (Exception ex)
             {
@@ -1123,6 +1134,8 @@ namespace Nistec.Messaging
                     }
                     scope.Complete();
                 }
+                if (item != null)
+                    Logger.Info("PriorityQueue TryDequeue ", item.Print());
 
                 return DequeueScopEvent(item);
             }
@@ -1188,6 +1201,8 @@ namespace Nistec.Messaging
                     //}
                 }
                 DequeueScopEvent(item);
+                if (item != null)
+                    Logger.Info("PriorityQueue Dequeue ", item.Print());
             }
             catch (Exception ex)
             {
@@ -1214,7 +1229,7 @@ namespace Nistec.Messaging
             {
                 do
                 {
-                    if(sycle>0)
+                    if (sycle > 0)
                         Thread.Sleep(ConsumeInterval);
 
                     using (TransactionScope scope = TransHelper.GetTransactionScope())
@@ -1245,6 +1260,8 @@ namespace Nistec.Messaging
                 } while (item == null && wait);
 
                 DequeueScopEvent(item);
+                if (item != null)
+                    Logger.Info("PriorityQueue Consume ", item.Print());
             }
             catch (Exception ex)
             {
@@ -1296,30 +1313,33 @@ namespace Nistec.Messaging
                 //((QueueMessage)item).ArrivedTime = DateTime.Now;
 
                 Ptr ptr = ((QueueMessage)item).SetArrivedPtr(Name);
-                //Ptr ptr = new Ptr(item, Host);
+            //Ptr ptr = new Ptr(item, Host);
 
-                if (TryAdd(ptr, item))
+            if (TryAdd(ptr, item))
+            {
+                switch (item.Priority)
                 {
-                    switch (item.Priority)
-                    {
-                        case Priority.High:
-                            highQ.Enqueue(ptr);
-                            break;
-                        case Priority.Medium:
-                            mediumQ.Enqueue(ptr);
-                            break;
-                        default:
-                            normalQ.Enqueue(ptr);
-                            break;
-                    }
-                    //tran.Complete();
-                    if (MessageArrived != null)
-                    {
-                        OnMessageArrived(new QueueItemEventArgs(item, MessageState.Arrived));
-                    }
-                    return new QueueAck(MessageState.Arrived,item);// new Ptr(ptr, PtrState.Arrived);
+                    case Priority.High:
+                        highQ.Enqueue(ptr);
+                        break;
+                    case Priority.Medium:
+                        mediumQ.Enqueue(ptr);
+                        break;
+                    default:
+                        normalQ.Enqueue(ptr);
+                        break;
                 }
-                
+                //tran.Complete();
+                if (MessageArrived != null)
+                {
+                    OnMessageArrived(new QueueItemEventArgs(item, MessageState.Arrived));
+                }
+                if (item != null)
+                    Logger.Info("PriorityQueue Enqueue ", item.Print());
+                return new QueueAck(MessageState.Arrived, item);// new Ptr(ptr, PtrState.Arrived);
+            }
+            if (item != null)
+                Logger.Error("PriorityQueue FailedEnqueue ", item.Print());
             //}
             //Thread.Sleep(ThreadWait);
             return new QueueAck(MessageState.FailedEnqueue, item);// ptr;
@@ -1358,9 +1378,13 @@ namespace Nistec.Messaging
             {
                 if(!TryAdd(ptr, item))
                 {
+                    if (item != null)
+                        Logger.Error("PriorityQueue Requeue FailedEnqueue ", item.Print());
                     return new QueueAck(MessageState.FailedEnqueue, item);
                 }
             }
+            if (item != null)
+                Logger.Info("PriorityQueue Requeue ", item.Print());
             return  new QueueAck(MessageState.Received, item);
 
             //if (MessageArrived != null)

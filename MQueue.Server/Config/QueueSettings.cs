@@ -125,7 +125,7 @@ namespace Nistec.Messaging.Config
         public readonly int MailerIntervalDequeue = 60000;
         public readonly int MaxTopicConnections = 5;
 
-
+        public readonly string AllowedIps="";
         public QueueSettings()
         {
             //XmlTable table = NetConfig.GetCustomConfig("QueueSettings");
@@ -178,6 +178,7 @@ namespace Nistec.Messaging.Config
             EnableSizeHandler = table.Get<bool>("EnableSizeHandler", false);
             EnablePerformanceCounter = table.Get<bool>("EnablePerformanceCounter", false);
             MaxTopicConnections = table.Get<int>("MaxTopicConnections", 5);
+            AllowedIps = table.Get<string>("AllowedIps", null);
 
             QueueDefaults.DefaultExpiration = DefaultExpiration;
             QueueDefaults.EnableLog = EnableLog;

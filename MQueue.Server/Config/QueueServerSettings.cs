@@ -78,6 +78,7 @@ namespace Nistec.Messaging.Config
                 HostName = settings.HostName,
                 Address = TcpSettings.EnsureHostAddress(settings.Address),
                 Port = settings.Port,
+                AllowedIp = settings.AllowedIp,
                 IsAsync = settings.IsAsync,
                 ReceiveBufferSize = settings.ReceiveBufferSize,
                 SendBufferSize = settings.SendBufferSize,
