@@ -43,24 +43,24 @@ namespace Nistec.Messaging.Config
         public readonly long MaxSize = QueueDefaults.DefaultQueueMaxSize;
         /// <summary>DefaultExpiration.</summary>
         public readonly int DefaultExpiration = 30;
-        /// <summary>Sync Interval in seconds.</summary>
-        public readonly int SyncInterval = QueueDefaults.DefaultIntervalSeconds;
-        /// <summary>InitialCapacity.</summary>
-        public readonly int InitialCapacity = 100;
+        ///// <summary>Sync Interval in seconds.</summary>
+        //public readonly int SyncInterval = QueueDefaults.DefaultIntervalSeconds;
+        ///// <summary>InitialCapacity.</summary>
+        //public readonly int InitialCapacity = 100;
         /// <summary>EnableLog.</summary>
         public readonly bool EnableLog = false;
-        /// <summary>ReceiveBufferSize.</summary>
-        public readonly int ReceiveBufferSize = 8192;
-        /// <summary>SendBufferSize.</summary>
-        public readonly int SendBufferSize = 8192;
+        ///// <summary>ReceiveBufferSize.</summary>
+        //public readonly int ReceiveBufferSize = 8192;
+        ///// <summary>SendBufferSize.</summary>
+        //public readonly int SendBufferSize = 8192;
         /// <summary>QueueConfigFile.</summary>
         public readonly string QueueConfigFile = "";
         /// <summary>EnableFileWatcher.</summary>
         public readonly bool EnableFileWatcher = false;
         /// <summary>SyncTaskerTimeout.</summary>
-        public readonly int TaskerTimeout = 60;
-        /// <summary>EnableAsyncTask.</summary>
-        public readonly bool EnableAsyncTask = true;
+        //public readonly int TaskerTimeout = 60;
+        ///// <summary>EnableAsyncTask.</summary>
+        //public readonly bool EnableAsyncTask = true;
 
         public readonly bool EnableDebugLog = false;
         //public readonly int LogMonitorCapacityLines = 1000;
@@ -80,8 +80,6 @@ namespace Nistec.Messaging.Config
         public readonly bool EnableHttpConsumer = false;
 
 
-        /// <summary>EnableMailerQueue.</summary>
-        public readonly bool EnableMailerQueue = false;
         /// <summary>EnableQueueManager.</summary>
         public readonly bool EnablePipeQueueManager = false;
         public readonly bool EnableTcpQueueManager = false;
@@ -104,8 +102,11 @@ namespace Nistec.Messaging.Config
         public readonly bool EnableSizeHandler = false;
         /// <summary>EnablePerformanceCounter.</summary>
         public readonly bool EnablePerformanceCounter = false;
-        
-         /// <summary>MailerQueuePath.</summary>
+
+        /*
+        /// <summary>EnableMailerQueue.</summary>
+        public readonly bool EnableMailerQueue = false;
+        /// <summary>MailerQueuePath.</summary>
         public readonly string MailerQueuePath = @"C:\Nistec\MailQueue\";
         /// <summary>MailerStorePath.</summary>
         public readonly string MailerStorePath = @"C:\Nistec\MailStore\";
@@ -123,6 +124,7 @@ namespace Nistec.Messaging.Config
         public readonly int MailerIntervalManager = 60000;
         /// <summary>MailerIntervalDequeue.</summary>
         public readonly int MailerIntervalDequeue = 60000;
+        */
         public readonly int MaxTopicConnections = 5;
 
         public readonly string AllowedIps="";
@@ -144,16 +146,16 @@ namespace Nistec.Messaging.Config
 
             MaxSize = table.Get<long>("MaxSize", QueueDefaults.DefaultQueueMaxSize);
             DefaultExpiration = table.Get<int>("DefaultExpiration", 30);
-            SyncInterval = table.Get<int>("SyncInterval", 60);
-            InitialCapacity = table.Get<int>("InitialCapacity", QueueDefaults.InitialCapacity);
+            //SyncInterval = table.Get<int>("SyncInterval", 60);
+            //InitialCapacity = table.Get<int>("InitialCapacity", QueueDefaults.InitialCapacity);
             EnableLog = table.Get<bool>("EnableLog", false);
-            ReceiveBufferSize = table.Get<int>("ReceiveBufferSize", 8192);
-            SendBufferSize = table.Get<int>("SendBufferSize", 8192);
+            //ReceiveBufferSize = table.Get<int>("ReceiveBufferSize", 8192);
+            //SendBufferSize = table.Get<int>("SendBufferSize", 8192);
             QueueConfigFile = table.Get("QueueConfigFile");
             EnableFileWatcher = table.Get<bool>("EnableFileWatcher", false);
-            TaskerTimeout = table.Get<int>("TaskerTimeout", 60);
-            EnableAsyncTask = table.Get<bool>("EnableAsyncTask", true);
-            EnableMailerQueue = table.Get<bool>("EnableMailerQueue", false);
+            //TaskerTimeout = table.Get<int>("TaskerTimeout", 60);
+            //EnableAsyncTask = table.Get<bool>("EnableAsyncTask", true);
+            //EnableMailerQueue = table.Get<bool>("EnableMailerQueue", false);
             EnablePipeQueueManager = table.Get<bool>("EnablePipeQueueManager", false);
             EnableTcpQueueManager = table.Get<bool>("EnableTcpQueueManager", false);
 
@@ -227,18 +229,18 @@ namespace Nistec.Messaging.Config
         {
             get { return Types.ToBool(this["RemoveExpiredItemOnSync"], true); }
         }
-        /// <summary>Get Sync Interval in seconds</summary>
-        [ConfigurationProperty("SyncInterval", DefaultValue = QueueDefaults.DefaultIntervalSeconds, IsRequired = false)]
-        public int SyncInterval
-        {
-            get { return Types.ToInt(this["SyncInterval"], QueueDefaults.DefaultIntervalSeconds); }
-        }
-        /// <summary>Get Initial Capacity</summary>
-        [ConfigurationProperty("InitialCapacity", DefaultValue = QueueDefaults.InitialCapacity, IsRequired = false)]
-        public int InitialCapacity
-        {
-            get { return Types.ToInt(this["InitialCapacity"], QueueDefaults.InitialCapacity); }
-        }
+        ///// <summary>Get Sync Interval in seconds</summary>
+        //[ConfigurationProperty("SyncInterval", DefaultValue = QueueDefaults.DefaultIntervalSeconds, IsRequired = false)]
+        //public int SyncInterval
+        //{
+        //    get { return Types.ToInt(this["SyncInterval"], QueueDefaults.DefaultIntervalSeconds); }
+        //}
+        ///// <summary>Get Initial Capacity</summary>
+        //[ConfigurationProperty("InitialCapacity", DefaultValue = QueueDefaults.InitialCapacity, IsRequired = false)]
+        //public int InitialCapacity
+        //{
+        //    get { return Types.ToInt(this["InitialCapacity"], QueueDefaults.InitialCapacity); }
+        //}
        
 
         /// <summary>Get Max Session Timeout in minutes</summary>
@@ -254,6 +256,7 @@ namespace Nistec.Messaging.Config
         {
             get { return Types.ToBool(this["EnableLog"], false); }
         }
+        /*
         /// <summary>Get Pipe In Buffer Size</summary>
         [ConfigurationProperty("ReceiveBufferSize", DefaultValue = 8192, IsRequired = false)]
         public int ReceiveBufferSize
@@ -266,6 +269,7 @@ namespace Nistec.Messaging.Config
         {
             get { return Types.ToInt(this["SendBufferSize"], 8192); }
         }
+        */
         /// <summary>Get Sync Config File</summary>
         [ConfigurationProperty("SyncConfigFile", DefaultValue = "", IsRequired = false)]
         public string SyncConfigFile
@@ -290,12 +294,12 @@ namespace Nistec.Messaging.Config
         {
             get { return Types.ToBool(this["ReloadSyncOnChange"], false); }
         }
-        /// <summary>Get QueueName</summary>
-        [ConfigurationProperty("EnableAsyncTask", DefaultValue = true, IsRequired = false)]
-        public bool EnableAsyncTask
-        {
-            get { return Types.ToBool(this["EnableAsyncTask"], true); }
-        }
+        ///// <summary>Get QueueName</summary>
+        //[ConfigurationProperty("EnableAsyncTask", DefaultValue = true, IsRequired = false)]
+        //public bool EnableAsyncTask
+        //{
+        //    get { return Types.ToBool(this["EnableAsyncTask"], true); }
+        //}
         /// <summary>Get Sync Tasker Timeout in seconds</summary>
         [ConfigurationProperty("SyncTaskerTimeout", DefaultValue = 60, IsRequired = false)]
         public int SyncTaskerTimeout
@@ -367,7 +371,7 @@ namespace Nistec.Messaging.Config
         }
         //====================================================================
 
-
+        /*
         /// <summary>Get mailer queue path</summary>
         [ConfigurationProperty("MailerDefaultHost", DefaultValue = "", IsRequired = false)]
         public string MailerDefaultHost
@@ -423,7 +427,7 @@ namespace Nistec.Messaging.Config
         {
             get { return Types.ToInt(this["MailerIntervalDequeue"], 60000); }
         }
-       
+       */
 
     }
 
