@@ -77,6 +77,23 @@ namespace Nistec.Messaging.UI
 
         #endregion
 
+        public static NetProtocol GetProtocol()
+        {
+            var protocol = NetConfig.AppSettings["Protocol"];
+            switch (protocol)
+            {
+                case "pipe": return NetProtocol.Pipe;
+                case "tcp": return NetProtocol.Tcp;
+                case "http": return NetProtocol.Http;
+                default:
+                    return NetProtocol.Tcp;
+            }
+        }
+        public static string GetHostAddress()
+        {
+            return NetConfig.AppSettings["HosAddress"];
+        }
+
         #region Items
 
         private void CreateNodeItems(bool shouldRefresh)
@@ -102,7 +119,7 @@ namespace Nistec.Messaging.UI
                 //    hostAddress = tcpSettings.Address;
                 //}
 
-                var ts = ManagementApi.Get().Report(QueueCmdReport.ReportQueueList,null);
+                var ts = ManagementApi.Get(GetHostAddress(), GetProtocol()).Report(QueueCmdReport.ReportQueueList,null);
                 //string[] list = TransStream.ReadValue<string[]>(ts);
 
                 if (ts == null)
@@ -157,7 +174,7 @@ namespace Nistec.Messaging.UI
 
             try
             {
-                var ts = ManagementApi.Get(ManagementApi.HostName,name,NetProtocol.Pipe).Report(QueueCmdReport.ReportQueueItems, null);
+                var ts = ManagementApi.Get(GetHostAddress(),name,GetProtocol()).Report(QueueCmdReport.ReportQueueItems, null);
                 //var dt = TransStream.ReadValue(ts);
                 var dt = (ts != null) ? ts.ReadValue() : null;
                 //var q= AgentManager.Queue.Get(name);

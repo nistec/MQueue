@@ -23,31 +23,13 @@ namespace Nistec.Messaging.Server
         QueueChannel QueueChannel;
 
         #region membrs
-        int ReceiveBufferSize = 4096;
+        //int ReceiveBufferSize = 4096;
         #endregion
 
         #region settings
 
         private ChannelServiceState _State = ChannelServiceState.None;
-        /// <summary>
-        /// Get <see cref="ChannelServiceState"/> State.
-        /// </summary>
-        public ChannelServiceState ServiceState { get { return _State; } }
-        /// <summary>
-        /// Get current <see cref="TcpSettings"/> settings.
-        /// </summary>
-        public TcpSettings Settings { get; protected set; }
-        ILogger _Logger = Logger.Instance;
-        /// <summary>
-        /// Get or Set Logger that implements <see cref="ILogger"/> interface.
-        /// </summary>
-        public ILogger Log { get { return _Logger; } set { if (value != null) _Logger = value; } }
-
-        /// <summary>
-        /// Get current <see cref="TcpSettings"/> settings.
-        /// </summary>
-        public bool IsReady { get; protected set; }
-
+     
         #endregion
 
         #region ctor
@@ -113,8 +95,8 @@ namespace Nistec.Messaging.Server
             IsReady = false;
 
             //AllowedIPs = Settings.AllowedListIp;
-            Port = Settings.Port;
-            ReceiveBufferSize = Settings.ReceiveBufferSize;
+            //Port = Settings.Port;
+            //ReceiveBufferSize = Settings.ReceiveBufferSize;
             OnLoad();
             Log.Info("TcpServer Initilized...\n");
             IsReady = true;

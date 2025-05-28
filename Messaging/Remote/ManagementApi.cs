@@ -27,24 +27,33 @@ namespace Nistec.Messaging.Remote
 
         public const string HostName = "nistec_queue_manager";
 
-        /// <summary>
-        /// Get queue api.
-        /// </summary>
-        /// <param name="protocol"></param>
-        /// <returns></returns>
+        //public static NetProtocol GetProtocol()
+        //{
+        //    var protocol=NetConfig.AppSettings["Protocol"];
+        //    switch (protocol)
+        //    {
+        //        case "pipe": return NetProtocol.Pipe;
+        //        case "tcp": return NetProtocol.Tcp;
+        //        case "http": return NetProtocol.Http;
+        //        default:
+        //            return NetProtocol.Tcp;
+        //    }
+        //}
+        //public static string GetHostAddress()
+        //{
+        //    return NetConfig.AppSettings["HosAddress"];
+        //}
+        /*
+        ///// <summary>
+        ///// Get queue api.
+        ///// </summary>
+        ///// <returns></returns>
         public static ManagementApi Get()
         {
-             return new ManagementApi() { Protocol = NetProtocol.Pipe, RemoteHostAddress = HostName };
-        }
+            //return new ManagementApi() { Protocol = GetProtocol(), RemoteHostAddress = GetHostAddress() };
+            NetProtocol protocol = GetProtocol();
+            string hostAddress = GetHostAddress();
 
-        /// <summary>
-        /// Get queue api.
-        /// </summary>
-        /// <param name="protocol"></param>
-        /// <returns></returns>
-        public static ManagementApi Get(string hostAddress,NetProtocol protocol)
-        {
-           
             if (protocol == NetProtocol.NA)
             {
                 protocol = ChannelSettings.DefaultProtocol;
@@ -68,9 +77,45 @@ namespace Nistec.Messaging.Remote
                 return new ManagementApi() { Protocol = protocol, RemoteHostAddress = hostAddress, RemoteHostPort = port };
             }
         }
+        */
+        /// <summary>
+        /// Get queue api.
+        /// </summary>
+        /// <param name="protocol"></param>
+        /// <returns></returns>
+        public static ManagementApi Get(string hostAddress,NetProtocol protocol)
+        {
+            //NetProtocol protocol = GetProtocol();
+            //string hostAddress = GetHostAddress();
 
+            if (protocol == NetProtocol.NA)
+            {
+                protocol = ChannelSettings.DefaultProtocol;
+            }
+            if (protocol == NetProtocol.Pipe)
+            {
+                if (hostAddress == null)
+                    throw new ArgumentException("hostAddress is required");
+                hostAddress = HostName;
+                return new ManagementApi() { Protocol = protocol, RemoteHostAddress = hostAddress };
+
+            }
+            else
+            {
+                string[] args = hostAddress.SplitTrim(':');
+                hostAddress = args[0];
+                if (args.Length < 2)
+                    throw new ArgumentException("hostAddress and port is required");
+
+                int port = Types.ToInt(args[1]);
+                return new ManagementApi() { Protocol = protocol, RemoteHostAddress = hostAddress, RemoteHostPort = port };
+            }
+        }
+        
         public static ManagementApi Get(string hostAddress, string queueName,NetProtocol protocol)
         {
+           //protocol = GetProtocol();
+
             if (protocol == NetProtocol.NA)
             {
                 protocol = ChannelSettings.DefaultProtocol;
