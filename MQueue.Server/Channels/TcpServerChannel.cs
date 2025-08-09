@@ -64,7 +64,7 @@ namespace Nistec.Messaging.Server
         /// <summary>
         /// OnStart
         /// </summary>
-        protected virtual void OnStart()
+        protected override void OnStart()
         {
             //base.OnStart();
             AgentManager.StartController();
@@ -73,7 +73,602 @@ namespace Nistec.Messaging.Server
         /// <summary>
         /// OnStop
         /// </summary>
-        protected virtual void OnStop()
+        protected override void OnStop()
+        {
+            //base.OnStop();
+            AgentManager.StopController();
+            Log.Info("TcpServerChannel stoped :{0}, QueueChannel:{1}", this.Settings.HostName, QueueChannel.ToString());
+        }
+        #endregion
+
+        #region Initilize
+
+        //private bool IsAllowedIP(string ip)
+        //{
+        //    return Array.Exists(AllowedIPs, allowedIp => allowedIp == ip);
+        //}
+        protected void Init()
+        {
+
+            if (Initilized)
+                return;
+            IsReady = false;
+
+            //AllowedIPs = Settings.AllowedListIp;
+            //Port = Settings.Port;
+            //ReceiveBufferSize = Settings.ReceiveBufferSize;
+            OnLoad();
+            Log.Info("TcpServer Initilized...\n");
+            IsReady = true;
+        }
+
+        protected virtual void OnLoad()
+        {
+
+        }
+
+        protected virtual void OnPause()
+        {
+
+        }
+        protected override void OnInfo(string message)
+        {
+            Console.WriteLine(message);
+            Log.Info(message);
+        }
+
+        protected override void OnFault(string message)
+        {
+            Console.WriteLine(message);
+            Log.Error(message);
+        }
+
+        //protected virtual void OnFault(string message, Exception ex)
+        //{
+        //    Log.Exception(message, ex, true);
+        //}
+
+        public override void Start()
+        {
+            try
+            {
+                if (_State == ChannelServiceState.Paused)
+                {
+                    if (Initilized)
+                    {
+                        _State = ChannelServiceState.Started;
+                        OnStart();
+                        return;
+                    }
+                }
+                if (_State == ChannelServiceState.Started)
+                    return;
+
+                //Listen = true;
+                Init();
+                _State = ChannelServiceState.Started;
+                OnStart();
+                base.Start();
+            }
+            catch (Exception ex)
+            {
+                //Listen = false;
+                _State = ChannelServiceState.None;
+                OnFault("The tcp server on start throws the error: " + ex.Message);
+            }
+        }
+
+        public override void Stop()
+        {
+            //Listen = false;
+            base.Stop();
+            Initilized = false;
+            _State = ChannelServiceState.Stoped;
+            OnStop();
+            Log.Info("TcpServer stoped: {0}", Settings.HostName);
+        }
+
+        public void Pause()
+        {
+            //Listen = false;
+            _State = ChannelServiceState.Paused;
+            OnPause();
+            Log.Debug("TcpServer paused: {0}", Settings.HostName);
+        }
+
+        #endregion
+
+        #region override methods
+        int SrcCount = 0;
+        int LastCount = 0;
+        int Counter = 0;
+        protected override bool ReadyToAccept()
+        {
+            if (QueueChannel == QueueChannel.Consumer)
+            {
+               int count= AgentManager.Queue.IsQueueCountAll();
+                if (count == 0)
+                {
+                    Counter=LastCount = SrcCount = 0;
+                    return false;
+                }
+                else
+                {
+                    if (count == LastCount && count == SrcCount && Counter<10)
+                        return false;
+                    else
+                    {
+                        Counter++;
+                        LastCount = count;
+                        if (Counter > 10)
+                        {
+                            SrcCount = count;
+                            Counter = 0;
+                        }
+                        return true;
+                    }
+                }
+            }
+            return true;
+        }
+
+        protected override byte[] ServerHandle(byte[] bytes)
+        {
+            Log.Info($"TcpServer ServerHandle QueueChannel: {QueueChannel}");
+            //IDataStream response = null;
+
+            if (QueueChannel == QueueChannel.Producer)
+            {
+                QueueMessage qm = QueueMessage.Deserialize(bytes);
+                var ack = AgentManager.Queue.ExecSet(qm);
+                return ack.Serialize();
+                //response =(IDataStream)new TransStream(ack, "Ack", TransType.Object); //binary
+            }
+            else if (QueueChannel == QueueChannel.Consumer)
+            {
+                QueueRequest qr = QueueRequest.Deserialize(bytes);
+
+                var resmessgae = AgentManager.Queue.ExecGet(qr);
+                if (resmessgae == null)
+                    return null;
+                return resmessgae.Serialize();
+                //response =(IDataStream)new TransStream(resmessgae.Serialize()); //binary
+
+            }
+            else if (QueueChannel == QueueChannel.Manager)
+            {
+                QueueRequest qr = QueueRequest.Deserialize(bytes);
+                var resmessgae = AgentManager.Queue.ExecRequset(qr);
+                return resmessgae.DataStream();
+                //return (IDataStream)resmessgae;
+            }
+            else
+            {
+                Log.Warn("TcpServer ServerHandle unknwon message type: {0}", QueueChannel);
+                throw new Exception($"TcpServer ServerHandle unknwon message type: {QueueChannel}");
+            }
+        }
+
+        protected override async Task<byte[]> ServerHandleAsync(byte[] bytes)
+        {
+            Log.Info($"TcpServer ServerHandle QueueChannel: {QueueChannel}");
+            //IDataStream response = null;
+
+            if (QueueChannel == QueueChannel.Producer)
+            {
+                QueueMessage qm = QueueMessage.Deserialize(bytes);
+                return await AgentManager.Queue.ExecSetAsyncSerialized(qm);
+                //response =(IDataStream)new TransStream(ack, "Ack", TransType.Object); //binary
+            }
+            else if (QueueChannel == QueueChannel.Consumer)
+            {
+                QueueRequest qr = QueueRequest.Deserialize(bytes);
+                return await AgentManager.Queue.ExecGetAsyncSerialized(qr);
+                //if (resmessgae == null)
+                //    return null;
+                //return resmessgae.Serialize();
+                //response =(IDataStream)new TransStream(resmessgae.Serialize()); //binary
+
+            }
+            else if (QueueChannel == QueueChannel.Manager)
+            {
+                QueueRequest qr = QueueRequest.Deserialize(bytes);
+                return await AgentManager.Queue.ExecRequsetAsyncSerialized(qr);
+                //return resmessgae.DataStream();
+                //return (IDataStream)resmessgae;
+            }
+            else
+            {
+                Log.Warn("TcpServer ServerHandle unknwon message type: {0}", QueueChannel);
+                throw new Exception($"TcpServer ServerHandle unknwon message type: {QueueChannel}");
+            }
+        }
+
+        /*
+        protected override IDataStream ServerHandle(IDataStream request)
+        {
+            Log.Info($"TcpServer ServerHandle QueueChannel: {QueueChannel}, TypeName: {request.TypeName}");
+
+            object qrequest = request.ReadBody();
+
+            if (QueueChannel == QueueChannel.Producer)
+            {
+                QueueMessage qmessage = (QueueMessage)request.ReadBody();
+                var ack = AgentManager.Queue.ExecSet(qmessage);
+                return (IDataStream)new TransStream(ack, "Ack", TransType.Object); //binary
+
+                //ack.ToTransStream
+                //return Task.Run(() => TransBinary.FromBytes(response.GetBytes()));
+                //var response = ExecRequset(message);
+            }
+            else if (QueueChannel == QueueChannel.Consumer)
+            {
+                if (qrequest is QueueMessage)
+                {
+                    var resmessgae = AgentManager.Queue.ExecGet((QueueMessage)qrequest);
+                    if (resmessgae == null)
+                        return null;
+                    return (IDataStream)new TransStream(resmessgae, request.Message, TransType.Object); //binary
+                }
+                else
+                {
+                    var resmessgae = AgentManager.Queue.ExecGet((QueueRequest)qrequest);
+                    if (resmessgae == null)
+                        return null;
+                    return (IDataStream)new TransStream(resmessgae, request.Message, TransType.Object); //binary
+                }
+                
+                //QueueRequest qrequest = (QueueRequest)request.ReadBody();
+                //var resmessgae = AgentManager.Queue.ExecGet(qrequest);
+                //return Task.Run(() => (IDataStream)new TransStream(resmessgae, request.Message, TransType.Object)); //binary
+                
+            }
+            else if (QueueChannel == QueueChannel.Manager)
+            {
+                if (qrequest is QueueMessage)
+                {
+                    var resmessgae = AgentManager.Queue.ExecRequset((QueueMessage)qrequest);
+                    return (IDataStream)resmessgae;
+                }
+                else
+                {
+                    var resmessgae = AgentManager.Queue.ExecRequset((QueueRequest)qrequest);
+                    return (IDataStream)resmessgae;
+                }
+
+                
+                //QueueRequest qrequest = (QueueRequest)request.ReadBody();
+                //var resmessgae = AgentManager.Queue.ExecRequset(qrequest);
+                //return Task.Run(() => (IDataStream)resmessgae);// new TransBinary(resmessgae, request.Message, TransType.Object));
+                
+            }
+            else
+            {
+                //object qrequest = request.ReadBody();
+                if (qrequest is QueueMessage)
+                {
+                    var ack = AgentManager.Queue.ExecSet((QueueMessage)qrequest);
+                    return (IDataStream)new TransStream(ack, "Ack", TransType.Object); //binary
+                }
+                else if (qrequest is QueueRequest)
+                {
+                    var resmessgae = ExecRequset((QueueRequest)qrequest);
+                    return (IDataStream)resmessgae;// new TransStream(resmessgae, request.Message, TransType.Object));
+                }
+                else
+                {
+                    Log.Warn("TcpServer ServerHandle unknwon message type: {0}", qrequest.GetType().FullName);
+                    throw new Exception($"TcpServer ServerHandle unknwon message type: {qrequest.GetType().FullName}");
+                }
+            }
+            //var message = ReadRequest(new NetStream(request.BodyStream));// request.GetStream());
+            //var response= ExecRequset(message);
+            //return Task.Run(()=> TransBinary.FromBytes(response.GetBytes()));
+        }
+
+        protected override async Task<IDataStream> ServerHandleAsync(IDataStream request)
+        {
+            Log.Info($"TcpServer ServerHandle async QueueChannel: {QueueChannel}, TypeName: {request.TypeName}");
+
+            object qrequest = request.ReadBody();
+
+            if (QueueChannel == QueueChannel.Producer)
+            {
+                QueueMessage qmessage = (QueueMessage)request.ReadBody();
+                var ack = AgentManager.Queue.ExecSet(qmessage);
+                return await Task.Run(() => (IDataStream)new TransStream(ack, "Ack", TransType.Object)); //binary
+
+                //ack.ToTransStream
+                //return Task.Run(() => TransBinary.FromBytes(response.GetBytes()));
+                //var response = ExecRequset(message);
+            }
+            else if (QueueChannel == QueueChannel.Consumer)
+            {
+                if (qrequest is QueueMessage)
+                {
+                    var resmessgae = AgentManager.Queue.ExecGet((QueueMessage)qrequest);
+                    if (resmessgae == null)
+                        return null;
+                    return await Task.Run(() => (IDataStream)new TransStream(resmessgae, request.Message, TransType.Object)); //binary
+                }
+                else
+                {
+                    var resmessgae = AgentManager.Queue.ExecGet(QueueRequest.Deserialize(request.DataStream()));
+                    if (resmessgae == null)
+                        return null;
+                    return await Task.Run(() => (IDataStream)new TransStream(resmessgae, request.Message, TransType.Object)); //binary
+                }
+                
+                //QueueRequest qrequest = (QueueRequest)request.ReadBody();
+                //var resmessgae = AgentManager.Queue.ExecGet(qrequest);
+                //return Task.Run(() => (IDataStream)new TransStream(resmessgae, request.Message, TransType.Object)); //binary
+                
+            }
+            else if (QueueChannel == QueueChannel.Manager)
+            {
+                if (qrequest is QueueMessage)
+                {
+                    var resmessgae = AgentManager.Queue.ExecRequset((QueueMessage)qrequest);
+                    return await Task.Run(() => (IDataStream)resmessgae);
+                }
+                else
+                {
+                    var resmessgae = AgentManager.Queue.ExecRequset((QueueRequest)qrequest);
+                    return await Task.Run(() => (IDataStream)resmessgae);
+                }
+
+                
+                //QueueRequest qrequest = (QueueRequest)request.ReadBody();
+                //var resmessgae = AgentManager.Queue.ExecRequset(qrequest);
+                //return Task.Run(() => (IDataStream)resmessgae);// new TransBinary(resmessgae, request.Message, TransType.Object));
+                
+            }
+            else
+            {
+                //object qrequest = request.ReadBody();
+                if (qrequest is QueueMessage)
+                {
+                    var ack = AgentManager.Queue.ExecSet((QueueMessage)qrequest);
+                    return await Task.Run(() => (IDataStream)new TransStream(ack, "Ack", TransType.Object)); //binary
+                }
+                else if (qrequest is QueueRequest)
+                {
+                    var resmessgae = ExecRequset((QueueRequest)qrequest);
+                    return await Task.Run(() => (IDataStream)resmessgae);// new TransStream(resmessgae, request.Message, TransType.Object));
+                }
+                else
+                {
+                    Log.Warn("TcpServer ServerHandle unknwon message type: {0}", qrequest.GetType().FullName);
+                    throw new Exception($"TcpServer ServerHandle unknwon message type: {qrequest.GetType().FullName}");
+                }
+            }
+            //var message = ReadRequest(new NetStream(request.BodyStream));// request.GetStream());
+            //var response= ExecRequset(message);
+            //return Task.Run(()=> TransBinary.FromBytes(response.GetBytes()));
+        }
+
+        */
+
+        //protected override Task<TransBinary> ServerHandle(TransBinary request)
+        //{
+
+        //    if (QueueChannel == QueueChannel.Producer)
+        //    {
+        //        QueueMessage qmessage = (QueueMessage)request.GetContent();
+        //        var ack = AgentManager.Queue.ExecSet(qmessage);
+        //        return Task.Run(() => new TransBinary(ack, "Ack", TransType.Object));
+
+        //        //ack.ToTransStream
+        //        //return Task.Run(() => TransBinary.FromBytes(response.GetBytes()));
+        //        //var response = ExecRequset(message);
+        //    }
+        //    else
+        //    {
+        //        QueueRequest qrequest = (QueueRequest)request.GetContent();
+        //        var resmessgae = AgentManager.Queue.ExecGet(qrequest);
+        //        return Task.Run(() => new TransBinary(resmessgae, request.Message, TransType.Object));
+        //    }
+
+        //    //var message = ReadRequest(new NetStream(request.BodyStream));// request.GetStream());
+        //    //var response= ExecRequset(message);
+        //    //return Task.Run(()=> TransBinary.FromBytes(response.GetBytes()));
+        //}
+
+        /// <summary>
+        /// Execute client request and return response as stream.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        protected virtual TransStream ExecRequset(IQueueRequest message)
+        {
+            return AgentManager.Queue.ExecRequset(message);
+        }
+
+        #endregion
+
+        #region Legacy
+
+        /*
+        protected override Task<NetStream> ServerHandle(NetStream request)
+        {
+
+            if (QueueChannel == QueueChannel.Producer)
+            {
+                QueueMessage qmessage = QueueMessage.Deserialize(request.ToArray());
+                var ack = AgentManager.Queue.ExecSet(qmessage);
+                return Task.Run(() => new NetStream(ack.Serialize()));
+            }
+            else
+            {
+                QueueRequest qrequest = QueueRequest.Deserialize(request.ToArray());
+                var resmessgae = AgentManager.Queue.ExecGet(qrequest);
+                return Task.Run(() => new NetStream(resmessgae.Serialize()));
+            }
+
+            //var message = ReadRequest(new NetStream(request.BodyStream));// request.GetStream());
+            //var response= ExecRequset(message);
+            //return Task.Run(()=> TransBinary.FromBytes(response.GetBytes()));
+        }
+
+        protected override Task<NetStream> ServerHandle(IDataStream request)
+        {
+
+            if (QueueChannel == QueueChannel.Producer)
+            {
+                QueueMessage qmessage = (QueueMessage)request.ReadBody();
+                var ack = AgentManager.Queue.ExecSet(qmessage);
+                return Task.Run(() => new NetStream(ack.Serialize()));
+
+                //ack.ToTransStream
+                //return Task.Run(() => TransBinary.FromBytes(response.GetBytes()));
+                //var response = ExecRequset(message);
+            }
+            else
+            {
+                QueueRequest qrequest = (QueueRequest)request.ReadBody();
+                var resmessgae = AgentManager.Queue.ExecGet(qrequest);
+                return Task.Run(() => resmessgae.ToStream());// new TransBinary(resmessgae, request.Message, TransType.Object));
+            }
+
+            //var message = ReadRequest(new NetStream(request.BodyStream));// request.GetStream());
+            //var response= ExecRequset(message);
+            //return Task.Run(()=> TransBinary.FromBytes(response.GetBytes()));
+        }
+        */
+
+        /*
+        /// <summary>
+        /// Read Request
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <returns></returns>
+        protected virtual IQueueRequest ReadRequest(NetStream stream)
+        {
+            //IQueueMessage message = null;
+            //using (var ntStream = new NetStream())
+            //{
+            //    ntStream.CopyFrom(stream, readTimeout, ReceiveBufferSize);
+
+            //    if (QueueChannel == QueueChannel.Producer)
+            //        message= new QueueMessage(stream, null);
+            //    else
+            //        message= new QueueRequest(stream);
+            //}
+            //return message;
+
+            if (QueueChannel == QueueChannel.Producer)
+                return new QueueMessage(stream, null);
+            else
+                return new QueueRequest(stream);
+        }
+
+        /// <summary>
+        /// Write response to client.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="bResponse"></param>
+        protected virtual async Task WriteResponseAsync(NetworkStream stream, TransStream bResponse)
+        {
+            if (bResponse == null)
+            {
+                return;
+            }
+            var bytes = bResponse.GetBytes();
+            if (bytes == null || bytes.Length == 0)
+            {
+                return;
+            }
+            await stream.WriteAsync(bytes, 0, bytes.Length);
+        }
+        */
+
+        //private static TcpSoketServer _serverSocket;
+        //private static bool _isRunning = false;
+
+        //public void StartServer()
+        //{
+        //    if (_isRunning)
+        //    {
+        //        OnInfo("Server is already running.");
+        //        return;
+        //    }
+        //    //_serverSocket = new TcpSoketServer(Settings.Port, Settings.AllowedListIp);
+        //    //_serverSocket.Start();
+        //    _isRunning = true;
+        //    OnStart();
+        //    OnInfo(string.Format("Server started on port :{0},  AllowedIPs: {1}", Port, AllowedIPs == null ? "NA" : AllowedIPs.JoinTrim()));
+        //    //Task.Run(() => AcceptClientsAsync());
+        //}
+
+        //public void StopServer()
+        //{
+        //    if (_isRunning)
+        //    {
+        //        _isRunning = false;
+        //        _serverSocket.Stop();
+        //        OnInfo("Server stopped.");
+        //    }
+        //}
+
+        #endregion
+    }
+
+    public class TcpServerTransChannel : TcpTransServer//<IQueueRequest, TransStream>
+    {
+        QueueChannel QueueChannel;
+
+        #region membrs
+        //int ReceiveBufferSize = 4096;
+        #endregion
+
+        #region settings
+
+        private ChannelServiceState _State = ChannelServiceState.None;
+
+        #endregion
+
+        #region ctor
+
+        /// <summary>
+        /// Constractor with extra parameters
+        /// </summary>
+        /// <param name="qChannel"></param>
+        /// <param name="hostName"></param>
+        public TcpServerTransChannel(QueueChannel qChannel, string hostName)
+        {
+            Settings = QueueServerSettings.LoadTcpConfigServer(hostName);
+            QueueChannel = qChannel;
+            //Settings.AllowedIp = allowedIps;
+        }
+
+        /// <summary>
+        /// Constractor using <see cref="TcpSettings"/> settings.
+        /// </summary>
+        /// <param name="qChannel"></param>
+        /// <param name="settings"></param>
+        public TcpServerTransChannel(QueueChannel qChannel, TcpSettings settings)
+        //: base()
+        {
+            Settings = settings;
+            QueueChannel = qChannel;
+        }
+
+        #endregion
+
+        #region override
+        /// <summary>
+        /// OnStart
+        /// </summary>
+        protected override void OnStart()
+        {
+            //base.OnStart();
+            AgentManager.StartController();
+            Log.Info("TcpServerChannel started :{0}, QueueChannel:{1}", this.Settings.HostName, QueueChannel.ToString());
+        }
+        /// <summary>
+        /// OnStop
+        /// </summary>
+        protected override void OnStop()
         {
             //base.OnStop();
             AgentManager.StopController();
@@ -180,48 +775,179 @@ namespace Nistec.Messaging.Server
 
         #region override methods
 
-        protected override Task<IDataStream> ServerHandle(IDataStream request)
+        int SrcCount = 0;
+        int LastCount = 0;
+        int Counter = 0;
+        protected override bool ReadyToAccept()
         {
+            if (QueueChannel == QueueChannel.Consumer)
+            {
+                int count = AgentManager.Queue.IsQueueCountAll();
+                if (count == 0)
+                {
+                    Counter = LastCount = SrcCount = 0;
+                    return false;
+                }
+                else
+                {
+                    if (count == LastCount && count == SrcCount)
+                        return false;
+                    else
+                    {
+                        LastCount = count;
+                        if (Counter > 10)
+                        {
+                            SrcCount = count;
+                            Counter = 0;
+                        }
+                        return true;
+                    }
+                }
+            }
+            return true;
+        }
+
+        protected override byte[] ServerHandle(byte[] bytes)
+        {
+            Log.Info($"TcpServer ServerHandle QueueChannel: {QueueChannel}");
+            //IDataStream response = null;
 
             if (QueueChannel == QueueChannel.Producer)
             {
-                QueueMessage qmessage = (QueueMessage)request.ReadBody();
-                var ack = AgentManager.Queue.ExecSet(qmessage);
-                return Task.Run(() => (IDataStream)new TransStream(ack, "Ack", TransType.Object)); //binary
-
-                //ack.ToTransStream
-                //return Task.Run(() => TransBinary.FromBytes(response.GetBytes()));
-                //var response = ExecRequset(message);
+                QueueMessage qm = QueueMessage.Deserialize(bytes);
+                var ack = AgentManager.Queue.ExecSet(qm);
+                return ack.Serialize();
+                //response =(IDataStream)new TransStream(ack, "Ack", TransType.Object); //binary
             }
             else if (QueueChannel == QueueChannel.Consumer)
             {
-                QueueRequest qrequest = (QueueRequest)request.ReadBody();
-                var resmessgae = AgentManager.Queue.ExecGet(qrequest);
-                return Task.Run(() => (IDataStream)new TransStream(resmessgae, request.Message, TransType.Object)); //binary
+                QueueRequest qr = QueueRequest.Deserialize(bytes);
+
+                var resmessgae = AgentManager.Queue.ExecGet(qr);
+                if (resmessgae == null)
+                    return null;
+                return resmessgae.Serialize();
+                //response =(IDataStream)new TransStream(resmessgae.Serialize()); //binary
+
             }
             else if (QueueChannel == QueueChannel.Manager)
             {
-                QueueRequest qrequest = (QueueRequest)request.ReadBody();
-                var resmessgae = AgentManager.Queue.ExecRequset(qrequest);
-                return Task.Run(() => (IDataStream)resmessgae);// new TransBinary(resmessgae, request.Message, TransType.Object));
+                QueueRequest qr = QueueRequest.Deserialize(bytes);
+                var resmessgae = AgentManager.Queue.ExecRequset(qr);
+                return resmessgae.DataStream();
+                //return (IDataStream)resmessgae;
             }
             else
             {
-                object qrequest = request.ReadBody();
-                if (qrequest is QueueMessage)
-                {
-                    var ack = AgentManager.Queue.ExecSet((QueueMessage)qrequest);
-                    return Task.Run(() => (IDataStream)new TransStream(ack, "Ack", TransType.Object)); //binary
-                }
-                else //if (qrequest is QueueRequest)
-                {
-                    var resmessgae = ExecRequset((QueueRequest)qrequest);
-                    return Task.Run(() => (IDataStream)resmessgae );// new TransStream(resmessgae, request.Message, TransType.Object));
-                }
+                Log.Warn("TcpServer ServerHandle unknwon message type: {0}", QueueChannel);
+                throw new Exception($"TcpServer ServerHandle unknwon message type: {QueueChannel}");
             }
-            //var message = ReadRequest(new NetStream(request.BodyStream));// request.GetStream());
-            //var response= ExecRequset(message);
-            //return Task.Run(()=> TransBinary.FromBytes(response.GetBytes()));
+        }
+
+        protected override async Task<byte[]> ServerHandleAsync(byte[] bytes)
+        {
+            Log.Info($"TcpServer ServerHandle QueueChannel: {QueueChannel}");
+            //IDataStream response = null;
+
+            if (QueueChannel == QueueChannel.Producer)
+            {
+                QueueMessage qm = QueueMessage.Deserialize(bytes);
+                return await AgentManager.Queue.ExecSetAsyncSerialized(qm);
+                //response =(IDataStream)new TransStream(ack, "Ack", TransType.Object); //binary
+            }
+            else if (QueueChannel == QueueChannel.Consumer)
+            {
+                QueueRequest qr = QueueRequest.Deserialize(bytes);
+                return await AgentManager.Queue.ExecGetAsyncSerialized(qr);
+                //if (resmessgae == null)
+                //    return null;
+                //return resmessgae.Serialize();
+                //response =(IDataStream)new TransStream(resmessgae.Serialize()); //binary
+
+            }
+            else if (QueueChannel == QueueChannel.Manager)
+            {
+                QueueRequest qr = QueueRequest.Deserialize(bytes);
+                return await AgentManager.Queue.ExecRequsetAsyncSerialized(qr);
+                //return resmessgae.DataStream();
+                //return (IDataStream)resmessgae;
+            }
+            else
+            {
+                Log.Warn("TcpServer ServerHandle unknwon message type: {0}", QueueChannel);
+                throw new Exception($"TcpServer ServerHandle unknwon message type: {QueueChannel}");
+            }
+        }
+
+        protected override IDataStream ServerHandle(IDataStream data)
+        {
+            Log.Info($"TcpServer ServerHandle QueueChannel: {QueueChannel}, TypeName: {data.TypeName}");
+
+            if (QueueChannel == QueueChannel.Producer)
+            {
+                QueueMessage qm = QueueMessage.Deserialize(data.DataStream());
+                var ack = AgentManager.Queue.ExecSet(qm);
+                //return ack.Serialize();
+                return(IDataStream)new TransStream(ack, QueueCmd.Ack.ToString(), TransType.Object);
+            }
+            else if (QueueChannel == QueueChannel.Consumer)
+            {
+                QueueRequest qr = QueueRequest.Deserialize(data.DataStream());
+
+                var resmessgae = AgentManager.Queue.ExecGet(qr);
+                if (resmessgae == null)
+                    return null;
+                //return resmessgae.Serialize();
+                return (IDataStream)new TransStream(resmessgae,QueueCmd.Consume.ToString());
+
+            }
+            else if (QueueChannel == QueueChannel.Manager)
+            {
+                QueueRequest qr = QueueRequest.Deserialize(data.DataStream());
+                var resmessgae = AgentManager.Queue.ExecRequset(qr);
+                //return resmessgae.DataStream();
+                return (IDataStream)resmessgae;
+            }
+            else
+            {
+                Log.Warn("TcpServer ServerHandle unknwon message type: {0}", QueueChannel);
+                throw new Exception($"TcpServer ServerHandle unknwon message type: {QueueChannel}");
+            }
+        }
+
+        protected override async Task<IDataStream> ServerHandleAsync(IDataStream data)
+        {
+            Log.Info($"TcpServer ServerHandle QueueChannel: {QueueChannel}");
+            //IDataStream response = null;
+
+            if (QueueChannel == QueueChannel.Producer)
+            {
+                QueueMessage qm = QueueMessage.Deserialize(data.DataStream());
+                var ack= await AgentManager.Queue.ExecSetAsync(qm);
+                return (IDataStream)new TransStream(ack, "Ack", TransType.Object); //binary
+            }
+            else if (QueueChannel == QueueChannel.Consumer)
+            {
+                QueueRequest qr = QueueRequest.Deserialize(data.DataStream());
+                var resmessgae = await AgentManager.Queue.ExecGetAsync(qr);
+                if (resmessgae == null)
+                    return null;
+                //return resmessgae.Serialize();
+                return (IDataStream)new TransStream(resmessgae, QueueCmd.Consume.ToString()); //binary
+
+            }
+            else if (QueueChannel == QueueChannel.Manager)
+            {
+                QueueRequest qr = QueueRequest.Deserialize(data.DataStream());
+                var resmessgae= await AgentManager.Queue.ExecRequsetAsync(qr);
+                //return resmessgae.DataStream();
+                return (IDataStream)resmessgae;
+            }
+            else
+            {
+                Log.Warn("TcpServer ServerHandle unknwon message type: {0}", QueueChannel);
+                throw new Exception($"TcpServer ServerHandle unknwon message type: {QueueChannel}");
+            }
         }
 
         //protected override Task<TransBinary> ServerHandle(TransBinary request)
@@ -388,13 +1114,12 @@ namespace Nistec.Messaging.Server
         #endregion
     }
 
-
-#if(false)
+#if (false)
     public class TcpServerChannel //<IQueueRequest, TransStream>
     {
         QueueChannel QueueChannel;
 
-        #region membrs
+    #region membrs
         //volatile bool Listen;
         private bool Initilized = false;
 
@@ -405,9 +1130,9 @@ namespace Nistec.Messaging.Server
         private static CancellationTokenSource _cts;
         private static int ReceiveBufferSize = 4096;
 
-        #endregion
+    #endregion
 
-        #region settings
+    #region settings
 
         private ChannelServiceState _State = ChannelServiceState.None;
         /// <summary>
@@ -429,9 +1154,9 @@ namespace Nistec.Messaging.Server
         /// </summary>
         public bool IsReady { get; protected set; }
 
-        #endregion
+    #endregion
 
-        #region ctor
+    #region ctor
 
         /// <summary>
         /// Constractor with extra parameters
@@ -458,9 +1183,9 @@ namespace Nistec.Messaging.Server
         }
 
 
-        #endregion
+    #endregion
 
-        #region override
+    #region override
         /// <summary>
         /// OnStart
         /// </summary>
@@ -479,9 +1204,9 @@ namespace Nistec.Messaging.Server
             AgentManager.StopController();
             Log.Info("TcpServerChannel stoped :{0}, QueueChannel:{1}", this.Settings.HostName, QueueChannel.ToString());
         }
-        #endregion
+    #endregion
 
-        #region Initilize
+    #region Initilize
         private void Init()
         {
 
@@ -572,9 +1297,9 @@ namespace Nistec.Messaging.Server
             Log.Debug("TcpServer paused: {0}", Settings.HostName);
         }
 
-        #endregion
+    #endregion
 
-        #region Read/Write
+    #region Read/Write
         /*
         /// <summary>
         /// Read Request from client.
@@ -615,9 +1340,9 @@ namespace Nistec.Messaging.Server
             stream.Write(bytes, 0, bytes.Length);
         }
         */
-        #endregion
+    #endregion
 
-        #region Read/Write Async
+    #region Read/Write Async
         /*
         /// <summary>
         /// Read Request from client.
@@ -664,9 +1389,9 @@ namespace Nistec.Messaging.Server
             await stream.WriteAsync(bytes, 0, bytes.Length);
         }
         */
-        #endregion
+    #endregion
 
-        #region abstract methods
+    #region abstract methods
         /// <summary>
         /// Execute client request and return response as stream.
         /// </summary>
@@ -720,9 +1445,9 @@ namespace Nistec.Messaging.Server
             await stream.WriteAsync(bytes, 0, bytes.Length);
         }
 
-        #endregion
+    #endregion
 
-        #region Server
+    #region Server
 
         private static Socket _serverSocket;
         private static bool _isRunning = false;
@@ -961,7 +1686,7 @@ namespace Nistec.Messaging.Server
         //    }
         //}
 
-        #endregion
+    #endregion
     }
 #endif
 

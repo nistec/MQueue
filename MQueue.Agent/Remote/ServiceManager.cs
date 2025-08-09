@@ -1,19 +1,19 @@
-﻿using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
-using System.Threading;
+﻿//using System.Security.Permissions;
+using Nistec.Logging;
+using Nistec.Messaging;
+using Nistec.Messaging.Config;
 //using System.ServiceModel;
 //using System.Runtime.Remoting;
 //using System.IO;
 //using Nistec.Generic;
 using Nistec.Messaging.Server;
+using System;
 //using Nistec.Messaging.Proxies;
 using System.Security;
-//using System.Security.Permissions;
-using Nistec.Logging;
-using Nistec.Messaging.Config;
-using Nistec.Messaging;
+//using System.Collections.Generic;
+//using System.Linq;
+//using System.Text;
+using System.Threading;
 
 namespace Nistec.Services
 {
@@ -28,7 +28,7 @@ namespace Nistec.Services
         private PipeServerChannel m_PipeServerProducer;
         private TcpServerChannel m_TcpServerProducer;
         private HttpServerChannel m_HttpServerProducer;
-        
+
         //private PipeServerDequeue m_ServerDequeue;
         private PipeServerChannel m_PipeServerQueueManager;
         private TcpServerChannel m_TcpServerQueueManager;
@@ -81,8 +81,6 @@ namespace Nistec.Services
                 //m_enableTopicController = AgentManager.Settings.EnableTopicController;
 
                 AgentManager.Start();// m_enableQueueController, m_enableTopicController);
-
-
 
 
 
@@ -206,7 +204,7 @@ namespace Nistec.Services
 
                 Netlog.Debug(serviceName + " stoped.");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Netlog.Debug(serviceName + " stop error: " + ex.Message);
             }

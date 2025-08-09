@@ -585,6 +585,10 @@ namespace Nistec.QueueConsole
                             ts = api.OperateQueue(QueueCmdOperation.DisableQueue, key);
                             Display(cmd, ts);
                             break;
+                        case "clearqueue":
+                            ts = api.OperateQueue(QueueCmdOperation.ClearQueue, key);
+                            Display(cmd, ts);
+                            break;
                         case "topicadd":
                             ts = api.OperateQueue(QueueCmdOperation.TopicAdd, key);
                             Display(cmd, ts);
@@ -689,11 +693,11 @@ namespace Nistec.QueueConsole
                                 ts = api.Report(QueueCmdReport.DbQueueReport, key);
                                 Display(cmd, ts);
                             break;
-                        case "dbcqueuelear":
+                        case "dbqueueclear":
                             ts = api.Report(QueueCmdReport.DbQueueClear, key);
                             Display(cmd, ts);
                             break;
-                        case "dbcqueuelearitem":
+                        case "dbqueueclearitem":
                             ts = api.Report(QueueCmdReport.DbQueueClearItem, key);
                             Display(cmd, ts);
                             break;

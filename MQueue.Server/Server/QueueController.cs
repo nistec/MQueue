@@ -17,6 +17,7 @@ using Nistec.Messaging.Config;
 using System.IO;
 using Nistec.Logging;
 using Nistec.Channels;
+using System.Threading.Tasks;
 
 namespace Nistec.Messaging.Server
 {
@@ -48,7 +49,7 @@ namespace Nistec.Messaging.Server
             int initialCapacity = 5;
             MQ = new ConcurrentDictionary<string, MQueue>(concurrencyLevel, initialCapacity);
             m_TransDispatcher = new TransactionDispatcher();
-            TopicDispatcher = new TopicDispatcher(this);
+            //TopicDispatcher = new TopicDispatcher(this);
             Logger = QLogger.Logger.ILog;
         }
 
@@ -72,7 +73,7 @@ namespace Nistec.Messaging.Server
         {
             if (IsStarted)
                 return;
-            TopicDispatcher.Start();
+            //TopicDispatcher.Start();
             IsStarted = true;
             Logger.Info("QueueController started...");
         }
@@ -81,7 +82,7 @@ namespace Nistec.Messaging.Server
         {
             if (!IsStarted)
                 return;
-            TopicDispatcher.Stop();
+            //TopicDispatcher.Stop();
             IsStarted = false;
             Logger.Info("QueueController stoped...");
         }
@@ -187,7 +188,7 @@ namespace Nistec.Messaging.Server
                 return QueueAck.DoResponse(MessageState.Ok, message, item).ToTransStream();
             }
         }
-        
+
 
         //public TransStream DoReportValue(object value)
         //{
@@ -223,6 +224,25 @@ namespace Nistec.Messaging.Server
         #endregion
 
         #region queue request
+
+        internal async Task<TransStream> ExecRequsetAsync(IQueueRequest request)
+        {
+            return await Task.Run(() =>
+            {
+                return ExecRequset(request);
+            });
+        }
+        internal async Task<byte[]> ExecRequsetAsyncSerialized(IQueueRequest request)
+        {
+            return await Task.Run(() =>
+            {
+                var trn = ExecRequset(request);
+                if (trn == null)
+                    return null;
+                return trn.DataStream();
+            });
+        }
+
         internal TransStream ExecRequset(IQueueRequest request)
         {
             //bool responseAck = false;
@@ -308,7 +328,7 @@ namespace Nistec.Messaging.Server
                             return new TransStream((int)state,"Load From Backup to queue " + request.Host, TransType.State);
                         }
 
-
+                        /*
                     //publish\subscribe
                     case QueueCmd.TopicAdd:
                         throw new Exception("Operation not supported");
@@ -366,6 +386,7 @@ namespace Nistec.Messaging.Server
                             LoadTopicSubscribers(mq, request.Label, "remove");
                             return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
                         }
+                        */
                     //reports
                     case QueueCmd.Exists:
                         //responseAck = true;
@@ -424,6 +445,83 @@ namespace Nistec.Messaging.Server
             return null;
         }
 
+        internal async Task ExecGetAsync(IQueueMessage request, Action<IQueueMessage> response)
+        {
+            await Task.Run(() =>
+            {
+                response(ExecGet(request));
+            });
+        }
+        internal async Task<IQueueMessage> ExecGetAsync(IQueueMessage request)
+        {
+            return await Task.Run(() =>
+            {
+                return ExecGet(request);
+            });
+        }
+        internal async Task<byte[]> ExecGetAsyncSerialized(IQueueMessage request)
+        {
+            return await Task.Run(() =>
+            {
+                var qm = ExecGet(request);
+                if (qm == null)
+                    return null;
+                return qm.Serialize();
+            });
+        }
+
+        internal IQueueMessage ExecGet(IQueueMessage request)
+        {
+            if (request.Host == null)
+            {
+                throw new MessageException(MessageState.InvalidMessageHost, "Invalid message.Host ");
+            }
+            MQueue Q = Get(request.Host);
+            if (Q == null)
+            {
+                throw new MessageException(MessageState.InvalidMessageHost, "message.HostName not found " + request.Host);
+            }
+            switch (request.QCommand)
+            {
+                case QueueCmd.Dequeue:
+                    return Q.Dequeue();
+                case QueueCmd.DequeuePriority:
+                    return Q.Dequeue(request.Priority);
+                case QueueCmd.Peek:
+                    return Q.Peek();
+                case QueueCmd.PeekPriority:
+                    return Q.Peek(request.Priority);
+                case QueueCmd.Consume:
+                    return Q.Consume(request.Expiration);// (Guid.NewGuid().ToString());// request.Identifier);
+            }
+
+            return null;
+        }
+        internal async Task ExecGetAsync(IQueueRequest request, Action<IQueueMessage> response)
+        {
+            await Task.Run(() =>
+            {
+                response(ExecGet(request));
+            });
+        }
+        internal async Task<IQueueMessage> ExecGetAsync(IQueueRequest request)
+        {
+            return await Task.Run(() =>
+            {
+                return ExecGet(request);
+            });
+        }
+        internal async Task<byte[]> ExecGetAsyncSerialized(IQueueRequest request)
+        {
+            return await Task.Run(() =>
+            {
+                var qm= ExecGet(request);
+                if (qm == null)
+                    return null;
+                return qm.Serialize();
+            });
+        }
+
         internal IQueueMessage ExecGet(IQueueRequest request)
         {
             if (request.Host == null)
@@ -452,6 +550,30 @@ namespace Nistec.Messaging.Server
             return null;
         }
 
+        internal async Task ExecSetAsync(QueueMessage item, Action<IQueueAck> response)
+        {
+            await Task.Run(() =>
+            {
+                response(ExecSet(item));
+            });
+        }
+        internal async Task<IQueueAck> ExecSetAsync(QueueMessage item)
+        {
+            return await Task.Run(() =>
+            {
+                return ExecSet(item);
+            });
+        }
+        internal async Task<byte[]> ExecSetAsyncSerialized(QueueMessage item)
+        {
+            return await Task.Run(() =>
+            {
+                var ack = ExecSet(item);
+                if (ack == null)
+                    return null;
+                return ack.Serialize();
+            });
+        }
 
         internal IQueueAck ExecSet(QueueMessage item)
         {
@@ -1056,6 +1178,20 @@ namespace Nistec.Messaging.Server
 
             return 0;
         }
+
+        public int IsQueueCountAll()
+        {
+            int count = 0;
+            GenericKeyValue g = new GenericKeyValue();
+            var queues = MQ.Values.ToArray();
+            foreach (var q in queues)
+            {
+                count += q.Count;
+            }
+            return count;
+        }
+      
+
         public string BackupAll()
         {
             GenericKeyValue g = new GenericKeyValue();

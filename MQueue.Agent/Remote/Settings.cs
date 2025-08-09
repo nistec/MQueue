@@ -18,10 +18,6 @@
 // 10/01/2006  Nissim   Created the code
 //===============================================================================================================
 //licHeader|
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.ServiceProcess;
 
 namespace Nistec.Services

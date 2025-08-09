@@ -35,75 +35,88 @@ namespace Nistec.Messaging.Listeners
 
         #endregion
 
- 
+        //protected override void OnMessageReceived(IQueueMessage message)
+        //{
+           
+        //}
+
+        protected override IQueueMessage Receive()
+        {
+            return QApi.Consume(60000);// int.MaxValue);
+        }
+
         //protected override IQueueAck Send(QueueMessage message)
         //{
         //    return _api.PublishItem(message);
         //}
 
-
+        /*
         protected override void Receive(IDynamicWait dw)
         {
             OnEvent("QueueListener.Receive", string.Format("SessionListener IDynamicWait QueueName: {0}", QApi.QueueName));
-            QueueRequest request = new QueueRequest()
-            {
-                Host = QApi.QueueName,
-                Command = QueueCmd.Dequeue.ToString(),
-                DuplexType = DuplexTypes.Respond
-            };
-
-            //void OnNack()
+            QApi.Consume(int.MaxValue, OnDynamicWorkerCompleted);
+            
+            //QueueRequest request = new QueueRequest()
             //{
-            //    CalcDynamicWait(false);
-            //}
+            //    Host = QApi.QueueName,
+            //    Command = QueueCmd.Dequeue.ToString(),
+            //    DuplexType = DuplexTypes.Respond
+            //};
 
-            //void OnAck(bool ack)
-            //{
-            //    aw.DynamicWaitAck(ack);
-            //}
+            ////void OnNack()
+            ////{
+            ////    CalcDynamicWait(false);
+            ////}
 
-            //if (EnableResetEvent)
-            //    _api.DequeueAsync(request, ConnectTimeout, OnCompleted, OnAck, resetEvent);
-            //else
-            QApi.Dequeue(request, ConnectTimeout, OnDynamicWorkerCompleted, dw);
+            ////void OnAck(bool ack)
+            ////{
+            ////    aw.DynamicWaitAck(ack);
+            ////}
 
-            //_api.ReceiveAsync(
-            //    OnFault,
-            //    OnCompleted,
-            //     DuplexTypes.WaitOne,
-            //     resetEvent
-            //    );
+            ////if (EnableResetEvent)
+            ////    _api.DequeueAsync(request, ConnectTimeout, OnCompleted, OnAck, resetEvent);
+            ////else
+            //QApi.Dequeue(request, ConnectTimeout, OnDynamicWorkerCompleted, dw);
+            
+        //_api.ReceiveAsync(
+        //    OnFault,
+        //    OnCompleted,
+        //     DuplexTypes.WaitOne,
+        //     resetEvent
+        //    );
 
-            //_api.SendDuplexAsync(message,
-            //    (err) => OnErrorOcurred(new GenericEventArgs<string>(err)),
-            //    (qitem) => OnMessageReceived(qitem));
-        }
+        //_api.SendDuplexAsync(message,
+        //    (err) => OnErrorOcurred(new GenericEventArgs<string>(err)),
+        //    (qitem) => OnMessageReceived(qitem));
+    }
 
         protected override async Task ReceiveAsync(IDynamicWait dw)
         {
             OnEvent("QueueListener.ReceiveAsync", string.Format("SessionListener QueueName: {0}", QApi.QueueName));
-            QueueRequest request = new QueueRequest()
-            {
-                Host = QApi.QueueName,
-                Command = QueueCmd.Dequeue.ToString(),
-                DuplexType = DuplexTypes.Respond
-            };
-
-            //void OnNack()
+            await QApi.ConsumeAsync(int.MaxValue, OnDynamicWorkerCompleted);
+            
+            //QueueRequest request = new QueueRequest()
             //{
-            //    CalcDynamicWait(false);
-            //}
+            //    Host = QApi.QueueName,
+            //    Command = QueueCmd.Dequeue.ToString(),
+            //    DuplexType = DuplexTypes.Respond
+            //};
 
-            //void OnAck(bool ack)
-            //{
-            //    aw.DynamicWaitAck(ack);
-            //}
+            ////void OnNack()
+            ////{
+            ////    CalcDynamicWait(false);
+            ////}
 
-            //if (EnableResetEvent)
-            //    _api.DequeueAsync(request, ConnectTimeout, OnCompleted, OnAck, resetEvent);
-            //else
-            await QApi.DequeueAsync(request, ConnectTimeout, OnDynamicWorkerCompleted, dw);
+            ////void OnAck(bool ack)
+            ////{
+            ////    aw.DynamicWaitAck(ack);
+            ////}
 
+            ////if (EnableResetEvent)
+            ////    _api.DequeueAsync(request, ConnectTimeout, OnCompleted, OnAck, resetEvent);
+            ////else
+            //await QApi.DequeueAsync(request, ConnectTimeout, OnDynamicWorkerCompleted, dw);
+            
             //_api.ReceiveAsync(
             //    OnFault,
             //    OnCompleted,
@@ -128,7 +141,7 @@ namespace Nistec.Messaging.Listeners
             };
             return QApi.Dequeue(request);
         }
-
+        */
         //protected override IQueueAck ReceiveTo()//QueueHost target, int connectTimeout, Action<QueueMessage> recieveAction)
         //{
         //    return _api.ReceiveTo(TransferTo, ConnectTimeout, null);

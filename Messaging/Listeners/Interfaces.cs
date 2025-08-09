@@ -7,6 +7,21 @@ using System.Text;
 
 namespace Nistec.Messaging.Listeners
 {
+
+
+    
+    public interface IAgentAdapter
+    {
+        int ReadTimeout { get; set; }
+        int ConnectTimeout { get; set; }
+        int Interval { get; set; }
+        int MaxConnections { get; set; }
+        int WorkerCount { get; set; }
+        HostChannel Source { get; set; }
+
+    }
+
+
     internal interface IListenerHandler
     {
         void DoMessageReceived(QueueMessage message);

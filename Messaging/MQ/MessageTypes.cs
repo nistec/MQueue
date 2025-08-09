@@ -154,6 +154,7 @@ namespace Nistec.Messaging
         ReleaseHoldDequeue = 35,
         EnableQueue = 36,
         DisableQueue = 37,
+        ClearQueue=38,
         BackupQueue = 39,
         TopicAdd = 40,
         TopicRemove = 41,

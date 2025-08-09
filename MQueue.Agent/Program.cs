@@ -20,12 +20,9 @@
 //licHeader|
 #define SERVICE
 
-using System;
-using System.Collections.Generic;  
-using System.Text;
-using System.Reflection;
-using Nistec.Generic;
 using Nistec.Logging;
+using System;
+using System.Reflection;
 
 namespace Nistec.Services
 {

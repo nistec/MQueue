@@ -84,7 +84,7 @@ namespace Nistec.Messaging.Listeners
         //{
         //    return _api.Enqueue(message);
         //}
-
+        /*
         protected override void Receive(IDynamicWait dw)
         {
             _api.Dequeue((IQueueMessage item) => {
@@ -111,11 +111,12 @@ namespace Nistec.Messaging.Listeners
                 OnMessageReceived(item);
             });
         }
-
+        */
         protected override IQueueMessage Receive()
         {
             return _api.Dequeue();
         }
+
         //protected override IQueueAck ReceiveTo()//QueueHost target, int connectTimeout, Action<Message> recieveAction)
         //{
         //    return _api.ReceiveTo();

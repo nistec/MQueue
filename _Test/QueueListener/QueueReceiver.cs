@@ -170,8 +170,8 @@ namespace QueueListenerDemo
                 Interval = 10,
                 ConnectTimeout = 5000,
                 ReadTimeout = 180000,
-                WorkerCount = 3,
-                MaxConnection=50,
+                WorkerCount = 2,
+                MaxConnection=2,
                 EnableDynamicWait = true,
                 MessageReceivedAction = (message) =>
                 {
@@ -190,8 +190,9 @@ namespace QueueListenerDemo
             QueueListener listener = new QueueListener(adapter);
             string logpath = NetlogSettings.GetDefaultPath("qlistener");
             listener.Logger = new Logger(logpath);
-            //listener.ErrorOcurred += Listener_ErrorOcurred;
-            //listener.MessageReceived += Listener_MessageReceived;
+
+            listener.ErrorOcurred += Listener_ErrorOcurred;
+            listener.MessageReceived += Listener_MessageReceived;
             listener.Start();
 
             //QueueApi api = new QueueApi(host);

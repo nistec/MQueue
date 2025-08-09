@@ -115,10 +115,8 @@ namespace QueueTasker
                 //Args = NameValueArgs.Create("Query", @"tel:\*\d{4}|(|\()(0|972)(\d{1}|\d{2})(|[\)\/\.-])([0-9]{7})|(|\()(18|17)00(|[\)\/\.-])[0-9]{3}(|[\)\/\.-])[0-9]{3}$"),
                 Source = "MsgQueueDemo",
                 SessionId = "MongoCommands",
-                Label = "QDemo"
+                Label = "QDemo- " + i.ToString()
             };
-
-            
         }
 
         public static QueueRequest GetQRequest(QueueCmd command,int version, Priority priority, TransformType transformType, string host, NetStream bodyStream)

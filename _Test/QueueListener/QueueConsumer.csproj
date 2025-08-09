@@ -45,6 +45,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="QueueDemo.cs" />
+    <Compile Include="QListener.cs" />
+    <Compile Include="SwifterAgent.cs" />
     <Compile Include="HttpServerChannel.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

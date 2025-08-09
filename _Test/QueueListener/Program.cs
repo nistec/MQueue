@@ -18,8 +18,15 @@ namespace QueueListenerDemo
         {
             Console.WriteLine("QueueListener started...");
 
+            QueueDemo.DemoRequest();
 
-            QueueReceiver.StartConsume(QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "Netcell"));// "Controller"));
+            var host = QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "Netcell");
+            QListener ql = new QListener(QListener.CreateAdapter(host));
+            ql.Start();
+
+            //SwifterAgent agent = new SwifterAgent(host);
+            //agent.Start();
+            //QueueReceiver.StartConsume(QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "Netcell"));// "Controller"));
             //QueueReceiver.StartListnning(QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "Netcell"));
 
             //QueueReceiver.Consume(QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "Netcell"));// "Controller"));

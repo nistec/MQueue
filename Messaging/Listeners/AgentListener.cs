@@ -12,43 +12,49 @@ using Nistec.Runtime;
 using Nistec.Threading;
 using System.Security;
 using Nistec.Logging;
+using Nistec.Channels;
 
 namespace Nistec.Messaging.Listeners
 {
     /// <summary>
     /// Represents a thread-safe queue listener (FIFO) collection for client.
     /// </summary>
-    public class QueueAgentWorker //: INetcellAgent//: QueueReciever
+    public abstract class AgentListener<T> where T : IAgentMessage //: INetcellAgent//: QueueReciever
     {
         //const string ActiveMQueueName = "controller";
 
         #region memebers
         private int isQueueRunning = 0;
         private bool keepAlive = false;
-        //QueueReciever MQ;
-        private Nistec.Threading.GenericThreadPool threadPool;
+        private GenericThreadPool threadPool;
         static object m_lock = new object();
-        static AutoResetEvent autoResetEvent = new AutoResetEvent(false);
 
         //protected int MaxThread = 1;
-        protected int WorkerCount = 1;
-        
         //MaxConnections = 30;
         protected int m_Connections;
         //Interval = 30000;
         protected int Server = 0;
-        protected int WaitSecond = int.MaxValue;// 120;
+        protected int WaitSecond = 120;
         protected int ReadTimeout = -1;
+        protected int ConnectTimeout = -1;
         protected bool Is_Pause = false;
         protected int PauseInterval = 1000;
-        public QueueHost Source { get; set; }
+        public HostChannel Source { get; set; }
         public bool Initilaized { get; protected set; }
 
         //protected QueueApi QApi;
         protected string HostName;
-        protected string QueueAddress;// = "tcp:127.0.0.1:15000?Controller";
+        //protected string HostAddress;// = "tcp:127.0.0.1:15000?Controller";
 
-        protected QueueApi QApi { get; private set; }
+        //protected QueueApi QApi { get; private set; }
+
+        public int ActiveConnections
+        {
+            get
+            {
+                return m_Connections;
+            }
+        }
 
         ILogger _Logger;
         public ILogger Logger { get { return _Logger; } set { if (value != null) _Logger = value; } }
@@ -56,40 +62,31 @@ namespace Nistec.Messaging.Listeners
 
         #region ctor
 
-        public QueueAgentWorker(QueueAdapter adapter)//, int interval)
+        public AgentListener(IAgentAdapter adapter)//, int interval)
         {
-
+            Source = adapter.Source;
+            HostName = Source.HostName;
             ReadTimeout = adapter.ReadTimeout;
-            MaxConnections = adapter.MaxConnection;
-            WorkerCount = adapter.WorkerCount;
+            MaxConnections = adapter.MaxConnections;
             Interval = adapter.Interval;
-            //ConnectTimeout = adapter.ConnectTimeout;
-            //IsAsync = adapter.IsAsync;
-            //IsMultiTask = adapter.IsMultiTask;
-            //IsTopic = adapter.IsTopic;
-            //IsTrans = adapter.IsTrans;
-            //WorkerCount = adapter.WorkerCount;
-
-            QApi = new QueueApi(adapter.Source);
-            QApi.ReadTimeout = adapter.ReadTimeout;
-            //_Listener= new ListenerQ(this, adapter);
+            ConnectTimeout = adapter.ConnectTimeout;
+            WorkerCount = adapter.WorkerCount;
             Initilaized = false;
         }
 
         #endregion
 
 
-        public QueueAgentWorker()
+        public AgentListener()
         {
             Initilaized = false;
-            MaxConnections = 30;
-            Interval = 1000;
+            MaxConnections = 1;
+            Interval = 30000;
         }
 
-        protected virtual void Init(string QueueAddress)
+        protected virtual void Init(string HostAddress)
         {
-            Source = QueueHost.Parse(QueueAddress);
-            QApi = new QueueApi(Source);
+            Source = HostChannel.Parse(HostAddress);
             HostName = Source.HostName;
             Initilaized = true;
             OnStateChanged(ListenerState.Initilaized);
@@ -104,12 +101,13 @@ namespace Nistec.Messaging.Listeners
         /// <summary>
         /// QueueMessage Received
         /// </summary>
-        public event GenericEventHandler<IQueueMessage> MessageReceived;
+        public event GenericEventHandler<T> MessageReceived;
 
         #endregion
 
         #region INetcellAgent
         //public DynamicWorker ActionWorker { get; private set; }
+        public int WorkerCount { get; set; }
         public int MaxConnections { get; set; }
         public int Interval { get; set; }
         public bool IsMultiTasks { get; set; }
@@ -142,23 +140,23 @@ namespace Nistec.Messaging.Listeners
         {
             if (!Initilaized)
             {
-                OnInfo($"QueueListener not Initilaized {HostName}");
+                OnInfo($"AgentListener not Initilaized {HostName}");
                 return;
             }
             if (keepAlive || !Initilaized)
                 return;
-            OnInfo($"QueueListener Start {HostName}");
+            OnInfo($"AgentListener Start {HostName}");
             keepAlive = true;
-            threadPool = new Nistec.Threading.GenericThreadPool(WorkerCount);
-            threadPool.StartThreadPool(new ParameterizedThreadStart(QueueProcess));
-            OnInfo($"QueueListener Started {HostName}");
+            threadPool = new GenericThreadPool(WorkerCount);
+            threadPool.StartThreadPool(new ParameterizedThreadStart(AgentProcess));
+            OnInfo($"AgentListener Started {HostName}");
 
             //base.Start();
         }
 
         public void Stop()
         {
-            OnInfo($"QueueListener Stop {HostName}");
+            OnInfo($"AgentListener Stop {HostName}");
             try
             {
 
@@ -273,28 +271,53 @@ namespace Nistec.Messaging.Listeners
 
         #region Publish
 
-        protected virtual void OnMessageReceived(IQueueMessage message)
-        {
-           
-        }
+        //protected virtual void OnMessageReceived(T message)
+        //{
 
-        /*
-        protected virtual void OnMessageReceived(IQueueMessage message)
+        //}
+
+        protected virtual void OnMessageReceived(T message)
         {
             if (message != null)
             {
-                PublishMessageAsync(message, (ack) => {
-                    OnInfo("SwifterAgent OnReceivedEvent Result: {0}", ack.ToString());
-                    CommitAsync(ack, message);
+                PublishMessage(message, (ack) => {
+                    OnInfo($"AgentListener OnReceivedEvent Result: {ack.ToString()}");
+                    CommitAsync(ack);//.ConfigureAwait(false);
                 });//.ConfigureAwait(false);
             }
         }
 
-        protected virtual void PublishMessageAsync(IQueueMessage message, Action<IAck> ack)
+        protected virtual void PublishMessage(T message)
         {
-
+            //await Task.Run(null);
         }
 
+        protected virtual void PublishMessage(T message, Action<IAck> ack)
+        {
+            //await Task.Run(null);
+        }
+
+        //protected virtual void PublishMessageAsync(T message, Action<IAck> ack)
+        //{
+        //    //await Task.Run(null);
+        //}
+        /*
+        protected virtual async Task OnMessageReceived(T message)
+        {
+            if (message != null)
+            {
+                await PublishMessageAsync(message, (ack) => {
+                    OnInfo($"AgentListener OnReceivedEvent Result: {ack.ToString()}");
+                    CommitAsync(ack);//.ConfigureAwait(false);
+                });//.ConfigureAwait(false);
+            }
+        }
+
+        protected virtual async Task PublishMessageAsync(T message, Action<IAck> ack)
+        {
+            await Task.Run(null);
+        }
+        */
         //{
         //    OnInfo("SwifterAgent PublishMessageAsync ExecuteAsync {0}", message.Print());
         //    var msgIn = message.GetBody<MessageIn>();
@@ -302,38 +325,31 @@ namespace Nistec.Messaging.Listeners
         //    await publisher.InvokeAsync(ack);
 
         //}
-        */
+        
 
-        protected virtual void CommitAsync(IAck ack, IQueueMessage message)
+        protected virtual void CommitAsync(IAck ack)
         {
-            if (ack.IsOk)
-                QueueApi.Get(Source).Commit(message.GetPtr()); // Commit(message.GetPtr());
-            else
-                QueueApi.Get(Source).Abort(message.GetPtr());// Abort(message.GetPtr());
+            //await Task.Run(null);
+        }
+        protected virtual void Commit(IAck ack)
+        {
+
+        }
+        protected virtual void Abort(IAck ack)
+        {
+
         }
 
-        protected virtual IQueueMessage Consume()
-        {
-            return QApi.Consume(WaitSecond);
-        }
-        private void ConsumeInternal()
-        {
-            Task.Run(() =>
-            {
-                var message = Consume();
-                if (message != null)
-                {
-                    OnMessageReceived(message);
-                    OnInfo($"QueueListener QApi.Consume end Identifier: {message.Identifier}, MessageState: {message.MessageState}  BodyLength: {message.BodyLength()}, m_Connections {m_Connections}");
-                    QueueApi.Get(Source).Commit(message.GetPtr());
-                }
-                autoResetEvent.Set();
-            });
-        }
+        protected abstract T ReadMessage(int WaitSecond);
 
-        #endregion
+        protected string GetIdentifier(T message)
+        {
+            return message == null ? "" : message.Identifier;
+        }
+   
+        #endregion 
 
-        #region QueueProcess 4.7.2.3
+        #region AgentProcess
 
         //public override void OnMessageReceived(IQueueItem item)
         //{
@@ -344,24 +360,27 @@ namespace Nistec.Messaging.Listeners
         //{
         //    base.OnMessageFault(message);
         //}
+
+
+
         int pause = 0;
-        private void QueueProcess(object state)
+        private void AgentProcess(object state)
         {
 
             while (keepAlive)
             {
                 //Queue_Queue activeQueue = null;
 
-                IQueueMessage queueItem = null;
+                T message = default(T);
 
                 try
                 {
-                    /*
-                    while (keepAlive &&  ShouldPause())//(!(keepAlive && App_Servers.IsEnableQueue(server)))
+
+                    while (keepAlive && ShouldPause())//(!(keepAlive && App_Servers.IsEnableQueue(server)))
                     {
                         if (pause == 10)
                         {
-                            OnInfo($"QueueListener QueueProcess ShouldPause {pause}");
+                            OnInfo($"AgentListener QueueProcess ShouldPause {pause}");
                             pause = 0;
                         }
                         ++pause;
@@ -371,18 +390,8 @@ namespace Nistec.Messaging.Listeners
                     pause = 0;
                     while (Thread.VolatileRead(ref m_Connections) >= MaxConnections)
                     {
-                        OnInfo($"QueueListener QueueProcess ShouldPause {++pause}, m_Connections {m_Connections}");
+                        OnInfo($"AgentListener AgentProcess ShouldPause {++pause}, m_Connections {m_Connections}");
                         Thread.Sleep(100);
-                    }
-                    */
-                    while (Is_Pause)//(!(keepAlive && App_Servers.IsEnableQueue(server)))
-                    {
-                        Task.Delay(Interval);
-                    }
-
-                    while (Thread.VolatileRead(ref m_Connections) >= MaxConnections)
-                    {
-                        Task.Delay(100);
                     }
 
                     if (!keepAlive)
@@ -395,104 +404,73 @@ namespace Nistec.Messaging.Listeners
 
                     Interlocked.Increment(ref isQueueRunning);
 
-                    //ThreadPool.QueueUserWorkItem(QueueMessageWorker, null);
-
-                    //OnInfo($"QueueListener QueueProcess Begin {isQueueRunning}, m_Connections {m_Connections}");
-
                     lock (m_lock)
                     {
-                        ConsumeInternal();
-                        autoResetEvent.WaitOne();
-                    }
+                        message = ReadMessage(WaitSecond);
 
-                    /*
-                    lock (m_lock)
-                    {
-                        OnInfo($"QueueListener QApi.Consume begin, m_Connections {m_Connections}");
-
-                        queueItem = Consume();
-
-                        if (queueItem != null)
-                            OnInfo($"QueueListener QApi.Consume end Identifier: {queueItem.Identifier}, MessageState: {queueItem.MessageState}  BodyLength: {queueItem.BodyLength()}, m_Connections {m_Connections}");
-                        else
-                            OnInfo($"QueueListener QApi.Consume end, m_Connections {m_Connections}");
-
-                        //queueItem = QApi.Dequeue();
-                        //Log.WarnFormat("QueueProcess Dequeue");
-
-                        //OnInfo($"QueueListener QApi.Consume , m_Connections {m_Connections}");
-
-                        if (queueItem != null && queueItem.MessageState == Nistec.Messaging.MessageState.Receiving && queueItem.BodyStream() != null)
+                        if (message != null)// && message.AckState ==  (int)ChannelState.Received && message.Body != null)
                         {
-                            Interlocked.Increment(ref m_Connections);
-                            OnInfo($"QueueListener QApi.Dequeue {queueItem.Identifier}, m_Connections {m_Connections}");
-                            ThreadPool.QueueUserWorkItem(QueueWorker, queueItem);
+                            if (message.Body != null && message.AckState == (int)ChannelState.Received)
+                            {
+                                Interlocked.Increment(ref m_Connections);
+                                ThreadPool.QueueUserWorkItem(AgentWorker, message);
+                                //Task.Run(()=> AgentItemWorker(message));
+                            }
+                            else if ((int)message.AckState >= 400)
+                            {
+                                OnError("AgentListener read failed : " + message.Label + ", " + message.Print());
+                            }
                         }
-                        else if (queueItem != null && (int)queueItem.MessageState >= 20)
-                        {
-                            OnError("QueueListener dequeue failed : " + queueItem.Label + ", " + queueItem.Print());
-                        }
-                        }
-                        */
                     }
+                }
                 catch (ThreadAbortException)
                 {
-                    OnError($"Warn: QueueListener ThreadAborted {HostName}");
+                    OnError($"Warn: AgentListener ThreadAborted {HostName}");
                 }
                 catch (Exception ex)
                 {
-                    OnError($"QueueListener {HostName}, Error:{ex.Message + " Trace:" + ex.StackTrace} ");
+                    OnError($"AgentListener {HostName}, Error:{ex.Message + " Trace:" + ex.StackTrace} ");
 
                     try
                     {
 
-                        //lock (typeof(QueueApi))
-                       // {
-
-                            QApi.Abort(queueItem.GetPtr());
-                            // Queue_Context.Commit(queueItem.QueueId, (int)QueueState.Error);
-                        //}
+                        lock (m_lock)
+                        {
+                            Abort(MessageAck.DoAck( ChannelState.InternalServerError,ex.Message, GetIdentifier(message)));
+                        }
 
                     }
                     catch (Exception exx)
                     {
-                        OnError($"QueueListener {HostName}, Error:{exx.Message} ");
+                        OnError($"AgentListener {HostName}, Error:{exx.Message} ");
                     }
                 }
                 finally
                 {
                     Interlocked.Decrement(ref isQueueRunning);
                 }
-                Task.Delay(100);// Interval);
+                Thread.Sleep(Interval);
             }
-            OnError($"Warn: QueueListener not keep Alive {HostName}");
+            OnError($"Warn: AgentListener not keep Alive {HostName}");
         }
- /*
-        void QueueWorker(Object threadContext)
+
+        void AgentItemWorker(T message)
         {
             try
             {
-                OnInfo($"QueueListener QueueWorker started");
+                OnInfo($"AgentListener AgentItemWorker started");
 
-
-                IQueueMessage queueItem = (IQueueMessage)threadContext;
-
-                if (queueItem != null)// && !queueItem.IsEmpty)
+                if (message != null)// && !queueItem.IsEmpty)
                 {
-                    OnInfo($"QueueListener ExecuteAsync {queueItem.Print()}");
+                    OnInfo($"AgentListener AgentItemWorker {message.Print()}");
 
                     //var message = queueItem.GetBody<QueueMessage>();    //Message.Deserialize(queueItem.ToJson();//.BodyStream);
 
-                    OnMessageReceived(queueItem);
+                    OnMessageReceived(message);//.ConfigureAwait(false);
 
-                    //using (MessageExecuter sch = new MessageExecuter(message))
+                    //lock (m_lock)
                     //{
-                    //    sch.ExecuteAsync();
-                    //}
-
-                    //lock (typeof(QueueApi))
-                    //{
-                        QApi.Commit(queueItem.GetPtr()); //Queue_Context.Commit(queueItem.QueueId);
+                    //    Commit(message); //Queue_Context.Commit(queueItem.QueueId);
                     //}
                     //activeCampaign.Dispose();
                 }
@@ -506,46 +484,41 @@ namespace Nistec.Messaging.Listeners
             //}
             catch (ThreadAbortException)
             {
-                OnError($"QueueListener Error ThreadAborted {HostName}");
+                OnError($"AgentListener Error ThreadAborted {HostName}");
             }
             catch (Exception ex)
             {
-                OnError($"QueueListener {HostName},  Error :{ex.Message} ");
+                OnError($"AgentListener {HostName},  Error :{ex.Message}");
             }
 
             Interlocked.Decrement(ref m_Connections);
 
-            OnInfo($"QueueListener QueueWorker finished");
+            OnInfo($"AgentListener AgentWorker finished");
         }
-        */
-/*
-        void QueueMessageWorker(object state)
-        {
-            IQueueMessage queueItem = null;
 
+        void AgentWorker(Object threadContext)
+        {
             try
             {
-                OnInfo($"QueueMessageWorker started");
+                OnInfo($"AgentListener AgentWorker started");
 
-                queueItem = QApi.Consume(WaitSecond);
-                //queueItem = QApi.Dequeue();
-                //Log.WarnFormat("QueueProcess Dequeue");
 
-                //OnInfo($"QueueListener QApi.Consume , m_Connections {m_Connections}");
+                T message = (T)threadContext;
 
-                if (queueItem != null && queueItem.MessageState == Nistec.Messaging.MessageState.Receiving && queueItem.BodyStream() != null)
+                if (message != null)// && !queueItem.IsEmpty)
                 {
-                    Interlocked.Increment(ref m_Connections);
-                    OnInfo($"QueueMessageWorker QApi.Dequeue {queueItem.Identifier}, m_Connections {m_Connections}");
-                    ThreadPool.QueueUserWorkItem(QueueWorker, queueItem);
-                    OnMessageReceived(queueItem);
-                    QApi.Commit(queueItem.GetPtr());
-                }
-                else if (queueItem != null && (int)queueItem.MessageState >= 20)
-                {
-                    OnError("QueueMessageWorker dequeue failed : " + queueItem.Label + ", " + queueItem.Print());
-                }
+                    OnInfo($"AgentListener ExecuteAsync {message.Print()}");
 
+                    //var message = queueItem.GetBody<QueueMessage>();    //Message.Deserialize(queueItem.ToJson();//.BodyStream);
+
+                    OnMessageReceived(message);//.ConfigureAwait(false);
+                   
+                    //lock (m_lock)
+                    //{
+                    //    Commit(message); //Queue_Context.Commit(queueItem.QueueId);
+                    //}
+                    //activeCampaign.Dispose();
+                }
             }
             //catch (NetcellException ex)
             //{
@@ -556,21 +529,18 @@ namespace Nistec.Messaging.Listeners
             //}
             catch (ThreadAbortException)
             {
-                OnError($"QueueMessageWorker Error ThreadAborted {HostName}");
+                OnError($"AgentListener Error ThreadAborted {HostName}");
             }
             catch (Exception ex)
             {
-                OnError($"QueueMessageWorker {HostName},  Error :{ex.Message} ");
+                OnError($"AgentListener {HostName},  Error :{ex.Message}");
             }
 
-            if (queueItem != null)
-                Interlocked.Decrement(ref m_Connections);
+            Interlocked.Decrement(ref m_Connections);
 
-            OnInfo($"QueueMessageWorker finished");
+            OnInfo($"AgentListener AgentWorker finished");
         }
-*/
         #endregion
-
     }
 
 }

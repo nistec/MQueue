@@ -59,6 +59,435 @@ namespace Nistec.Messaging.Listeners
 
         public bool EnableDynamicWait { get; set; }
         public string HostName { get; private set; }
+
+        #endregion
+
+        #region ctor
+
+        public SessionListener(QueueAdapter adapter)//, int interval)
+        {
+            if (adapter == null)
+            {
+                throw new ArgumentNullException("adapter");
+            }
+            if (adapter.Source == null)
+            {
+                throw new ArgumentNullException("adapter.Source");
+            }
+            Adapter = adapter;
+
+            //_Owner = owner;
+            _Source = adapter.Source;
+            HostName = _Source.HostName;
+
+            //_TransferTo = adapter.TransferTo;
+
+            //_ServerName = channel.ServerName;
+            //_QueueName = channel.Source;
+            //IntervalWait = interval < MinWait ? MinWait : interval;// 1000;
+
+            Interval = adapter.Interval;
+            _ConnectTimeout = adapter.ConnectTimeout;
+            _ReadTimeout = adapter.ReadTimeout;
+            _WorkerCount = adapter.WorkerCount;
+            _MaxConnection = adapter.MaxConnection;
+            _IsMultiTask = adapter.IsMultiTask;
+            _IsAsync = adapter.IsAsync;
+            EnableResetEvent = true;// adapter.EnableResetEvent;
+            EnableDynamicWait = adapter.EnableDynamicWait;
+            //_ActionTransfer = adapter.AckAction;
+            //_AdapterOperation = adapter.OperationType;
+
+            //QApi = new QueueApi(adapter.Source);
+            //QApi.ReadTimeout = adapter.ReadTimeout;
+
+            State = ListenerState.Initilaized;
+        }
+
+        #endregion
+
+        #region message events
+
+        /// <summary>
+        /// ErrorOcurred
+        /// </summary>
+        public event GenericEventHandler<string> ErrorOcurred;
+        /// <summary>
+        /// QueueMessage Received
+        /// </summary>
+        public event GenericEventHandler<IQueueMessage> MessageReceived;
+        /// <summary>
+        /// OnMessageReceived, when override events will not fired
+        /// </summary>
+        /// <param name="message"></param>
+        protected virtual void OnMessageReceived(IQueueMessage message)
+        {
+            //Commit(message.GetPtr());
+            if (MessageReceived != null)
+                MessageReceived(this, new GenericEventArgs<IQueueMessage>(message));
+            else if (Adapter.MessageReceivedAction != null)
+                Adapter.MessageReceivedAction(message);
+
+        }
+
+        protected virtual void OnEvent(string source, string msg)
+        {
+            
+        }
+        protected virtual void OnInfo(string message)
+        {
+            if (_Logger != null)
+                _Logger.Info(message);
+        }
+
+        protected void OnErrorOcurred(string msg)
+        {
+            Console.WriteLine("ErrorOcurred: " + msg);
+            if (ErrorOcurred != null)
+                ErrorOcurred(this, new GenericEventArgs<string>(msg)); //OnErrorOcurred(new GenericEventArgs<string>(msg));
+            else if (Adapter.MessageFaultAction != null)
+                Adapter.MessageFaultAction(msg);
+        }
+
+        protected virtual void OnError(string message)
+        {
+            OnErrorOcurred(message);
+            if (_Logger != null)
+                _Logger.Error(message);
+            //OnErrorOcurred(new GenericEventArgs<string>(message));
+        }
+
+        #endregion
+
+
+
+        #region override
+
+        //protected abstract IQueueAck Send(QueueMessage message);
+
+        protected abstract IQueueMessage Receive();
+        //protected abstract void Receive(IDynamicWait aw);
+        protected virtual async Task<IQueueMessage> ReceiveAsync()
+        {
+            return await Task.Run(() =>
+            {
+                return Receive();
+            });
+        }
+        protected void Receive(Action<IQueueMessage> onReceived)
+        {
+            var message = Receive();
+            if (message != null)
+                onReceived(message);
+            autoResetEvent.Set();
+        }
+        //protected void Receive(Action<IQueueMessage> onReceived)
+        //{
+        //    var message = Receive();
+        //    if (message != null)
+        //        onReceived(message);
+        //}
+        protected async Task ReceiveAsync(Action<IQueueMessage> onReceived)
+        {
+            var message = await ReceiveAsync();
+            if (message != null)
+                onReceived(message);
+            autoResetEvent.Set();
+        }
+        //protected async Task ReceiveAsync(Action<IQueueMessage> onReceived)
+        //{
+        //    var message = await ReceiveAsync();
+        //    if (message != null)
+        //        onReceived(message);
+        //}
+
+        public virtual void Commit(Ptr ptr)
+        {
+            QueueApi.Get(Source).Commit(ptr);
+        }
+
+        public virtual void Abort(Ptr ptr)
+        {
+            QueueApi.Get(Source).Abort(ptr);
+        }
+
+        #endregion
+            
+
+        #region start/stop
+
+        bool lockWasTaken = false;
+        object _locker = new object();
+        Thread[] _workers;
+        long delay;
+        long m_conecctions = 0;
+        long m_pause = 0;
+
+
+        public void Start()
+        {
+            if (IsAlive)
+            {
+                return;
+            }
+            _workers = new Thread[_WorkerCount];
+            ThreadStart threadWorker = IsAsync ? new ThreadStart(TaskWorkerAsync) : new ThreadStart(TaskWorker);
+            //ThreadStart threadWorker = new ThreadStart(TaskWorkerAsync);
+            for (int i = 0; i < _WorkerCount; i++)
+            {
+                _workers[i] = new Thread(new ThreadStart(threadWorker));
+                _workers[i].IsBackground = true;
+                _workers[i].Start();
+            }
+            State = ListenerState.Started;
+            OnInfo("SessionListener Started");
+        }
+        public void Stop()
+        {
+            Shutdown(true);
+            State = ListenerState.Stoped;
+            OnInfo("SessionListener Stoped");
+        }
+        public void Shutdown(bool waitForWorkers)
+        {
+            _isalive = false;
+
+            // Wait for workers to finish
+            if (waitForWorkers)
+                foreach (Thread worker in _workers)
+                    worker.Join();
+        }
+
+        public bool Pause(OnOffState onOff)
+        {
+            //if (ActionWorker == null)
+            //    return false;
+            bool paused = onOff == OnOffState.On;// ActionWorker.Pause(onOff);
+
+            if (paused)
+            {
+                Interlocked.Exchange(ref m_pause, 1);
+                State = ListenerState.Paused;
+                OnEvent($"SessionListener.Pause", $"State: {State}, HostName: {HostName}");
+                OnInfo($"SessionListener Paused: {HostName}");
+            }
+            else
+            {
+                Interlocked.Exchange(ref m_pause, 0);
+                State = ListenerState.Started;
+                OnInfo($"SessionListener No Paused: {HostName}");
+            }
+            return paused;
+        }
+        public string Command(string cmd, bool wait)
+        {
+            switch (cmd)
+            {
+                case "Stop":
+                    Stop(); break;
+                case "Start":
+                    Start(); break;
+                case "Shutdown":
+                    Shutdown(wait); break;
+                default:
+                    return "Commnd not suppported, " + cmd;
+            }
+            return State.ToString();
+        }
+        public bool IsRunning
+        {
+            get
+            {
+                return State == ListenerState.Started;
+            }
+        }
+
+        public int ActiveConnections
+        {
+            get
+            {
+                return (int)m_conecctions;
+            }
+        }
+        public NameValueArgs Report()
+        {
+
+            var args = new NameValueArgs();
+            args.Add("HostName", HostName);
+            args.Add("MaxConnection", MaxConnection);
+            args.Add("ActiveConnections", ActiveConnections);
+            args.Add("Interval", Interval);
+            //args.Add("WaitType", WaitType.ToString());
+            args.Add("EnableDynamicWait", EnableDynamicWait);
+            args.Add("EnableResetEvent", EnableResetEvent);
+            args.Add("State", State.ToString());
+            args.Add("IsMultiTask", IsMultiTask);
+            args.Add("MaxThreads", WorkerCount);
+            return args;
+        }
+        #endregion
+
+        #region worker
+
+        public void Delay(TimeSpan time)
+        {
+            Interlocked.Exchange(ref delay, (long)time.TotalMilliseconds);
+        }
+
+        static AutoResetEvent autoResetEvent = new AutoResetEvent(false);
+
+        protected virtual void TaskWorker()
+        {
+            _isalive = true;
+            // Start queue listener...
+            OnInfo("QListener started...");
+
+            while (IsAlive)
+            {
+
+                try
+                {
+
+                    if (Interlocked.Read(ref delay) > 0)
+                    {
+                        Task.Delay((int)delay);
+                        Interlocked.Exchange(ref delay, 0);
+                    }
+                    while (Interlocked.Read(ref m_pause) > 0)
+                    {
+                        Task.Delay(1000);
+                    }
+                    while (Interlocked.Read(ref m_conecctions) >= MaxConnection)
+                    {
+                        Task.Delay(1000);
+                    }
+
+                    Monitor.Enter(_locker);
+                    lockWasTaken = true;
+
+                    Interlocked.Increment(ref m_conecctions);
+                    Task.Run(() =>
+                    {
+                        Receive(OnMessageReceived);
+                    });
+                    autoResetEvent.WaitOne();
+                }
+                catch (Exception ex)
+                {
+                    OnError("QListener error: " + ex.Message);
+                }
+                finally
+                {
+                    if (lockWasTaken) Monitor.Exit(_locker);
+                }
+                Interlocked.Decrement(ref m_conecctions);
+                Task.Delay(100);
+            }
+
+            OnInfo("QListener stoped");
+
+        }
+
+        protected virtual void TaskWorkerAsync()
+        {
+            _isalive = true;
+            // Start queue listener...
+            OnInfo("QListener started...");
+
+            while (IsAlive)
+            {
+                try
+                {
+
+                    if (Interlocked.Read(ref delay) > 0)
+                    {
+                        Task.Delay((int)delay);
+                        Interlocked.Exchange(ref delay, 0);
+                    }
+                    while (Interlocked.Read(ref m_pause) > 0)
+                    {
+                        Task.Delay(1000);
+                    }
+                    while (Interlocked.Read(ref m_conecctions) >= MaxConnection)
+                    {
+                        Task.Delay(1000);
+                    }
+                    Monitor.Enter(_locker);
+                    lockWasTaken = true;
+
+                    Interlocked.Increment(ref m_conecctions);
+                    var task = Task.Run(async () =>
+                    {
+                        await ReceiveAsync(OnMessageReceived);
+                    });
+                    autoResetEvent.WaitOne();
+                }
+                catch (Exception ex)
+                {
+                    OnError("QListener error: " + ex.Message);
+                }
+                finally
+                {
+                    if (lockWasTaken) Monitor.Exit(_locker);
+                }
+                Interlocked.Decrement(ref m_conecctions);
+                Task.Delay(Interval);
+            }
+
+            OnInfo("QListener stoped...");
+
+        }
+
+        #endregion
+    }
+
+
+#if (false)
+    /// <summary>
+    /// Represents a thread-safe queue listener (FIFO) collection.
+    /// </summary>
+    public abstract class SessionListener : IListener
+    {
+    #region members
+
+        public const int DefaultInterval = 1000;
+
+        protected QueueAdapter Adapter;
+
+        CancellationTokenSource canceller = new CancellationTokenSource();
+
+        QueueHost _Source;
+        public QueueHost Source { get { return _Source; } }
+
+        public bool EnableResetEvent { get; set; }
+        //int _Interval;
+        public int Interval { get; private set; }//{ get { return MinWait; } }
+        int _ConnectTimeout;
+        public int ConnectTimeout { get { return _ConnectTimeout; } }
+        int _ReadTimeout;
+        public int ReadTimeout { get { return _ReadTimeout; } }
+
+        bool _isalive = false;
+        public bool IsAlive { get { return _isalive; } }
+        int _WorkerCount;
+        public int WorkerCount { get { return _WorkerCount; } }
+        int _MaxConnection;
+        public int MaxConnection { get { return _MaxConnection; } }
+        bool _IsMultiTask;
+        public bool IsMultiTask { get { return _IsMultiTask; } }
+
+        bool _IsAsync;
+        public bool IsAsync { get { return _IsAsync; } }
+        public ListenerState State { get; private set; }
+
+        ILogger _Logger;
+        /// <summary>
+        /// Get or Set Logger that implements <see cref="ILogger"/> interface.
+        /// </summary>
+        public ILogger Logger { get { return _Logger; } set { if (value != null) _Logger = value; } }
+
+        public bool EnableDynamicWait { get; set; }
+        public string HostName { get; private set; }
         //AdapterOperations _AdapterOperation;
         //public AdapterOperations OperationType { get { return _AdapterOperation; } }
 
@@ -103,9 +532,9 @@ namespace Nistec.Messaging.Listeners
             return (int)IntervalWait;
         }
         */
-        #endregion
+    #endregion
 
-        #region message events
+    #region message events
         
         /// <summary>
         /// ErrorOcurred
@@ -198,9 +627,9 @@ namespace Nistec.Messaging.Listeners
                 Adapter.MessageReceivedAction(item);
         }
      
-        #endregion
+    #endregion
 
-        #region ctor
+    #region ctor
 
         public SessionListener(QueueAdapter adapter)//, int interval)
         {
@@ -243,9 +672,9 @@ namespace Nistec.Messaging.Listeners
             State = ListenerState.Initilaized;
         }
 
-        #endregion
+    #endregion
 
-        #region override
+    #region override
 
         //protected abstract IQueueAck Send(QueueMessage message);
 
@@ -288,9 +717,9 @@ namespace Nistec.Messaging.Listeners
         //    }
         //}
 
-        #endregion
+    #endregion
 
-        #region ThreadWorker
+    #region ThreadWorker
 
         //public ListenerState State
         //{
@@ -349,7 +778,8 @@ namespace Nistec.Messaging.Listeners
                     try
                     {
                         //in case of ResetEvent and fixed interval using
-                        ReceiveAsync(ActionWorker).ConfigureAwait(false);
+                        Receive(ActionWorker);//.ConfigureAwait(false);
+                        //ReceiveAsync(ActionWorker).ConfigureAwait(false);
                         //return false;
 
                         //in case of DynamicWait or fixed interval using
@@ -423,9 +853,9 @@ namespace Nistec.Messaging.Listeners
                 _Logger.Info("SessionListener Shutdown: {0}", HostName);
         }
 
-        #endregion
+    #endregion
 
-        #region start/stop
+    #region start/stop
         /*
         bool lockWasTaken = false;
         object _locker = new object();
@@ -467,9 +897,9 @@ namespace Nistec.Messaging.Listeners
                     worker.Join();
         }
         */
-        #endregion
+    #endregion
 
-        #region worker
+    #region worker
         /*
                 public void Delay(TimeSpan time)
                 {
@@ -575,6 +1005,8 @@ namespace Nistec.Messaging.Listeners
 
                 }
         */
-        #endregion
+    #endregion
     }
+
+#endif
 }

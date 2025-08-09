@@ -13,6 +13,7 @@ using Nistec.Messaging.Transactions;
 using Nistec.Logging;
 using Nistec.Data.Entities;
 using Nistec.Runtime.Advanced;
+using System.Threading.Tasks;
 
 namespace Nistec.Messaging
 {
@@ -1212,7 +1213,72 @@ namespace Nistec.Messaging
             return item;
         }
 
+        /// <summary>
+        /// Dequeue Message
+        /// </summary>
+        /// <param name="maxSecondWait"></param>
+        /// <returns></returns>
+        public virtual IQueueMessage Consume(int maxSecondWait)
+        {
+            Ptr ptr = Ptr.Empty;
+            IQueueMessage item = null;
+            try
+            {
 
+                using (TransactionScope scope = TransHelper.GetTransactionScope())
+                {
+
+                    if (!highQ.IsEmpty && highQ.TryDequeue(out ptr))
+                    {
+                        TryDequeue(ptr, out item); //item = DequeueScop(ptr);
+                    }
+                    else if (!mediumQ.IsEmpty && mediumQ.TryDequeue(out ptr))
+                    {
+                        TryDequeue(ptr, out item); //item = DequeueScop(ptr);
+                    }
+                    else if (!normalQ.IsEmpty && normalQ.TryDequeue(out ptr))
+                    {
+                        TryDequeue(ptr, out item); //item = DequeueScop(ptr);
+                    }
+                    else
+                    {
+                        item = null;
+                    }
+                    scope.Complete();
+                    //changed:syncCount:
+                    //if (ptr == Guid.Empty)
+                    //    ptr = mediumQ.Dequeue();
+                    //else if (ptr == Guid.Empty)
+                    //    ptr = normalQ.Dequeue();
+
+                    //if (ptr.IsEmpty)
+                    //{
+                    //    return GetFirstItem();
+                    //}
+                    //else
+                    //{
+                    //    return DequeueScop(ptr);
+                    //}
+
+                    //if (item == null)
+                    //{
+                    //    Thread.Sleep(300);
+                    //    return Dequeue();
+                    //}
+                }
+                DequeueScopEvent(item);
+                if (item != null)
+                    Logger.Info("PriorityQueue Dequeue ", item.Print());
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception("PriorityQueue Dequeue error ", ex);
+            }
+
+            return item;
+        }
+
+        /*
         /// <summary>
         /// Consume Message
         /// </summary>
@@ -1227,10 +1293,41 @@ namespace Nistec.Messaging
             int sycle = 0;
             try
             {
+                
+                //while (highQ.IsEmpty && mediumQ.IsEmpty && normalQ.IsEmpty)
+                //{
+                //    Task.Delay(1000);
+                //}
+                //using (TransactionScope scope = TransHelper.GetTransactionScope())
+                //{
+                //    if (!highQ.IsEmpty && highQ.TryDequeue(out ptr))
+                //    {
+                //        TryDequeue(ptr, out item); //item = DequeueScop(ptr);
+                //    }
+                //    else if (!mediumQ.IsEmpty && mediumQ.TryDequeue(out ptr))
+                //    {
+                //        TryDequeue(ptr, out item); //item = DequeueScop(ptr);
+                //    }
+                //    else if (!normalQ.IsEmpty && normalQ.TryDequeue(out ptr))
+                //    {
+                //        TryDequeue(ptr, out item); //item = DequeueScop(ptr);
+                //    }
+                //    //else if (maxSecondWait > 0 && DateTime.Now.Subtract(start).TotalSeconds > maxSecondWait)
+                //    //{
+                //    //    wait = false;
+                //    //}
+                //    //else
+                //    //{
+                //    //    Thread.Sleep(ConsumeInterval);
+                //    //}
+                //    scope.Complete();
+                //}
+                
                 do
                 {
+                    
                     if (sycle > 0)
-                        Thread.Sleep(ConsumeInterval);
+                        Task.Delay(ConsumeInterval);
 
                     using (TransactionScope scope = TransHelper.GetTransactionScope())
                     {
@@ -1258,7 +1355,7 @@ namespace Nistec.Messaging
                     }
                     sycle++;
                 } while (item == null && wait);
-
+                
                 DequeueScopEvent(item);
                 if (item != null)
                     Logger.Info("PriorityQueue Consume ", item.Print());
@@ -1271,7 +1368,7 @@ namespace Nistec.Messaging
             return item;
 
         }
-
+        */
         //private IQueueMessage GetFirstItem()
         //{
         //    IQueueMessage item = null;

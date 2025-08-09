@@ -74,6 +74,18 @@ namespace Nistec.Messaging.Remote
             return ack;
         }
 
+        protected bool OnQItemCompleted(byte[] bytes, Action<IQueueMessage> onCompleted)
+        {
+
+            IQueueMessage item = OnQItemCompleted(bytes);
+            if (item != null)
+            {
+                onCompleted.Invoke(item);
+                return true;
+            }
+            return false;
+        }
+
         protected bool OnQItemCompleted(TransStream ts, Action<IQueueMessage> onCompleted)
         {
 
@@ -100,7 +112,21 @@ namespace Nistec.Messaging.Remote
 
             return item;
         }
-        
+        protected IQueueMessage OnQItemCompleted(byte[] bytes)//, IQueueRequest message)
+        {
+
+            QueueMessage item = (bytes == null || bytes.Length == 0) ? null : QueueMessage.Deserialize(bytes);
+
+            if (item == null)
+            {
+                //OnFault("Cast Binry to QueueMessage failes");
+                return null;
+            }
+
+            Assists.SetArrived(item);
+
+            return item;
+        }
         #endregion
 
         #region onCompleted TransBinary
@@ -170,6 +196,36 @@ namespace Nistec.Messaging.Remote
             IQueueAck ack = OnItemCompleted(ts, message);
 
             onCompleted.Invoke(ack);
+        }
+
+        protected QueueAck OnItemCompleted(byte[] ts, IQueueRequest message)
+        {
+
+            QueueAck ack= QueueAck.Deserialize(ts);
+
+            //if (!ack.IsOk)//binary
+            //{
+            //    if (message.DuplexType.IsDuplex())
+            //        ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+            //    else
+            //        ack = new QueueAck(MessageState.Arrived, "Message Arrived on way", message.Identifier, message.Host);
+
+            //}
+            //QueueAck ack = (ts == null || ts.IsEmpty) ? null : (QueueAck)ts.ReadBody();
+
+            //if (ack == null)
+            //{
+            //    if (message.DuplexType.IsDuplex())
+            //        ack = new QueueAck(MessageState.UnExpectedError, "Server was not responsed for this message", message.Identifier, message.Host);
+            //    else
+            //        ack = new QueueAck(MessageState.Arrived, "Message Arrived on way", message.Identifier, message.Host);
+
+            //    //ack.HostAddress = message.HostAddress;
+            //}
+
+            Assists.SetArrived(ack);
+
+            return ack;
         }
 
         protected QueueAck OnItemCompleted(IDataStream ts, IQueueRequest message)
@@ -332,9 +388,14 @@ namespace Nistec.Messaging.Remote
             {
                 Logger.Instance.Debug("RemoteApi PublishItem : Host:{0}, Identifier:{1}", message.Host, message.Identifier);
 
-                TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb)=>{ //binary
+                TcpSocketClient.Send(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
                     ack(OnItemCompleted(tb, message));
                 });
+
+
+                //TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb)=>{ //binary
+                //    ack(OnItemCompleted(tb, message));
+                //});
 
 
                 //ExecDuplexStream(message, ConnectTimeout, (ts) => {
@@ -356,9 +417,14 @@ namespace Nistec.Messaging.Remote
             {
                 Logger.Instance.Debug("RemoteApi PublishItem : Host:{0}, Identifier:{1}", message.Host, message.Identifier);
 
-                await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                await TcpSocketClient.SendAsync(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
                     ack(OnItemCompleted(tb, message));
                 });
+
+
+                //await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                //    ack(OnItemCompleted(tb, message));
+                //});
 
                 //await ExecDuplexStreamAsync(message, ConnectTimeout, (ts) => {
                 //    ack(OnItemCompleted(ts, message));
@@ -377,8 +443,12 @@ namespace Nistec.Messaging.Remote
             message.MessageState = MessageState.Sending;
             try
             {
-                var response = TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);//binary
+                var response = TcpSocketClient.Send(message.Serialize(), RemoteHostAddress, RemoteHostPort);//binary
                 return OnItemCompleted(response, message);
+
+
+                //var response = TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);//binary
+                //return OnItemCompleted(response, message);
                 
                 //TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout));
                 //return OnItemCompleted(ts, message);
@@ -389,24 +459,7 @@ namespace Nistec.Messaging.Remote
                 return OnItemCompleted((TransStream)null, message);//binary
             }
         }
-
-        public void PublishItemStream(QueueMessage message, int timeout, Action<IDataStream> onCompleted)
-        {
-            message.Host = EnsureHost(message.Host);
-            message.MessageState = MessageState.Sending;
-            timeout = EnsureConnectTimeout(timeout);
-            //bool isCompleted = false;
-            EnableRemoteException = true;
-
-            TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted);//binary
-
-
-            //ExecDuplexStream(message, timeout, (TransStream ts) =>
-            //{
-            //    onCompleted.Invoke(ts);
-            //    //isCompleted = true;
-            //}, IsAsync);
-        }
+           
         public void PublishItem(QueueMessage message, int timeout, Action<IQueueAck> onCompleted)
         {
             message.Host = EnsureHost(message.Host);
@@ -416,9 +469,13 @@ namespace Nistec.Messaging.Remote
 
             try
             {
-                TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                TcpSocketClient.Send(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
                     onCompleted(OnItemCompleted(tb, message));
                 });
+
+                //TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                //    onCompleted(OnItemCompleted(tb, message));
+                //});
 
                 //ExecDuplexStream(message, timeout, (TransStream ts) =>
                 //{
@@ -442,9 +499,12 @@ namespace Nistec.Messaging.Remote
 
             try
             {
-                await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                await TcpSocketClient.SendAsync(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
                     onCompleted(OnItemCompleted(tb, message));
                 });
+                //await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                //    onCompleted(OnItemCompleted(tb, message));
+                //});
                 //await ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
                 //{
                 //    OnItemCompleted(ts, message, onCompleted);
@@ -458,6 +518,28 @@ namespace Nistec.Messaging.Remote
             }
         }
 
+        public void PublishItemStream(QueueMessage message, int timeout, Action<TransStream> onCompleted)//Action<IDataStream> onCompleted
+        {
+            message.Host = EnsureHost(message.Host);
+            message.MessageState = MessageState.Sending;
+            timeout = EnsureConnectTimeout(timeout);
+            //bool isCompleted = false;
+            EnableRemoteException = true;
+
+            TcpSocketClient.Send(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                onCompleted(new TransStream(tb));
+            }); 
+
+            //TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted);//binary
+
+
+            //ExecDuplexStream(message, timeout, (TransStream ts) =>
+            //{
+            //    onCompleted.Invoke(ts);
+            //    //isCompleted = true;
+            //}, IsAsync);
+        }
+
         public async Task PublishItemStreamAsync(QueueMessage message, int timeout, Action<string> onFault, Action<IDataStream> onCompleted)
         {
             message.Host = EnsureHost(message.Host);
@@ -467,7 +549,11 @@ namespace Nistec.Messaging.Remote
 
             try
             {
-                await TcpSocketClient.SendAsync((IDataStream) new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted); //binary
+                await TcpSocketClient.SendAsync(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                    onCompleted(new TransStream(tb));
+                });
+
+                //await TcpSocketClient.SendAsync((IDataStream) new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted); //binary
 
                 //await ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
                 //{
@@ -516,8 +602,11 @@ namespace Nistec.Messaging.Remote
             int timeout = 24 * 60 * 60 * 1000;
             try
             {
-                var ts = TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort); //binary
+                var ts = TcpSocketClient.Send(message.Serialize(), RemoteHostAddress, RemoteHostPort); //binary
                 return OnQItemCompleted(ts);
+
+                //var ts = TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort); //binary
+                //return OnQItemCompleted(ts);
 
                 //TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout), ReadTimeout);
                 //return OnQItemCompleted(ts);
@@ -537,9 +626,15 @@ namespace Nistec.Messaging.Remote
             int timeout = 24 * 60 * 60 * 1000;
             try
             {
-                TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
-                    onCompleted(OnQItemCompleted(tb));
+                TcpSocketClient.Send(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) => //binary
+                {
+                    var res = QueueMessage.Deserialize(tb);
+                    onCompleted(res);
                 });
+
+                //TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                //    onCompleted(OnQItemCompleted(tb));
+                //});
                 //ExecDuplexStream(message, timeout, ReadTimeout, (TransStream ts) =>
                 //{
                 //    if (!TransStream.IsEmptyStream(ts))
@@ -562,14 +657,22 @@ namespace Nistec.Messaging.Remote
             int timeout = 24 * 60 * 60 * 1000;
             try
             {
-                await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => //binary
+                await TcpSocketClient.SendAsync(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) => //binary
                 {
-                    var res = tb.ReadBody();
-                    if (res is IQueueMessage)
-                        onCompleted((IQueueMessage)res);
-                    else
-                        OnFault("ConsumeItemAsync error:" + res);
+                    var res = QueueMessage.Deserialize(tb);
+                       onCompleted(res);
                 });
+
+                //await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => //binary
+                //{
+                //    var res = tb.ReadBody();
+                //    if (res == null || res.ToString() == "NA")
+                //        Console.WriteLine("NA");
+                //    else if (res is IQueueMessage)
+                //        onCompleted((IQueueMessage)res);
+                //    else
+                //        OnFault("ConsumeItemAsync error:" + res);
+                //});
 
                 //await ExecDuplexStreamAsync(message, timeout, ReadTimeout, (TransStream ts) =>
                 //{
@@ -595,11 +698,16 @@ namespace Nistec.Messaging.Remote
 
             try
             {
+                
+                var ts = TcpSocketClient.Send(message.Serialize(), RemoteHostAddress, RemoteHostPort);
+                return OnQItemCompleted(ts);
+
                 //TransBinary ts=TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);
                 //return OnQItemCompleted(ts);
 
-                TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout), ReadTimeout);
-                return OnQItemCompleted(ts);
+
+                //TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout), ReadTimeout);
+                //return OnQItemCompleted(ts);
             }
             catch (Exception ex)
             {
@@ -618,8 +726,8 @@ namespace Nistec.Messaging.Remote
             bool ack = false;
             try
             {
-                await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
-                    if (!tb.IsEmpty)// TransBinary.IsEmptyStream(tb))
+                await TcpSocketClient.SendAsync(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                    if (tb!= null && tb.Length==0)// TransBinary.IsEmptyStream(tb))
                     {
                         OnQItemCompleted(tb, onCompleted);
                         ack = true;
@@ -630,6 +738,19 @@ namespace Nistec.Messaging.Remote
                         dw.DynamicWaitAck(ack);
 
                 });
+
+                //await TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => { //binary
+                //    if (!tb.IsEmpty)// TransBinary.IsEmptyStream(tb))
+                //    {
+                //        OnQItemCompleted(tb, onCompleted);
+                //        ack = true;
+                //    }
+                //    //if (onAck != null)
+                //    //    onAck(ack);
+                //    if (dw != null)
+                //        dw.DynamicWaitAck(ack);
+
+                //});
 
                 //await ExecDuplexStreamAsync(message, timeout, (TransStream ts) =>
                 //{
@@ -665,9 +786,9 @@ namespace Nistec.Messaging.Remote
             bool ack = false;
             try
             {
-                TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => //binary
+                TcpSocketClient.Send(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) => //binary
                 {
-                    if (tb.IsEmpty)//TransBinary.IsEmptyStream(tb))
+                    if (tb != null && tb.Length == 0)//if (tb.IsEmpty)//TransBinary.IsEmptyStream(tb))
                     {
                         ack = false;
                     }
@@ -682,6 +803,24 @@ namespace Nistec.Messaging.Remote
                         dw.DynamicWaitAck(ack);
 
                 });
+
+                //TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) => //binary
+                //{
+                //    if (tb.IsEmpty)//TransBinary.IsEmptyStream(tb))
+                //    {
+                //        ack = false;
+                //    }
+                //    else
+                //    {
+                //        OnQItemCompleted(tb, onCompleted);
+                //        ack = true;
+                //    }
+                //    //if (onAck != null)
+                //    //    onAck(ack);
+                //    if (dw != null)
+                //        dw.DynamicWaitAck(ack);
+
+                //});
 
                 //ExecDuplexStream(message, timeout, (TransStream ts) =>
                 //{
@@ -716,16 +855,16 @@ namespace Nistec.Messaging.Remote
 
             try
             {
-                //TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) =>
-                //{
-                //    OnQItemCompleted(tb, onCompleted);
-                //});
-
-                ExecDuplexStream(message, ConnectTimeout, (TransStream ts) =>
+                TcpSocketClient.Send(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) =>
                 {
-                    OnQItemCompleted(ts, onCompleted);
-                    //isCompleted = true;
-                }, IsAsync);
+                    OnQItemCompleted(tb, onCompleted);
+                });
+
+                //ExecDuplexStream(message, ConnectTimeout, (TransStream ts) =>
+                //{
+                //    OnQItemCompleted(ts, onCompleted);
+                //    //isCompleted = true;
+                //}, IsAsync);
 
             }
             catch (Exception ex)
@@ -743,11 +882,13 @@ namespace Nistec.Messaging.Remote
             try
             {
 
-                //return TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort);
+                var ts = TcpSocketClient.Send(message.Serialize(), RemoteHostAddress, RemoteHostPort);
+                if (ts != null && ts.Length > 0)
+                    return new TransStream(ts);
 
-
-                TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout), ReadTimeout);
-                return ts;
+                return null;
+                //TransStream ts = ExecDuplexStream(message, EnsureConnectTimeout(timeout), ReadTimeout);
+                //return ts;
             }
             catch (Exception ex)
             {
@@ -764,16 +905,16 @@ namespace Nistec.Messaging.Remote
 
             try
             {
-                //TcpSocketClient.Send(new TransBinary(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, (tb) =>
-                //{
-                //    onCompleted.Invoke(tb);
-                //});
-
-                ExecDuplexStream(message, timeout, (TransStream ts) =>
+                TcpSocketClient.Send(message.Serialize(), RemoteHostAddress, RemoteHostPort, (tb) =>
                 {
-                    onCompleted.Invoke(ts);
-                    //isCompleted = true;
-                }, IsAsync);
+                    onCompleted.Invoke(new TransStream(tb));
+                });
+
+                //ExecDuplexStream(message, timeout, (TransStream ts) =>
+                //{
+                //    onCompleted.Invoke(ts);
+                //    //isCompleted = true;
+                //}, IsAsync);
 
             }
             catch (Exception ex)
@@ -955,7 +1096,7 @@ namespace Nistec.Messaging.Remote
                     PipeClient.SendDuplexStream(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
-                    TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted).ConfigureAwait(false);
+                    TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted);//.ConfigureAwait(false);
                     //TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, readTimeout,onCompleted, EnableRemoteException);
                     break;
             }
@@ -975,7 +1116,7 @@ namespace Nistec.Messaging.Remote
                     PipeClient.SendDuplexStream(message, RemoteHostAddress, onCompleted, EnableRemoteException, isChannelAsync ? System.IO.Pipes.PipeOptions.Asynchronous : System.IO.Pipes.PipeOptions.None);
                     break;
                 case NetProtocol.Tcp:
-                    TcpSocketClient.SendAsync(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted).ConfigureAwait(false);
+                    TcpSocketClient.Send(new TransStream(message, message.Command, TransType.Object), RemoteHostAddress, RemoteHostPort, onCompleted);//.ConfigureAwait(false);
                     //TcpStreamClient.SendDuplexStream(message, RemoteHostAddress, RemoteHostPort, connectTimeout, onCompleted, EnableRemoteException);
                     break;
             }

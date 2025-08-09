@@ -19,33 +19,30 @@
 //===============================================================================================================
 //licHeader|
 
-using System;
-using System.Collections;
 using System.ComponentModel;
-using System.Configuration.Install;
 using System.ServiceProcess;
 
 namespace Nistec.Services
 {
-	[RunInstaller(true)]
-	public class Installer : System.Configuration.Install.Installer
-	{
-		private ServiceInstaller serviceInstaller1;
-		private ServiceProcessInstaller processInstaller;
+    [RunInstaller(true)]
+    public class Installer : System.Configuration.Install.Installer
+    {
+        private ServiceInstaller serviceInstaller1;
+        private ServiceProcessInstaller processInstaller;
 
-		public Installer()
-		{
-			// Instantiate installers for process and services.
-			processInstaller = new ServiceProcessInstaller();
-			serviceInstaller1 = new ServiceInstaller();
+        public Installer()
+        {
+            // Instantiate installers for process and services.
+            processInstaller = new ServiceProcessInstaller();
+            serviceInstaller1 = new ServiceInstaller();
 
-			// The services run under the system account.
+            // The services run under the system account.
             processInstaller.Account = Settings.ServiceAccount;
 
-			// The services are started manually.
+            // The services are started manually.
             serviceInstaller1.StartType = Settings.ServiceStartMode;
 
-			// ServiceName must equal those on ServiceBase derived classes.            
+            // ServiceName must equal those on ServiceBase derived classes.            
 
             serviceInstaller1.ServiceName = Settings.ServiceName;
             serviceInstaller1.DisplayName = Settings.DisplayName;
@@ -58,10 +55,10 @@ namespace Nistec.Services
                 serviceInstaller1.ServicesDependedOn = ServicesDependedOn;
             }
 
-			// Add installers to collection. Order is not important.
-			Installers.Add(serviceInstaller1);
-			Installers.Add(processInstaller);
-		}
+            // Add installers to collection. Order is not important.
+            Installers.Add(serviceInstaller1);
+            Installers.Add(processInstaller);
+        }
 
     }
 }

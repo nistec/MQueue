@@ -243,9 +243,9 @@ namespace Nistec.Messaging
         {
             return BinarySerializer.SerializeToBytes(this);
         }
-        public static QueueRequest Deserialize(byte[] bytes)
+        public static QueueAck Deserialize(byte[] bytes)
         {
-            return BinarySerializer.Deserialize<QueueRequest>(bytes);
+            return BinarySerializer.Deserialize<QueueAck>(bytes);
         }
 
         //public string ToJson()
@@ -253,9 +253,9 @@ namespace Nistec.Messaging
         //    return JsonSerializer.Serialize(this);
         //}
 
-        public static QueueRequest Deserialize(string json)
+        public static QueueAck Deserialize(string json)
         {
-            return JsonSerializer.Deserialize<QueueRequest>(json);
+            return JsonSerializer.Deserialize<QueueAck>(json);
         }
 
         #endregion

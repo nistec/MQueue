@@ -640,6 +640,8 @@ namespace Nistec.Messaging
         /// <returns></returns>
         T GetBody<T>();
 
+        int BodyLength();
+
         byte[] Serialize();
 
         ///// <summary>

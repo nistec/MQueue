@@ -110,9 +110,12 @@
     </Compile>
     <Compile Include="Io\FolderQueue.cs" />
     <Compile Include="Listeners\Enums.cs" />
+    <Compile Include="Listeners\AgentAdapter.cs" />
     <Compile Include="Listeners\QueueAdapter.cs" />
     <Compile Include="Listeners\FolderListener.cs" />
+    <Compile Include="Listeners\AgentListener.cs" />
     <Compile Include="Listeners\QueueAgentWorker.cs" />
+    <Compile Include="Listeners\QueueReceiver.cs" />
     <Compile Include="Listeners\SessionDispatcher.cs" />
     <Compile Include="Listeners\SessionListener.cs" />
     <Compile Include="Listeners\SessionManager.cs" />

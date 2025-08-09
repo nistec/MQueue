@@ -122,7 +122,7 @@ namespace Nistec.Messaging.Listeners
 
         #region DynamicWorker
         DynamicWorker ActionWorker;
-
+        /*
         public void StartDynamicWorker() {
 
 
@@ -171,7 +171,7 @@ namespace Nistec.Messaging.Listeners
                 ActionWorker.Start();
             }
         }
-
+        */
         public void Start()
         {
             if (_ChannelService == null)
@@ -180,7 +180,7 @@ namespace Nistec.Messaging.Listeners
             }
             _ChannelService.Start();
 
-            StartDynamicWorker();
+            //StartDynamicWorker();
 
             if (_Logger != null)
                 _Logger.Info("TopicSbscriberListener Started:" + SbscriberHost);
@@ -412,7 +412,7 @@ namespace Nistec.Messaging.Listeners
 
         #region DynamicWorker
         DynamicWorker ActionWorker;
-
+        /*
         public void StartDynamicWorker()
         {
 
@@ -462,7 +462,7 @@ namespace Nistec.Messaging.Listeners
                 ActionWorker.Start();
             }
         }
-
+        */
         public void Start()
         {
             if (_ChannelService == null)
@@ -471,7 +471,7 @@ namespace Nistec.Messaging.Listeners
             }
             _ChannelService.Start();
 
-            StartDynamicWorker();
+            //StartDynamicWorker();
 
             if (_Logger != null)
                 _Logger.Info("TopicSbscriberListener Started:" + SbscriberHost);

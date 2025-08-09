@@ -102,7 +102,7 @@ namespace Nistec.Messaging.Server
 
         DynamicWorker ActionWorker;
         int actionsOk = 0;
-
+        /*
         private void StartDynamicWorker()
         {
 
@@ -169,12 +169,12 @@ namespace Nistec.Messaging.Server
             ActionWorker.Start();
 
         }
-
+        */
         public void Start()
         {
             if (ActionWorker != null)
                 return;
-            StartDynamicWorker();
+            //StartDynamicWorker();
             Logger.Info("TopicSbscriberListener Started");
         }
 
