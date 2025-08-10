@@ -175,6 +175,7 @@ namespace QueueTasker
 
     public static class QueueClientDemo {
 
+        static readonly AutoResetEvent _signal = new AutoResetEvent(false);
 
         public static void PublishItem(int i)
         {
@@ -211,7 +212,10 @@ namespace QueueTasker
                     Console.WriteLine("State:{0},Creation:{1},Host:{2},Label:{3}, Identifier:{4}, Duration:{5}, item:{6}", ack.MessageState, ack.Creation, ack.Host, ack.Label, ack.Identifier, ack.Duration, item.Identifier);
 
             }).ConfigureAwait(false).GetAwaiter().GetResult();
+
+            _signal.Set();
         }
+
 
         public static void PublishMulti(int maxItems)
         {
@@ -220,14 +224,16 @@ namespace QueueTasker
             QueueClient.Config_Content = NetConfig.AppSettings.Get("Message", "NA");
             QueueClient.Config_Args = NetConfig.AppSettings.Get("Message", "NA");
 
+
             long counter = 0;
             int interval = 100;
             DateTime start = DateTime.Now;
 
             for (int i = 0; i < maxItems; i++)
             {
-                PublishItemAsync(i);
-                Thread.Sleep(interval);
+                Task.Run(()=> PublishItemAsync(i));
+                _signal.WaitOne();
+                Task.Delay(interval);
             }
 
             var duration = DateTime.Now.Subtract(start);

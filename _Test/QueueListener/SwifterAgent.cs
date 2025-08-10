@@ -36,7 +36,7 @@ namespace QueueListenerDemo
             //EnableDynamicWait = AgentConfig.SwifterAgentIsDynamicWait;
 
             //QueueName = AgentsConfig.QueueName;
-            MaxConnections = 1;// NetConfig.SwifterAgentMaxConnection;
+            MaxConnection = 1;// NetConfig.SwifterAgentMaxConnection;
             WorkerCount = 1;// AgentConfig.SwifterAgentWorkerCount;
             Interval = 1000;// AgentConfig.SwifterAgentInterval;
             //WaitSecond = AgentConfig.MQueueAgentWaitSecond;

@@ -18,7 +18,7 @@ namespace QueueListenerDemo
         {
             Console.WriteLine("QueueListener started...");
 
-            QueueDemo.DemoRequest();
+            //QueueDemo.DemoRequest();
 
             var host = QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "Netcell");
             QListener ql = new QListener(QListener.CreateAdapter(host));

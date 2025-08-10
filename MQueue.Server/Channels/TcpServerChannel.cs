@@ -184,31 +184,31 @@ namespace Nistec.Messaging.Server
         int Counter = 0;
         protected override bool ReadyToAccept()
         {
-            if (QueueChannel == QueueChannel.Consumer)
-            {
-               int count= AgentManager.Queue.IsQueueCountAll();
-                if (count == 0)
-                {
-                    Counter=LastCount = SrcCount = 0;
-                    return false;
-                }
-                else
-                {
-                    if (count == LastCount && count == SrcCount && Counter<10)
-                        return false;
-                    else
-                    {
-                        Counter++;
-                        LastCount = count;
-                        if (Counter > 10)
-                        {
-                            SrcCount = count;
-                            Counter = 0;
-                        }
-                        return true;
-                    }
-                }
-            }
+            //if (QueueChannel == QueueChannel.Consumer)
+            //{
+            //   int count= AgentManager.Queue.IsQueueCountAll();
+            //    if (count == 0)
+            //    {
+            //        Counter=LastCount = SrcCount = 0;
+            //        return false;
+            //    }
+            //    else
+            //    {
+            //        Counter++;
+            //        if (count == LastCount && count == SrcCount && Counter<10)
+            //            return false;
+            //        else
+            //        {
+            //            LastCount = count;
+            //            if (Counter > 10)
+            //            {
+            //                SrcCount = count;
+            //                Counter = 0;
+            //            }
+            //            return true;
+            //        }
+            //    }
+            //}
             return true;
         }
 
@@ -251,7 +251,7 @@ namespace Nistec.Messaging.Server
 
         protected override async Task<byte[]> ServerHandleAsync(byte[] bytes)
         {
-            Log.Info($"TcpServer ServerHandle QueueChannel: {QueueChannel}");
+            Log.Info($"TcpServer ServerHandleAsync QueueChannel: {QueueChannel}");
             //IDataStream response = null;
 
             if (QueueChannel == QueueChannel.Producer)
@@ -279,8 +279,8 @@ namespace Nistec.Messaging.Server
             }
             else
             {
-                Log.Warn("TcpServer ServerHandle unknwon message type: {0}", QueueChannel);
-                throw new Exception($"TcpServer ServerHandle unknwon message type: {QueueChannel}");
+                Log.Warn("TcpServer ServerHandleAsync unknwon message type: {0}", QueueChannel);
+                throw new Exception($"TcpServer ServerHandleAsync unknwon message type: {QueueChannel}");
             }
         }
 
@@ -613,7 +613,7 @@ namespace Nistec.Messaging.Server
         #endregion
     }
 
-    public class TcpServerTransChannel : TcpTransServer//<IQueueRequest, TransStream>
+    public class TcpServerTransChannel : TcpSoketTransServer//<IQueueRequest, TransStream>
     {
         QueueChannel QueueChannel;
 
@@ -780,30 +780,30 @@ namespace Nistec.Messaging.Server
         int Counter = 0;
         protected override bool ReadyToAccept()
         {
-            if (QueueChannel == QueueChannel.Consumer)
-            {
-                int count = AgentManager.Queue.IsQueueCountAll();
-                if (count == 0)
-                {
-                    Counter = LastCount = SrcCount = 0;
-                    return false;
-                }
-                else
-                {
-                    if (count == LastCount && count == SrcCount)
-                        return false;
-                    else
-                    {
-                        LastCount = count;
-                        if (Counter > 10)
-                        {
-                            SrcCount = count;
-                            Counter = 0;
-                        }
-                        return true;
-                    }
-                }
-            }
+            //if (QueueChannel == QueueChannel.Consumer)
+            //{
+            //    int count = AgentManager.Queue.IsQueueCountAll();
+            //    if (count == 0)
+            //    {
+            //        Counter = LastCount = SrcCount = 0;
+            //        return false;
+            //    }
+            //    else
+            //    {
+            //        if (count == LastCount && count == SrcCount)
+            //            return false;
+            //        else
+            //        {
+            //            LastCount = count;
+            //            if (Counter > 10)
+            //            {
+            //                SrcCount = count;
+            //                Counter = 0;
+            //            }
+            //            return true;
+            //        }
+            //    }
+            //}
             return true;
         }
 

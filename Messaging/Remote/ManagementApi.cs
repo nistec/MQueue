@@ -201,8 +201,8 @@ namespace Nistec.Messaging.Remote
                 Command = command.ToString(),// (QueueCmd)(int)command,
                 Host = QueueName
             };
-
-            var result = ExecDuplexStream(request, ConnectTimeout, ReadTimeout);
+            var result = RequestItemStream(request, ConnectTimeout);
+            //var result = ExecDuplexStream(request, ConnectTimeout, ReadTimeout);
             
             return result;
 
@@ -251,7 +251,8 @@ namespace Nistec.Messaging.Remote
                 Command = cmd.ToString()// (QueueCmd)(int)cmd
                 //Command = (QueueCmd)(int)cmd
             };
-            var response = ExecDuplexStream(request, ConnectTimeout, ReadTimeout);
+            var response = RequestItemStream(request, ConnectTimeout);
+            //var response = ExecDuplexStream(request, ConnectTimeout, ReadTimeout);
             return response;
         }
 

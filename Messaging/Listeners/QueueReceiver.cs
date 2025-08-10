@@ -34,7 +34,7 @@ namespace Nistec.Messaging.Listeners
         //protected int MaxThread = 1;
         protected int WorkerCount = 1;
 
-        //MaxConnections = 30;
+        //MaxConnection = 30;
         protected int m_Connections;
         //Interval = 30000;
         protected int Server = 0;
@@ -64,7 +64,7 @@ namespace Nistec.Messaging.Listeners
         {
 
             ReadTimeout = adapter.ReadTimeout;
-            MaxConnections = adapter.MaxConnection;
+            MaxConnection = adapter.MaxConnection;
             WorkerCount = adapter.WorkerCount;
             Interval = adapter.Interval;
             //ConnectTimeout = adapter.ConnectTimeout;
@@ -86,7 +86,7 @@ namespace Nistec.Messaging.Listeners
         public QueueAgentReceiver()
         {
             Initilaized = false;
-            MaxConnections = 30;
+            MaxConnection = 30;
             Interval = 1000;
         }
 
@@ -114,9 +114,9 @@ namespace Nistec.Messaging.Listeners
 
         #region INetcellAgent
         //public DynamicWorker ActionWorker { get; private set; }
-        public int MaxConnections { get; set; }
+        public int MaxConnection { get; set; }
         public int Interval { get; set; }
-        public bool IsMultiTasks { get; set; }
+        public bool IsMultiTask { get; set; }
         public bool EnableDynamicWait { get; set; }
 
         #endregion
@@ -246,8 +246,8 @@ namespace Nistec.Messaging.Listeners
             //args.Add("EnableDynamicWait", EnableDynamicWait);
             //args.Add("EnableResetEvent", EnableResetEvent);
             args.Add("State", State.ToString());
-            args.Add("MaxConnections", MaxConnections);
-            //args.Add("IsMultiTasks", IsMultiTasks);
+            args.Add("MaxConnection", MaxConnection);
+            //args.Add("IsMultiTask", IsMultiTask);
             //args.Add("ActiveConnections", ActiveConnections);
             //args.Add("ActiveConnections", ActiveConnections);
             if (threadPool != null)
@@ -348,7 +348,7 @@ namespace Nistec.Messaging.Listeners
                         Thread.Sleep(60000);
                     }
                     pause = 0;
-                    while (Thread.VolatileRead(ref m_Connections) >= MaxConnections)
+                    while (Thread.VolatileRead(ref m_Connections) >= MaxConnection)
                     {
                         OnInfo($"QueueListener QueueProcess ShouldPause {++pause}, m_Connections {m_Connections}");
                         Thread.Sleep(100);
@@ -359,7 +359,7 @@ namespace Nistec.Messaging.Listeners
                         Task.Delay(Interval);
                     }
 
-                    while (Thread.VolatileRead(ref m_Connections) >= MaxConnections)
+                    while (Thread.VolatileRead(ref m_Connections) >= MaxConnection)
                     {
                         Task.Delay(100);
                     }

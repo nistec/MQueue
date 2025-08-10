@@ -15,7 +15,7 @@ namespace Nistec.Messaging.Listeners
         int ReadTimeout { get; set; }
         int ConnectTimeout { get; set; }
         int Interval { get; set; }
-        int MaxConnections { get; set; }
+        int MaxConnection { get; set; }
         int WorkerCount { get; set; }
         HostChannel Source { get; set; }
 

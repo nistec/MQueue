@@ -32,19 +32,10 @@ namespace Nistec.Messaging.Listeners
         /// </summary>
         public AdapterProtocols ProtocolType { get; set; }
 
-        ///// <summary>
-        ///// Get or Set indicating whether the adapter use async operation.
-        ///// </summary>
-        //public bool IsAsync { get; set; }
-
-        ///// <summary>
-        ///// Get or Set indicating whether the adapter use transactional operation.
-        ///// </summary>
-        //public bool IsTrans { get; set; }
-        ///// <summary>
-        ///// Get or Set indicating whether the adapter use topic operation.
-        ///// </summary>
-        //public bool IsTopic { get; set; }
+        /// <summary>
+        /// Get or Set indicating whether the adapter use async operation.
+        /// </summary>
+        public bool IsAsync { get; set; }
 
         /// <summary>
         /// Get or Set TargetPath.
@@ -100,7 +91,7 @@ namespace Nistec.Messaging.Listeners
         /// <summary>
         /// Gets or Set the number of worker count.
         /// </summary>
-        public int MaxConnections
+        public int MaxConnection
         {
             get { return _MaxConnection; }
             set
@@ -149,7 +140,7 @@ namespace Nistec.Messaging.Listeners
             ProtocolType = AdapterProtocols.Tcp;
             //IsTrans = false;
             //IsTopic = false;
-            //IsAsync = false;
+            IsAsync = false;
             IsMultiTask = true;
             MaxItemsPerSession = 1;
             Interval = 1000;// interval<=0? DefaultInterval:interval;// 1000;
@@ -157,7 +148,7 @@ namespace Nistec.Messaging.Listeners
             ReadTimeout = Defaults.ReadTimeout;
             WorkerCount = 1;
             //MaxThread = 1;
-            MaxConnections = 9999;
+            MaxConnection = 10;
             EnableResetEvent = false;
             EnableDynamicWait = false;
         }

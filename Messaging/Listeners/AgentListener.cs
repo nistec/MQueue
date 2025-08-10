@@ -30,7 +30,7 @@ namespace Nistec.Messaging.Listeners
         static object m_lock = new object();
 
         //protected int MaxThread = 1;
-        //MaxConnections = 30;
+        //MaxConnection = 30;
         protected int m_Connections;
         //Interval = 30000;
         protected int Server = 0;
@@ -67,7 +67,7 @@ namespace Nistec.Messaging.Listeners
             Source = adapter.Source;
             HostName = Source.HostName;
             ReadTimeout = adapter.ReadTimeout;
-            MaxConnections = adapter.MaxConnections;
+            MaxConnection = adapter.MaxConnection;
             Interval = adapter.Interval;
             ConnectTimeout = adapter.ConnectTimeout;
             WorkerCount = adapter.WorkerCount;
@@ -80,7 +80,7 @@ namespace Nistec.Messaging.Listeners
         public AgentListener()
         {
             Initilaized = false;
-            MaxConnections = 1;
+            MaxConnection = 1;
             Interval = 30000;
         }
 
@@ -108,9 +108,9 @@ namespace Nistec.Messaging.Listeners
         #region INetcellAgent
         //public DynamicWorker ActionWorker { get; private set; }
         public int WorkerCount { get; set; }
-        public int MaxConnections { get; set; }
+        public int MaxConnection { get; set; }
         public int Interval { get; set; }
-        public bool IsMultiTasks { get; set; }
+        public bool IsMultiTask { get; set; }
         public bool EnableDynamicWait { get; set; }
         #endregion
 
@@ -164,7 +164,7 @@ namespace Nistec.Messaging.Listeners
                 int count = 0;
                 while (Thread.VolatileRead(ref isQueueRunning) > 0 && count < 30)
                 {
-                    Thread.Sleep(1000);
+                    Task.Delay(1000);
                     count++;
                     //Log.Debug("QueueStop:" + count.ToString());
                 }
@@ -237,8 +237,8 @@ namespace Nistec.Messaging.Listeners
             //args.Add("EnableDynamicWait", EnableDynamicWait);
             //args.Add("EnableResetEvent", EnableResetEvent);
             args.Add("State", State.ToString());
-            args.Add("MaxConnections", MaxConnections);
-            //args.Add("IsMultiTasks", IsMultiTasks);
+            args.Add("MaxConnection", MaxConnection);
+            //args.Add("IsMultiTask", IsMultiTask);
             //args.Add("ActiveConnections", ActiveConnections);
             //args.Add("ActiveConnections", ActiveConnections);
             if (threadPool != null)
@@ -280,11 +280,17 @@ namespace Nistec.Messaging.Listeners
         {
             if (message != null)
             {
-                PublishMessage(message, (ack) => {
-                    OnInfo($"AgentListener OnReceivedEvent Result: {ack.ToString()}");
+                PublishMessage(message, (ack) =>
+                {
+                    OnInfo($"AgentListener OnReceivedEvent Result: {ack.ToJson()}");
                     CommitAsync(ack);//.ConfigureAwait(false);
+                    //are.Set();
                 });//.ConfigureAwait(false);
             }
+            //else
+            //{
+            //    are.Set();
+            //}
         }
 
         protected virtual void PublishMessage(T message)
@@ -346,8 +352,8 @@ namespace Nistec.Messaging.Listeners
         {
             return message == null ? "" : message.Identifier;
         }
-   
-        #endregion 
+
+        #endregion
 
         #region AgentProcess
 
@@ -361,7 +367,7 @@ namespace Nistec.Messaging.Listeners
         //    base.OnMessageFault(message);
         //}
 
-
+        //private readonly AutoResetEvent autoResetEvent = new AutoResetEvent(false);
 
         int pause = 0;
         private void AgentProcess(object state)
@@ -385,13 +391,13 @@ namespace Nistec.Messaging.Listeners
                         }
                         ++pause;
 
-                        Thread.Sleep(60000);
+                        Task.Delay(60000);
                     }
                     pause = 0;
-                    while (Thread.VolatileRead(ref m_Connections) >= MaxConnections)
+                    while (Thread.VolatileRead(ref m_Connections) >= MaxConnection)
                     {
                         OnInfo($"AgentListener AgentProcess ShouldPause {++pause}, m_Connections {m_Connections}");
-                        Thread.Sleep(100);
+                        Task.Delay(100);
                     }
 
                     if (!keepAlive)
@@ -413,8 +419,13 @@ namespace Nistec.Messaging.Listeners
                             if (message.Body != null && message.AckState == (int)ChannelState.Received)
                             {
                                 Interlocked.Increment(ref m_Connections);
-                                ThreadPool.QueueUserWorkItem(AgentWorker, message);
-                                //Task.Run(()=> AgentItemWorker(message));
+                                //ThreadPool.QueueUserWorkItem(AgentWorker, message);
+                                Task.Run(()=> OnMessageReceived(message));
+                                //autoResetEvent.WaitOne();
+                                //OnMessageReceived(message);//.ConfigureAwait(false);
+
+                                OnInfo($"AgentListener AgentWorker finished");
+
                             }
                             else if ((int)message.AckState >= 400)
                             {
@@ -425,6 +436,7 @@ namespace Nistec.Messaging.Listeners
                 }
                 catch (ThreadAbortException)
                 {
+                    //autoResetEvent.Set();
                     OnError($"Warn: AgentListener ThreadAborted {HostName}");
                 }
                 catch (Exception ex)
@@ -444,16 +456,19 @@ namespace Nistec.Messaging.Listeners
                     {
                         OnError($"AgentListener {HostName}, Error:{exx.Message} ");
                     }
+                    //autoResetEvent.Set();
                 }
                 finally
                 {
                     Interlocked.Decrement(ref isQueueRunning);
+                    Interlocked.Decrement(ref m_Connections);
                 }
-                Thread.Sleep(Interval);
+                Task.Delay(Interval);
             }
             OnError($"Warn: AgentListener not keep Alive {HostName}");
         }
 
+        /*
         void AgentItemWorker(T message)
         {
             try
@@ -540,6 +555,7 @@ namespace Nistec.Messaging.Listeners
 
             OnInfo($"AgentListener AgentWorker finished");
         }
+        */
         #endregion
     }
 

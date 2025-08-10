@@ -23,32 +23,22 @@ namespace Nistec.Messaging.Listeners
 
         public const int DefaultInterval = 1000;
 
-        protected QueueAdapter Adapter;
+        //protected QueueAdapter Adapter;
 
         CancellationTokenSource canceller = new CancellationTokenSource();
 
-        QueueHost _Source;
-        public QueueHost Source { get { return _Source; } }
+        public QueueHost Source { get; protected set; }
 
         public bool EnableResetEvent { get; set; }
-        //int _Interval;
-        public int Interval { get; private set; }//{ get { return MinWait; } }
-        int _ConnectTimeout;
-        public int ConnectTimeout { get { return _ConnectTimeout; } }
-        int _ReadTimeout;
-        public int ReadTimeout { get { return _ReadTimeout; } }
+        public int Interval { get; set; }//{ get { return MinWait; } }
+        public int ConnectTimeout { get; protected set; }
+        public int ReadTimeout { get; protected set; } 
+        public bool IsAlive { get; protected set; }
+        public int WorkerCount { get; protected set; }
+        public int MaxConnection { get; set; }
+        public bool IsMultiTask { get; set; }
 
-        bool _isalive = false;
-        public bool IsAlive { get { return _isalive; } }
-        int _WorkerCount;
-        public int WorkerCount { get { return _WorkerCount; } }
-        int _MaxConnection;
-        public int MaxConnection { get { return _MaxConnection; } }
-        bool _IsMultiTask;
-        public bool IsMultiTask { get { return _IsMultiTask; } }
-
-        bool _IsAsync;
-        public bool IsAsync { get { return _IsAsync; } }
+        public bool IsAsync { get; protected set; }
         public ListenerState State { get; private set; }
 
         ILogger _Logger;
@@ -63,8 +53,15 @@ namespace Nistec.Messaging.Listeners
         #endregion
 
         #region ctor
-
+        public SessionListener()//, int interval)
+        {
+        }
         public SessionListener(QueueAdapter adapter)//, int interval)
+        {
+            Init(adapter);
+        }
+
+        public virtual void Init(QueueAdapter adapter)
         {
             if (adapter == null)
             {
@@ -74,11 +71,11 @@ namespace Nistec.Messaging.Listeners
             {
                 throw new ArgumentNullException("adapter.Source");
             }
-            Adapter = adapter;
+            //Adapter = adapter;
 
             //_Owner = owner;
-            _Source = adapter.Source;
-            HostName = _Source.HostName;
+            Source = adapter.Source;
+            HostName = Source.HostName;
 
             //_TransferTo = adapter.TransferTo;
 
@@ -87,12 +84,12 @@ namespace Nistec.Messaging.Listeners
             //IntervalWait = interval < MinWait ? MinWait : interval;// 1000;
 
             Interval = adapter.Interval;
-            _ConnectTimeout = adapter.ConnectTimeout;
-            _ReadTimeout = adapter.ReadTimeout;
-            _WorkerCount = adapter.WorkerCount;
-            _MaxConnection = adapter.MaxConnection;
-            _IsMultiTask = adapter.IsMultiTask;
-            _IsAsync = adapter.IsAsync;
+            ConnectTimeout = adapter.ConnectTimeout;
+            ReadTimeout = adapter.ReadTimeout;
+            WorkerCount = adapter.WorkerCount;
+            MaxConnection = adapter.MaxConnection;
+            IsMultiTask = adapter.IsMultiTask;
+            IsAsync = adapter.IsAsync;
             EnableResetEvent = true;// adapter.EnableResetEvent;
             EnableDynamicWait = adapter.EnableDynamicWait;
             //_ActionTransfer = adapter.AckAction;
@@ -125,8 +122,8 @@ namespace Nistec.Messaging.Listeners
             //Commit(message.GetPtr());
             if (MessageReceived != null)
                 MessageReceived(this, new GenericEventArgs<IQueueMessage>(message));
-            else if (Adapter.MessageReceivedAction != null)
-                Adapter.MessageReceivedAction(message);
+            //else if (Adapter.MessageReceivedAction != null)
+            //    Adapter.MessageReceivedAction(message);
 
         }
 
@@ -145,8 +142,8 @@ namespace Nistec.Messaging.Listeners
             Console.WriteLine("ErrorOcurred: " + msg);
             if (ErrorOcurred != null)
                 ErrorOcurred(this, new GenericEventArgs<string>(msg)); //OnErrorOcurred(new GenericEventArgs<string>(msg));
-            else if (Adapter.MessageFaultAction != null)
-                Adapter.MessageFaultAction(msg);
+            //else if (Adapter.MessageFaultAction != null)
+            //    Adapter.MessageFaultAction(msg);
         }
 
         protected virtual void OnError(string message)
@@ -159,9 +156,16 @@ namespace Nistec.Messaging.Listeners
 
         #endregion
 
-
-
         #region override
+
+        protected virtual void OnStateChanged(ListenerState state)
+        {
+            //NLog.InfoFormat("OnStateChanged {0}, State: {1}", HostName, state.ToString());
+        }
+        protected virtual bool ShouldPause()
+        {
+            return false;//Hold Sender Service
+        }
 
         //protected abstract IQueueAck Send(QueueMessage message);
 
@@ -174,12 +178,12 @@ namespace Nistec.Messaging.Listeners
                 return Receive();
             });
         }
-        protected void Receive(Action<IQueueMessage> onReceived)
+        protected void Receive(AutoResetEvent are, Action<IQueueMessage> onReceived)
         {
             var message = Receive();
             if (message != null)
                 onReceived(message);
-            autoResetEvent.Set();
+            are.Set();
         }
         //protected void Receive(Action<IQueueMessage> onReceived)
         //{
@@ -187,12 +191,12 @@ namespace Nistec.Messaging.Listeners
         //    if (message != null)
         //        onReceived(message);
         //}
-        protected async Task ReceiveAsync(Action<IQueueMessage> onReceived)
+        protected async Task ReceiveAsync(AutoResetEvent are, Action<IQueueMessage> onReceived)
         {
             var message = await ReceiveAsync();
             if (message != null)
                 onReceived(message);
-            autoResetEvent.Set();
+            are.Set();
         }
         //protected async Task ReceiveAsync(Action<IQueueMessage> onReceived)
         //{
@@ -212,7 +216,6 @@ namespace Nistec.Messaging.Listeners
         }
 
         #endregion
-            
 
         #region start/stop
 
@@ -223,17 +226,15 @@ namespace Nistec.Messaging.Listeners
         long m_conecctions = 0;
         long m_pause = 0;
 
-
         public void Start()
         {
             if (IsAlive)
             {
                 return;
             }
-            _workers = new Thread[_WorkerCount];
+            _workers = new Thread[WorkerCount];
             ThreadStart threadWorker = IsAsync ? new ThreadStart(TaskWorkerAsync) : new ThreadStart(TaskWorker);
-            //ThreadStart threadWorker = new ThreadStart(TaskWorkerAsync);
-            for (int i = 0; i < _WorkerCount; i++)
+            for (int i = 0; i < WorkerCount; i++)
             {
                 _workers[i] = new Thread(new ThreadStart(threadWorker));
                 _workers[i].IsBackground = true;
@@ -250,7 +251,7 @@ namespace Nistec.Messaging.Listeners
         }
         public void Shutdown(bool waitForWorkers)
         {
-            _isalive = false;
+            IsAlive = false;
 
             // Wait for workers to finish
             if (waitForWorkers)
@@ -334,11 +335,11 @@ namespace Nistec.Messaging.Listeners
             Interlocked.Exchange(ref delay, (long)time.TotalMilliseconds);
         }
 
-        static AutoResetEvent autoResetEvent = new AutoResetEvent(false);
+        private readonly AutoResetEvent autoResetEvent = new AutoResetEvent(false);
 
         protected virtual void TaskWorker()
         {
-            _isalive = true;
+            IsAlive = true;
             // Start queue listener...
             OnInfo("QListener started...");
 
@@ -368,12 +369,13 @@ namespace Nistec.Messaging.Listeners
                     Interlocked.Increment(ref m_conecctions);
                     Task.Run(() =>
                     {
-                        Receive(OnMessageReceived);
+                        Receive(autoResetEvent,OnMessageReceived);
                     });
                     autoResetEvent.WaitOne();
                 }
                 catch (Exception ex)
                 {
+                    autoResetEvent.Set();
                     OnError("QListener error: " + ex.Message);
                 }
                 finally
@@ -390,9 +392,9 @@ namespace Nistec.Messaging.Listeners
 
         protected virtual void TaskWorkerAsync()
         {
-            _isalive = true;
+            IsAlive = true;
             // Start queue listener...
-            OnInfo("QListener started...");
+            OnInfo("QListener async started...");
 
             while (IsAlive)
             {
@@ -418,13 +420,14 @@ namespace Nistec.Messaging.Listeners
                     Interlocked.Increment(ref m_conecctions);
                     var task = Task.Run(async () =>
                     {
-                        await ReceiveAsync(OnMessageReceived);
+                        await ReceiveAsync(autoResetEvent,OnMessageReceived);
                     });
-                    autoResetEvent.WaitOne();
+                    autoResetEvent.WaitOne(Timeout.Infinite);
                 }
                 catch (Exception ex)
                 {
-                    OnError("QListener error: " + ex.Message);
+                    autoResetEvent.Set();
+                    OnError("QListener async error: " + ex.Message);
                 }
                 finally
                 {

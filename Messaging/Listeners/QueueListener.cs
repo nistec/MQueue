@@ -24,21 +24,36 @@ namespace Nistec.Messaging.Listeners
 
         #region ctor
 
-
-        public QueueListener(QueueAdapter adapter)//, int interval)
-            : base(adapter)//, interval)
+        public QueueListener()//, int interval)
         {
-            QApi = new QueueApi(adapter.Source);
-            QApi.ReadTimeout = adapter.ReadTimeout;
-            //_Listener= new ListenerQ(this, adapter);
+            
         }
 
+        public QueueListener(QueueAdapter adapter)//, int interval)
+        {
+            Init(adapter);
+        }
+
+        public override void Init(QueueAdapter adapter)
+        {
+            base.Init(adapter);
+            InitApi();
+            //_Listener= new ListenerQ(this, adapter);
+        }
+        public virtual void InitApi()
+        {
+            QApi = new QueueApi(Source);
+            QApi.ReadTimeout = ReadTimeout;
+            //_Listener= new ListenerQ(this, adapter);
+        }
         #endregion
 
         //protected override void OnMessageReceived(IQueueMessage message)
         //{
-           
+
         //}
+
+
 
         protected override IQueueMessage Receive()
         {
