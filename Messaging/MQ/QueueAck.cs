@@ -23,6 +23,7 @@ namespace Nistec.Messaging
         //{
         //    return new QueueAck() { MessageState = state, Label = label, Response = response, Identifier = identifier, Host = host };
         //}
+        #region ctor
         public QueueAck()
         {
             Creation = DateTime.Now;
@@ -102,6 +103,7 @@ namespace Nistec.Messaging
         { 
             EntityRead(stream, null);
         }
+        #endregion
 
         public NetStream ToStream()
         {

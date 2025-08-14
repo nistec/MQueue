@@ -671,6 +671,10 @@ namespace Nistec.Messaging
             base.Dispose(disposing);
         }
 
+        ~QueueMessage()
+        {
+            Dispose(false);
+        }
         #endregion
 
         #region property

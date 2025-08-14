@@ -186,10 +186,10 @@ namespace Nistec.Messaging.Server
                 Logger.Info("TopicSbscriberListener Stopted");
             }
         }
-        public bool Pause(OnOffState onff)
+        public bool Pause(OnOffState onff, int delay)
         {
             Logger.Info("TopicSbscriberListener PausePersistQueue");
-            return ActionWorker.Pause(onff);
+            return ActionWorker.Pause(onff, delay);
         }
 
         public void Shutdown(bool waitForWorkers)

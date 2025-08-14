@@ -183,10 +183,10 @@ namespace Nistec.Messaging.Remote
                 a.Value.Stop();
 
         }
-        public bool Pause(OnOffState onoff)
+        public bool Pause(OnOffState onoff, int delay)
         {
             foreach (var a in Pool)
-                return a.Value.Pause(onoff);
+                return a.Value.Pause(onoff, delay);
             return false;
         }
         public void Shutdown(bool waitForWorkers)
@@ -216,7 +216,7 @@ namespace Nistec.Messaging.Remote
             QueueListener ql;
             if (TryGet(hostname, out ql))
             {
-               return ql.Pause(onoff);
+               return ql.Pause(onoff,1000);
             }
             return false;
         }

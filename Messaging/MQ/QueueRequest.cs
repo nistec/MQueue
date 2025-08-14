@@ -266,6 +266,10 @@ namespace Nistec.Messaging
         #endregion
 
         #region Dispose
+        ~QueueRequest()
+        {
+            Dispose(false);
+        }
         /*
         /// <summary>
         /// Release all resources.
@@ -298,6 +302,7 @@ namespace Nistec.Messaging
             disposed = true;
         }
         */
+
         #endregion
 
         #region  ISerialEntity

@@ -271,7 +271,7 @@ namespace Nistec.Messaging.Listeners
                     worker.Join();
         }
 
-        public bool Pause(OnOffState onOff)
+        public bool Pause(OnOffState onOff, int delay)
         {
             //if (ActionWorker == null)
             //    return false;
@@ -279,7 +279,7 @@ namespace Nistec.Messaging.Listeners
 
             if (paused)
             {
-                Interlocked.Exchange(ref m_pause, 1);
+                Interlocked.Exchange(ref m_pause, Math.Max(delay, 1000));
                 State = ListenerState.Paused;
                 OnEvent($"DataStreamListener.Pause", $"State: {State}, HostName: {HostName}");
                 OnInfo($"DataStreamListener Paused: {HostName}");
@@ -368,7 +368,7 @@ namespace Nistec.Messaging.Listeners
                     }
                     while (Interlocked.Read(ref m_pause) > 0)
                     {
-                        Task.Delay(1000);
+                        Task.Delay((int)m_pause);
                     }
                     while (Interlocked.Read(ref m_conecctions) >= MaxConnection)
                     {
@@ -420,7 +420,7 @@ namespace Nistec.Messaging.Listeners
                     }
                     while (Interlocked.Read(ref m_pause) > 0)
                     {
-                        Task.Delay(1000);
+                        Task.Delay((int)m_pause);
                     }
                     while (Interlocked.Read(ref m_conecctions) >= MaxConnection)
                     {

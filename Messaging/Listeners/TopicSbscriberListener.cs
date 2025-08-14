@@ -207,7 +207,7 @@ namespace Nistec.Messaging.Listeners
                 _Logger.Info("TopicSbscriberListener Paused: " + SbscriberHost);
         }
 
-        public bool Pause(OnOffState onff)
+        public bool Pause(OnOffState onff, int delay)
         {
             if (EnablePersistQueue)
             {
@@ -215,7 +215,7 @@ namespace Nistec.Messaging.Listeners
                 {
                     _Logger.Info("TopicSbscriberListener PausePersistQueue: " + SbscriberHost);
                 }
-                return ActionWorker.Pause(onff);
+                return ActionWorker.Pause(onff, delay);
             }
             return false;
         }
@@ -498,7 +498,7 @@ namespace Nistec.Messaging.Listeners
                 _Logger.Info("TopicSbscriberListener Paused: " + SbscriberHost);
         }
 
-        public bool Pause(OnOffState onff)
+        public bool Pause(OnOffState onff, int delay)
         {
             if (EnablePersistQueue)
             {
@@ -506,7 +506,7 @@ namespace Nistec.Messaging.Listeners
                 {
                     _Logger.Info("TopicSbscriberListener PausePersistQueue: " + SbscriberHost);
                 }
-                return ActionWorker.Pause(onff);
+                return ActionWorker.Pause(onff, delay);
             }
             return false;
         }

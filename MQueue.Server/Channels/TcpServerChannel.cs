@@ -219,27 +219,31 @@ namespace Nistec.Messaging.Server
 
             if (QueueChannel == QueueChannel.Producer)
             {
-                QueueMessage qm = QueueMessage.Deserialize(bytes);
-                var ack = AgentManager.Queue.ExecSet(qm);
-                return ack.Serialize();
+                using (QueueMessage qm = QueueMessage.Deserialize(bytes))
+                {
+                    var ack = AgentManager.Queue.ExecSet(qm);
+                    return ack.Serialize();
+                }
                 //response =(IDataStream)new TransStream(ack, "Ack", TransType.Object); //binary
             }
             else if (QueueChannel == QueueChannel.Consumer)
             {
-                QueueRequest qr = QueueRequest.Deserialize(bytes);
-
-                var resmessgae = AgentManager.Queue.ExecGet(qr);
-                if (resmessgae == null)
-                    return null;
-                return resmessgae.Serialize();
+                using (QueueRequest qr = QueueRequest.Deserialize(bytes))
+                {
+                    var resmessgae = AgentManager.Queue.ExecGet(qr);
+                    if (resmessgae == null)
+                        return null;
+                    return resmessgae.Serialize();
+                }
                 //response =(IDataStream)new TransStream(resmessgae.Serialize()); //binary
-
             }
             else if (QueueChannel == QueueChannel.Manager)
             {
-                QueueRequest qr = QueueRequest.Deserialize(bytes);
-                var resmessgae = AgentManager.Queue.ExecRequset(qr);
-                return resmessgae.DataStream();
+                using (QueueRequest qr = QueueRequest.Deserialize(bytes))
+                {
+                    var resmessgae = AgentManager.Queue.ExecRequset(qr);
+                    return resmessgae.DataStream();
+                }
                 //return (IDataStream)resmessgae;
             }
             else
@@ -253,17 +257,20 @@ namespace Nistec.Messaging.Server
         {
             Log.Info($"TcpServer ServerHandleAsync QueueChannel: {QueueChannel}");
             //IDataStream response = null;
-
             if (QueueChannel == QueueChannel.Producer)
             {
-                QueueMessage qm = QueueMessage.Deserialize(bytes);
-                return await AgentManager.Queue.ExecSetAsyncSerialized(qm);
+                using (QueueMessage qm = QueueMessage.Deserialize(bytes))
+                {
+                    return await AgentManager.Queue.ExecSetAsyncSerialized(qm);
+                }
                 //response =(IDataStream)new TransStream(ack, "Ack", TransType.Object); //binary
             }
             else if (QueueChannel == QueueChannel.Consumer)
             {
-                QueueRequest qr = QueueRequest.Deserialize(bytes);
-                return await AgentManager.Queue.ExecGetAsyncSerialized(qr);
+                using (QueueRequest qr = QueueRequest.Deserialize(bytes))
+                {
+                    return await AgentManager.Queue.ExecGetAsyncSerialized(qr);
+                }
                 //if (resmessgae == null)
                 //    return null;
                 //return resmessgae.Serialize();
@@ -272,8 +279,10 @@ namespace Nistec.Messaging.Server
             }
             else if (QueueChannel == QueueChannel.Manager)
             {
-                QueueRequest qr = QueueRequest.Deserialize(bytes);
-                return await AgentManager.Queue.ExecRequsetAsyncSerialized(qr);
+                using (QueueRequest qr = QueueRequest.Deserialize(bytes))
+                {
+                    return await AgentManager.Queue.ExecRequsetAsyncSerialized(qr);
+                }
                 //return resmessgae.DataStream();
                 //return (IDataStream)resmessgae;
             }
@@ -887,6 +896,7 @@ namespace Nistec.Messaging.Server
             {
                 QueueMessage qm = QueueMessage.Deserialize(data.DataStream());
                 var ack = AgentManager.Queue.ExecSet(qm);
+
                 //return ack.Serialize();
                 return(IDataStream)new TransStream(ack, QueueCmd.Ack.ToString(), TransType.Object);
             }

@@ -216,7 +216,7 @@ namespace Nistec.Messaging.Listeners
             IListener li = Find(queueName);
             if (li == null)
                 return false;
-            li.Pause(OnOffState.On);
+            li.Pause(OnOffState.On,1000);
             return true;
         }
 

@@ -205,11 +205,16 @@ namespace Nistec.Messaging.Listeners
             }
         }
 
-        public bool Pause(OnOffState onOff)
+        public bool Pause(OnOffState onOff, int delay)
         {
             if (State != ListenerState.Started)
+            {
+                if (Is_Pause)
+                {
+                    PauseInterval = Math.Max(delay, 1000);
+                }
                 return Is_Pause;
-
+            }
             if ((onOff == OnOffState.Toggle && State == ListenerState.Paused) || onOff == OnOffState.Off)
             {
                 Is_Pause = false;
@@ -217,10 +222,11 @@ namespace Nistec.Messaging.Listeners
             }
             else
             {
+                PauseInterval = Math.Max(delay,1000);
                 Is_Pause = true;
                 OnStateChanged(ListenerState.Paused);
-                int intervalSeconds = 60;
-                PauseInterval = 1000 * ((intervalSeconds < 1) ? 60 : intervalSeconds);
+                //int intervalSeconds = 60;
+                //PauseInterval = 1000 * ((intervalSeconds < 1) ? 60 : intervalSeconds);
             }
             return Is_Pause;
         }
