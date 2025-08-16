@@ -18,6 +18,8 @@ using Nistec.Data.Entities;
 using System.Threading.Tasks;
 using Nistec.Logging;
 using Nistec.Data.Persistance;
+using Nistec.Generic;
+using Nistec.Serialization;
 
 namespace Nistec.Messaging
 {
@@ -287,6 +289,91 @@ namespace Nistec.Messaging
 
             return item;
         }
+
+        public int CountPersistent()
+        {
+            try
+            {
+                if (CoverMode == CoverMode.Persistent & m_db != null)
+                {
+                    return m_db.Count;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception("CountPersistent ", ex);
+                return 0;
+            }
+        }
+
+        public int CountMemory()
+        {
+            try
+            {
+                return QueueItems.Count;
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception("CountMemory ", ex);
+                return 0;
+            }
+        }
+        public IDictionary<string, int> QueueCounters()
+        {
+            //KeyValueArgs args = new KeyValueArgs();
+            IDictionary<string, int> args = new Dictionary<string, int>();
+            try
+            {
+                //long usedMemoryBytes = GC.GetTotalMemory(true);
+
+                args.Add("CountMemory", CountMemory());
+                args.Add("CountPersistent", CountPersistent());
+                args.Add("CountPriorityQueues", this.TotalCount);
+                //args.Add("MemorySize-kb", (int)(usedMemoryBytes / 1024));
+                if (m_db != null)
+                    args.Add("UsagePersistent-kb", BinarySerializer.SizeOf(m_db.FileSize()));
+                args.Add("UsageQueueMemory-kb", BinarySerializer.SizeOf(QueueItems) / 1024);
+                args.Add("UsagePriorityQueues-kb", this.SizeOfQueues() / 1024);
+
+                return args;
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception("QueueCounters ", ex);
+                return args;
+            }
+        }
+        public long MemorySize()
+        {
+            try
+            {
+                long usedMemoryBytes = GC.GetTotalMemory(true);
+                return usedMemoryBytes / 1024;
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception("QueueSize ", ex);
+                return 0;
+            }
+        }
+
+        public long QueueSize()
+        {
+            try
+            {
+                return (BinarySerializer.SizeOf(QueueItems) + this.SizeOfQueues())/1024;
+            }
+            catch (Exception ex)
+            {
+                Logger.Exception("QueueSize ", ex);
+                return 0;
+            }
+        }
+
 
         public override IEnumerable<IPersistEntity> QueryItems()
         {

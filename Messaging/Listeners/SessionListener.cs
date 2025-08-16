@@ -182,7 +182,15 @@ namespace Nistec.Messaging.Listeners
         {
             var message = Receive();
             if (message != null)
+            {
+                ConnectionExchangeBegin();
                 onReceived(message);
+                ConnectionExchange(true);
+            }
+            else
+            {
+                ConnectionExchange(false);
+            }
             are.Set();
         }
         //protected void Receive(Action<IQueueMessage> onReceived)
@@ -195,9 +203,18 @@ namespace Nistec.Messaging.Listeners
         {
             var message = await ReceiveAsync();
             if (message != null)
+            {
+                ConnectionExchangeBegin();
                 onReceived(message);
+                ConnectionExchange(true);
+            }
+            else
+            {
+                ConnectionExchange(false);
+            }
             are.Set();
         }
+
         //protected async Task ReceiveAsync(Action<IQueueMessage> onReceived)
         //{
         //    var message = await ReceiveAsync();
@@ -223,7 +240,7 @@ namespace Nistec.Messaging.Listeners
         object _locker = new object();
         Thread[] _workers;
         long delay;
-        long m_conecctions = 0;
+        long m_connections = 0;
         long m_pause = 0;
 
         public void Start()
@@ -307,7 +324,7 @@ namespace Nistec.Messaging.Listeners
         {
             get
             {
-                return (int)m_conecctions;
+                return (int)m_connections;
             }
         }
         public NameValueArgs Report()
@@ -327,6 +344,47 @@ namespace Nistec.Messaging.Listeners
         }
         #endregion
 
+        #region Connection 
+        int connectionfactor = 0;
+        int connectionmax = 0;
+        int Incremented = 0;
+        protected int ExchangeFactor = 10;
+
+        protected void ConnectionExchangeBegin()
+        {
+            Interlocked.Increment(ref m_connections);
+        }
+        protected void ConnectionExchange(bool hasValue)
+        {
+            if (hasValue)
+            {
+                //Interlocked.Increment(ref m_connections);
+                if (Interlocked.CompareExchange(ref connectionmax, 0, 0) < MaxConnection)
+                {
+                    Interlocked.Exchange(ref connectionmax, MaxConnection);
+                    Interlocked.Exchange(ref connectionfactor, 0);
+                    OnInfo($"SessionListener MaxConnection Increased to: {connectionmax}");
+                }
+                if (Interlocked.CompareExchange(ref m_connections, 0, 0) > 0)
+                    Interlocked.Decrement(ref m_connections);
+            }
+            else
+            {
+                if (Interlocked.CompareExchange(ref connectionfactor, 0, 0) < ExchangeFactor)
+                {
+                    Interlocked.Increment(ref connectionfactor);
+                }
+                else if (Interlocked.CompareExchange(ref connectionmax, 0, 0) > 1)
+                {
+                    Interlocked.Exchange(ref connectionmax, 1);
+                    OnInfo($"SessionListener MaxConnection is {connectionmax}");
+                }
+                //if (Interlocked.CompareExchange(ref m_connections, 0, 0) > 0)
+                //    Interlocked.Decrement(ref m_connections);
+            }
+        }
+        #endregion
+
         #region worker
 
         public void Delay(TimeSpan time)
@@ -339,8 +397,9 @@ namespace Nistec.Messaging.Listeners
         protected virtual void TaskWorker()
         {
             IsAlive = true;
+            connectionmax = MaxConnection;
             // Start queue listener...
-            OnInfo("QListener started...");
+            OnInfo($"SessionListener started...MaxConnection is {connectionmax}");
 
             while (IsAlive)
             {
@@ -357,20 +416,30 @@ namespace Nistec.Messaging.Listeners
                     {
                         Task.Delay((int)m_pause);
                     }
-                    while (Interlocked.Read(ref m_conecctions) >= MaxConnection)
+                    //while (Interlocked.Read(ref m_connections) >= MaxConnection)
+                    //{
+                    //    Task.Delay(1000);
+                    //}
+
+                    if (Interlocked.CompareExchange(ref m_connections, 0, 0) < connectionmax)
                     {
-                        Task.Delay(1000);
+                        Monitor.Enter(_locker);
+                        lockWasTaken = true;
+
+                        //Interlocked.Increment(ref m_connections);
+                        //Interlocked.Exchange(ref Incremented,1);
+                        
+                        Task.Run(() =>
+                        {
+                            Receive(autoResetEvent, OnMessageReceived);
+                        });
+                        autoResetEvent.WaitOne();
+                    }
+                    else
+                    {
+                        OnInfo($"SessionListener current MaxConnection is {connectionmax}");
                     }
 
-                    Monitor.Enter(_locker);
-                    lockWasTaken = true;
-
-                    Interlocked.Increment(ref m_conecctions);
-                    Task.Run(() =>
-                    {
-                        Receive(autoResetEvent,OnMessageReceived);
-                    });
-                    autoResetEvent.WaitOne();
                 }
                 catch (Exception ex)
                 {
@@ -381,8 +450,9 @@ namespace Nistec.Messaging.Listeners
                 {
                     if (lockWasTaken) Monitor.Exit(_locker);
                 }
-                Interlocked.Decrement(ref m_conecctions);
-                Task.Delay(100);
+                //if (Interlocked.CompareExchange(ref m_connections, 0, 0) > 0)
+                //    Interlocked.Decrement(ref m_connections);
+                Task.Delay(Interval);
             }
 
             OnInfo("QListener stoped");
@@ -392,8 +462,9 @@ namespace Nistec.Messaging.Listeners
         protected virtual void TaskWorkerAsync()
         {
             IsAlive = true;
+            connectionmax = MaxConnection;
             // Start queue listener...
-            OnInfo("QListener async started...");
+            OnInfo($"SessionListener async started...MaxConnection is {connectionmax}");
 
             while (IsAlive)
             {
@@ -407,21 +478,28 @@ namespace Nistec.Messaging.Listeners
                     }
                     while (Interlocked.Read(ref m_pause) > 0)
                     {
-                        Task.Delay((int)m_pause);
+                        Thread.Sleep((int)m_pause);
                     }
-                    while (Interlocked.Read(ref m_conecctions) >= MaxConnection)
+                    //while (Interlocked.Read(ref m_connections) >= MaxConnection)
+                    //{
+                    //    Task.Delay(1000);
+                    //}
+                    if (Interlocked.CompareExchange(ref m_connections, 0, 0) < connectionmax)
                     {
-                        Task.Delay(1000);
-                    }
-                    Monitor.Enter(_locker);
-                    lockWasTaken = true;
+                        Monitor.Enter(_locker);
+                        lockWasTaken = true;
 
-                    Interlocked.Increment(ref m_conecctions);
-                    var task = Task.Run(async () =>
+                        //Interlocked.Increment(ref m_connections);
+                        var task = Task.Run(async () =>
+                        {
+                            await ReceiveAsync(autoResetEvent, OnMessageReceived);
+                        });
+                        autoResetEvent.WaitOne(Timeout.Infinite);
+                    }
+                    else
                     {
-                        await ReceiveAsync(autoResetEvent,OnMessageReceived);
-                    });
-                    autoResetEvent.WaitOne(Timeout.Infinite);
+                        OnInfo($"SessionListener async current MaxConnection is {connectionmax}");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -432,7 +510,7 @@ namespace Nistec.Messaging.Listeners
                 {
                     if (lockWasTaken) Monitor.Exit(_locker);
                 }
-                Interlocked.Decrement(ref m_conecctions);
+                //Interlocked.Decrement(ref m_connections);
                 Task.Delay(Interval);
             }
 

@@ -115,6 +115,11 @@ namespace Nistec.Messaging
         DbQueueClear = 69,
         DbQueueClearItem = 70,
         QueryLabels=71,
+        ReportQueueCounters=72,
+        ReportCountersAll = 73,
+        //QueueItemsCount = 72,
+        //QueueItemsCountAll = 73,
+
         /// <summary>
         /// A normal Message Queuing message.
         /// </summary>
@@ -184,48 +189,13 @@ namespace Nistec.Messaging
         DbQueueReport = 68,
         DbQueueClear = 69,
         DbQueueClearItem = 70,
-        QueryLabels=71
+        QueryLabels=71,
+        ReportQueueCounters = 72,
+        ReportCountersAll = 73
+        //QueueItemsCount = 72,
+        //QueueItemsCountAll = 73
     };
 
-    //public enum QueueManagerCmd : byte
-    //{
-    //    QueueList = 0,
-        
-    //}
-
-
-    //public class QueueCmd
-    //{
-    //    public const string Reply = "Reply";
-    //    public const string RemoveItem = "RemoveItem";
-    //    public const string Enqueue = "Enqueue";
-    //    public const string Dequeue = "Dequeue";
-    //    public const string DequeuePriority = "DequeuePriority";
-    //    public const string Fetch = "Fetch";
-    //    public const string Peek = "Peek";
-    //    public const string Commit = "Commit";
-
-       
-    //}
-
-    //public class QueueManagerCmd
-    //{
-    //    public const string Reply = "Reply";
-    //    public const string QueueProperties = "QueueProperties";
-    //    public const string Timeout = "Timeout";
-    //    public const string SessionTimeout = "SessionTimeout";
-    //    public const string GetAllKeys = "GetAllKeys";
-    //    public const string GetAllKeysIcons = "GetAllKeysIcons";
-    //    public const string CloneItems = "CloneItems";
-    //    public const string GetStatistic = "GetStatistic";
-    //    public const string GetDataStatistic = "GetDataStatistic";
-    //    public const string QueueToXml = "QueueToXml";
-    //    public const string QueueFromXml = "QueueFromXml";
-    //    public const string QueueLog = "QueueLog";
-    //    public const string Log = "Log";
-    //    public const string Reset = "Reset";
-
-    //}
 
     public class KnownArgs
     {

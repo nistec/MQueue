@@ -169,15 +169,17 @@ namespace Nistec.Messaging
         public bool IsOk { get { return MessageState.IsStateOk(); } }
         public string ToJson()
         {
-            KeyValueArgs a = new KeyValueArgs();
-            a.Add("Label", Label);
-            a.Add("Response", Response);
-            a.Add("State", MessageState.ToString());
-            if (!Host.IsNull()) a.Add("Identifier", Identifier);
-            if (!Host.IsNull()) a.Add("Host", Host);
-            if (!Host.IsNull()) a.Add("Label", Label);
+            return JsonSerializer.Serialize(this, JsonOptions.IgnorNullOption );
 
-            return JsonSerializer.Serialize(a.ToJson());
+            //KeyValueArgs a = new KeyValueArgs();
+            //a.Add("Label", Label);
+            //a.Add("Response", Response);
+            //a.Add("State", MessageState.ToString());
+            //if (!Host.IsNull()) a.Add("Identifier", Identifier);
+            //if (!Host.IsNull()) a.Add("Host", Host);
+            //if (!Host.IsNull()) a.Add("Label", Label);
+
+            //return JsonSerializer.Serialize(a.ToJson());
             //return GenericKeyValue.Create("Label", Label, "Response", Response, "State", MessageState).ToJson();
         }
         public string Display()

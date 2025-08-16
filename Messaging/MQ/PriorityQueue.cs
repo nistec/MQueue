@@ -14,6 +14,7 @@ using Nistec.Logging;
 using Nistec.Data.Entities;
 using Nistec.Runtime.Advanced;
 using System.Threading.Tasks;
+using Nistec.Serialization;
 
 namespace Nistec.Messaging
 {
@@ -816,6 +817,13 @@ namespace Nistec.Messaging
         #endregion
 
         #region Queue methods
+
+        public int SizeOfQueues()
+        {
+            return BinarySerializer.SizeOf(normalQ) +
+            BinarySerializer.SizeOf(mediumQ) +
+            BinarySerializer.SizeOf(highQ);
+        }
 
         /// <summary>
         /// Clear all Message

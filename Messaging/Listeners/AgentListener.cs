@@ -328,12 +328,52 @@ namespace Nistec.Messaging.Listeners
 
         #endregion
 
-        #region AgentProcess
+        #region Connection 
+        int connectionfactor = 0;
+        int connectionmax = 0;
+        protected int ExchangeFactor = 10;
+        protected void ConnectionExchangeBegin()
+        {
+            Interlocked.Increment(ref m_connections);
+        }
+        protected void ConnectionExchange(bool hasValue)
+        {
+            if (hasValue)
+            {
+                if (Interlocked.CompareExchange(ref connectionmax, 0, 0) < MaxConnection)
+                {
+                    Interlocked.Exchange(ref connectionmax, MaxConnection);
+                    Interlocked.Exchange(ref connectionfactor, 0);
+                    OnInfo($"AgentListener MaxConnection Increased {connectionmax}");
+                }
+                if (Interlocked.CompareExchange(ref m_connections, 0, 0) > 0)
+                    Interlocked.Decrement(ref m_connections);
+            }
+            else if (Interlocked.CompareExchange(ref connectionfactor, 0, 0) < ExchangeFactor)
+            {
+                Interlocked.Increment(ref connectionfactor);
+                //if (Interlocked.CompareExchange(ref connectionfactor, 0, 0) > factor)
+                //{
+                //    Interlocked.Exchange(ref connectionmax, 1);
+                //}
+            }
+            //else if (Interlocked.CompareExchange(ref connectionfactor, 0, 0) > factor)
+            //{
+            //    Interlocked.Exchange(ref connectionmax, 1);
+            //}
+            else if (Interlocked.CompareExchange(ref connectionmax, 0, 0) > 1)
+            {
+                Interlocked.Exchange(ref connectionmax, 1);
+                OnInfo($"AgentListener MaxConnection is {connectionmax}");
+            }
+        }
+        #endregion
 
+        #region AgentProcess
         int pause = 0;
         private void AgentProcess(object state)
         {
-
+            connectionmax = MaxConnection;
             while (keepAlive)
             {
 
@@ -365,11 +405,11 @@ namespace Nistec.Messaging.Listeners
                         Thread.Sleep(60000);
                     }
                     pause = 0;
-                    while (Thread.VolatileRead(ref m_connections) >= MaxConnection)
-                    {
-                        OnInfo($"AgentListener AgentProcess ShouldPause {++pause}, m_Connections {m_connections}");
-                        Thread.Sleep(100);
-                    }
+                    //while (Thread.VolatileRead(ref m_connections) >= connectionmax)
+                    //{
+                    //    OnInfo($"AgentListener AgentProcess ShouldPause {++pause}, m_Connections {m_connections}");
+                    //    Thread.Sleep(100);
+                    //}
                     
                     if (!keepAlive)
                     {
@@ -377,22 +417,29 @@ namespace Nistec.Messaging.Listeners
                     }
 
                     Interlocked.Increment(ref isQueueRunning);
-
-                    lock (m_lock)
+                    if (Interlocked.CompareExchange(ref m_connections, 0, 0) < connectionmax)
                     {
-                        message = ReadMessage(WaitSecond);
-
-                        if (message != null)
+                        lock (m_lock)
                         {
-                            if (message.Body != null && message.AckState == (int)ChannelState.Received)
+                            message = ReadMessage(WaitSecond);
+
+                            if (message != null)
                             {
-                                Interlocked.Increment(ref m_connections);
-                                ThreadPool.QueueUserWorkItem(AgentWorker, message);
-                                //Task.Run(()=> AgentItemWorker(message));
+                                if (message.Body != null && message.AckState == (int)ChannelState.Received)
+                                {
+                                    //Interlocked.Increment(ref m_connections);
+                                    ThreadPool.QueueUserWorkItem(AgentWorker, message);
+                                    //Task.Run(()=> AgentItemWorker(message));
+                                    //ConnectionExchange(true);
+                                }
+                                else if ((int)message.AckState >= 400)
+                                {
+                                    OnError("AgentListener read failed : " + message.Label + ", " + message.Print());
+                                }
                             }
-                            else if ((int)message.AckState >= 400)
+                            else
                             {
-                                OnError("AgentListener read failed : " + message.Label + ", " + message.Print());
+                                ConnectionExchange(false);
                             }
                         }
                     }
@@ -433,27 +480,30 @@ namespace Nistec.Messaging.Listeners
             {
                 OnInfo($"AgentListener AgentWorker started");
 
-                T message = (T)threadContext;
-
-                if (message != null)// && !queueItem.IsEmpty)
+                using (T message = (T)threadContext)
                 {
-                    OnInfo($"AgentListener ExecuteAsync {message.Print()}");
 
-                    OnMessageReceived(message);//.ConfigureAwait(false);
+                    if (message != null)// && !queueItem.IsEmpty)
+                    {
+                        OnInfo($"AgentListener ExecuteAsync {message.Print()}");
+                        ConnectionExchangeBegin();
+                        OnMessageReceived(message);//.ConfigureAwait(false);
+                        ConnectionExchange(true);
 
-                    //lock (m_lock)
-                    //{
-                    //    Commit(message); //Queue_Context.Commit(queueItem.QueueId);
-                    //}
-                    //activeCampaign.Dispose();
+                        //lock (m_lock)
+                        //{
+                        //    Commit(message); //Queue_Context.Commit(queueItem.QueueId);
+                        //}
+                        //activeCampaign.Dispose();
+                    }
                 }
             }
             catch (Exception ex)
             {
                 OnError($"AgentListener {HostName},  Error :{ex.Message}");
             }
-
-            Interlocked.Decrement(ref m_connections);
+            //if (Interlocked.CompareExchange(ref m_connections, 0, 0) > 0)
+            //    Interlocked.Decrement(ref m_connections);
 
             OnInfo($"AgentListener AgentWorker finished");
         }

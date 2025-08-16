@@ -19,6 +19,7 @@ using Nistec.Messaging.Io;
 using System.Transactions;
 using Nistec.Messaging.Config;
 using Nistec.Data.Entities;
+using Nistec.Serialization;
 
 namespace Nistec.Messaging
 {
@@ -1048,9 +1049,41 @@ namespace Nistec.Messaging
         public IDictionary<string, object> GetReport()
         {
             if (m_Perfmon == null)
+            {
+                Console.WriteLine("QueuePerformanceCounter is not enabled");
                 return null;
+            }
             return m_Perfmon.GetPerformanceReport();
         }
+
+        public static long MemorySize()
+        {
+            try
+            {
+                long usedMemoryBytes = GC.GetTotalMemory(true);
+                return usedMemoryBytes / 1024;
+            }
+            catch (Exception ex)
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>
+        ///  Get Queue Counters.
+        /// </summary>
+        public IDictionary<string, int> QueueCounters()
+        {
+            return Q.QueueCounters();
+        }
+
+        ///// <summary>
+        /////  Get the memory size.
+        ///// </summary>
+        //public long MemorySize()
+        //{
+        //    return Q.MemorySize();
+        //}
 
         /// <summary>
         ///  Sets the memory size as an atomic operation.
@@ -1059,8 +1092,8 @@ namespace Nistec.Messaging
         void IQueuePerformance.MemorySizeExchange(ref long memorySize)
         {
             LogAction(MessageState.None, "Memory Size Exchange:" + m_QueueName);
-            //long size = GetMemorySize();
-            //Interlocked.Exchange(ref memorySize, size);
+            long size = MemorySize();// MemorySize();
+            Interlocked.Exchange(ref memorySize, size);
         }
 
         /// <summary>
@@ -1269,6 +1302,23 @@ namespace Nistec.Messaging
         #endregion
 
         #region public methods
+
+        /// <summary>
+        /// Get persist items count
+        /// </summary>
+        /// <returns></returns>
+        public int CountPersistent()
+        {
+            return Q.CountPersistent();
+        }
+        /// <summary>
+        /// Get memory items count
+        /// </summary>
+        /// <returns></returns>
+        public int CountMemory()
+        {
+            return Q.CountMemory();
+        }
 
         /// <summary>
         /// Get persist items

@@ -214,7 +214,7 @@ namespace Nistec.Messaging.Server
 
         protected override byte[] ServerHandle(byte[] bytes)
         {
-            Log.Info($"TcpServer ServerHandle QueueChannel: {QueueChannel}");
+            //Log.Info($"TcpServer ServerHandle QueueChannel: {QueueChannel}");
             //IDataStream response = null;
 
             if (QueueChannel == QueueChannel.Producer)
@@ -255,7 +255,7 @@ namespace Nistec.Messaging.Server
 
         protected override async Task<byte[]> ServerHandleAsync(byte[] bytes)
         {
-            Log.Info($"TcpServer ServerHandleAsync QueueChannel: {QueueChannel}");
+            //Log.Info($"TcpServer ServerHandleAsync QueueChannel: {QueueChannel}");
             //IDataStream response = null;
             if (QueueChannel == QueueChannel.Producer)
             {

@@ -91,6 +91,9 @@ namespace Nistec.Messaging
         /// </summary>
         public long ItemsCount { get { return Interlocked.Read(ref _ItemsCount); } }
 
+        public int CountMemory { get { return ((MQueue)Owner).CountMemory(); } }
+        public int CountPersistent { get { return ((MQueue)Owner).CountPersistent(); } }
+
         long _EnqueueCount;
         /// <summary>
         /// Get Emqueued Items count as an atomic operation.
@@ -308,6 +311,8 @@ namespace Nistec.Messaging
             dt.Columns.Add("AgentType", typeof(string));
             dt.Columns.Add("CounterName", typeof(string));
             dt.Columns.Add("ItemsCount", typeof(long));
+            dt.Columns.Add("CountMemory", typeof(int));
+            dt.Columns.Add("CountPersistent", typeof(int));
             dt.Columns.Add("RequestCount", typeof(long));
             dt.Columns.Add("EnqueueCount", typeof(long));
             dt.Columns.Add("DequeueCount", typeof(long));
@@ -339,9 +344,11 @@ namespace Nistec.Messaging
             Dictionary<string, object> prop = new Dictionary<string, object>();
 
             
-            prop["AgentType"] = AgentType;
+            prop["AgentType"] = AgentType.ToString();
             prop["CounterName"] = CounterName;
             prop["ItemsCount"] = ItemsCount;
+            prop["CountMemory"] = CountMemory;
+            prop["CountPersistent"] = CountPersistent;
             prop["RequestCount"] = RequestCount;
             prop["EnqueueCount"] = RequestCount;
             prop["DequeueCount"] = DequeueCount;
@@ -389,6 +396,8 @@ namespace Nistec.Messaging
             AgentType.ToString(),
             CounterName,
             ItemsCount,
+            CountMemory,
+            CountPersistent,
             RequestCount,
             EnqueueCount,
             DequeueCount,
@@ -572,6 +581,8 @@ namespace Nistec.Messaging
         {
             dtReport.Clear();
             ItemsCount = 0;
+            CountMemory = 0;
+            CountPersistent = 0;
             RequestCount = 0;
             EnqueueCount = 0;
             DequeueCount = 0;
@@ -598,6 +609,8 @@ namespace Nistec.Messaging
             dtReport.Rows.Add(agent.GetItemArray());
 
             ItemsCount += agent.ItemsCount;
+            CountMemory += agent.CountMemory;
+            CountPersistent += agent.CountPersistent;
             RequestCount += agent.RequestCount;
             EnqueueCount += agent.EnqueueCount;
             DequeueCount += agent.DequeueCount;
@@ -643,6 +656,8 @@ namespace Nistec.Messaging
             "Report",
             "Summarize",
             ItemsCount,
+            CountMemory,
+            CountPersistent,
             RequestCount,
             EnqueueCount,
             DequeueCount,
@@ -676,7 +691,9 @@ namespace Nistec.Messaging
         /// </summary>
         public long ItemsCount { get; private set;  }
 
-        
+        public long CountMemory { get; private set; }
+        public long CountPersistent { get; private set; }
+
         /// <summary>
         /// Get Request count as an atomic operation.
         /// </summary>

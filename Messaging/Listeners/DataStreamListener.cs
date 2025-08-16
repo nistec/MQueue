@@ -235,7 +235,7 @@ namespace Nistec.Messaging.Listeners
         object _locker = new object();
         Thread[] _workers;
         long delay;
-        long m_conecctions = 0;
+        long m_connections = 0;
         long m_pause = 0;
 
         public void Start()
@@ -319,7 +319,7 @@ namespace Nistec.Messaging.Listeners
         {
             get
             {
-                return (int)m_conecctions;
+                return (int)m_connections;
             }
         }
         public NameValueArgs Report()
@@ -370,7 +370,7 @@ namespace Nistec.Messaging.Listeners
                     {
                         Task.Delay((int)m_pause);
                     }
-                    while (Interlocked.Read(ref m_conecctions) >= MaxConnection)
+                    while (Interlocked.Read(ref m_connections) >= MaxConnection)
                     {
                         Task.Delay(1000);
                     }
@@ -378,7 +378,7 @@ namespace Nistec.Messaging.Listeners
                     Monitor.Enter(_locker);
                     lockWasTaken = true;
 
-                    Interlocked.Increment(ref m_conecctions);
+                    Interlocked.Increment(ref m_connections);
                     Task.Run(() =>
                     {
                         Receive(autoResetEvent,OnMessageReceived);
@@ -394,7 +394,7 @@ namespace Nistec.Messaging.Listeners
                 {
                     if (lockWasTaken) Monitor.Exit(_locker);
                 }
-                Interlocked.Decrement(ref m_conecctions);
+                Interlocked.Decrement(ref m_connections);
                 Task.Delay(100);
             }
 
@@ -422,14 +422,14 @@ namespace Nistec.Messaging.Listeners
                     {
                         Task.Delay((int)m_pause);
                     }
-                    while (Interlocked.Read(ref m_conecctions) >= MaxConnection)
+                    while (Interlocked.Read(ref m_connections) >= MaxConnection)
                     {
                         Task.Delay(1000);
                     }
                     Monitor.Enter(_locker);
                     lockWasTaken = true;
 
-                    Interlocked.Increment(ref m_conecctions);
+                    Interlocked.Increment(ref m_connections);
                     var task = Task.Run(async () =>
                     {
                         await ReceiveAsync(autoResetEvent,OnMessageReceived);
@@ -445,7 +445,7 @@ namespace Nistec.Messaging.Listeners
                 {
                     if (lockWasTaken) Monitor.Exit(_locker);
                 }
-                Interlocked.Decrement(ref m_conecctions);
+                Interlocked.Decrement(ref m_connections);
                 Task.Delay(Interval);
             }
 

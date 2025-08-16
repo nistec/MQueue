@@ -402,23 +402,28 @@ namespace Nistec.Messaging.Server
                         return ExecQuery(request);
                     case QueueCmd.ReportQueueStatistic:
                         return GetQueueReport(request);
-
+                    case QueueCmd.ReportQueueCounters:
+                        return GetQueueCounters(request);
                     //throw new Exception("Operation not supported");
                     case QueueCmd.PerformanceCounter:
                         throw new Exception("Operation not supported");
                     case QueueCmd.QueueCount:
                         return DoReport(QueueCount(request.Host), QueueCmd.QueueCount.ToString() + " for " + request.Host, MessageState.Ok);
                     case QueueCmd.QueueCountAll:
-                        return DoReport(QueueCountAll(), QueueCmd.QueueCount.ToString(), MessageState.Ok);
+                        return DoReport(QueueCountAll(), QueueCmd.QueueCountAll.ToString(), MessageState.Ok);
+                    case QueueCmd.ReportCountersAll:
+                        return DoReport(ReportCountersAll(), QueueCmd.ReportCountersAll.ToString(), MessageState.Ok);
                     case QueueCmd.DbQueueReport:
                         return DoReport(DbQueueReport(request.Host), QueueCmd.DbQueueReport.ToString(), MessageState.Ok);
                     case QueueCmd.DbQueueClear:
                         return DoReport(DbQueueClear(request.Host), QueueCmd.DbQueueClear.ToString(), MessageState.Ok);
                     case QueueCmd.DbQueueClearItem:
                         return DoReport(DbQueueClearItem(request.Host, request.Args.Get("key")), QueueCmd.DbQueueClearItem.ToString(), MessageState.Ok);
+                    //case QueueCmd.QueueItemsCount:
+                    //    return DoReport(QueueItemsCount(request.Host), QueueCmd.QueueItemsCount.ToString() + " for " + request.Host, MessageState.Ok);
+                    //case QueueCmd.QueueItemsCountAll:
+                    //    return DoReport(QueueItemsCountAll(), QueueCmd.QueueItemsCountAll.ToString(), MessageState.Ok);
 
-
-                        
                 }
             }
             catch (MessageException mex)
@@ -1000,6 +1005,23 @@ namespace Nistec.Messaging.Server
             return QueueAck.DoResponse(MessageState.Ok, "QueueNotFound: " + message.Host, report).ToTransStream();
         }
 
+        public TransStream GetQueueCounters(IQueueRequest message)
+        {
+            MQueue queue = Get(message.Host);
+            if (queue == null)
+            {
+                Logger.Info("QueueController GetQueueCounters QueueNotFound : {0}", message.Host);
+                return QueueAck.DoResponse(MessageState.QueueNotFound, "QueueNotFound: " + message.Host, null).ToTransStream();
+            }
+            var report = queue.QueueCounters();
+            string result = null;
+            if (report != null)
+                result = Nistec.Serialization.JsonSerializer.Serialize(report);
+            Logger.Info("QueueController GetQueueCounters : {0}", result);
+
+            return QueueAck.DoResponse(MessageState.Ok, "QueueNotFound: " + message.Host, report).ToTransStream();
+        }
+        
         /// <summary>Creates a non-transactional Message Queuing queue at the specified path.</summary>
         /// <returns>A <see cref="T:Nistec.Messaging.MQueue"></see> that represents the new queue.</returns>
         /// <param name="queueName">The path of the queue to create. </param>
@@ -1159,6 +1181,52 @@ namespace Nistec.Messaging.Server
 
         }
 
+        public string QueuePersistentCountAll()
+        {
+            GenericKeyValue g = new GenericKeyValue();
+            var queues = MQ.Values.ToArray();
+            g.Add("MQueue", "Report");
+            foreach (var q in queues)
+            {
+                g.Add(q.QueueName + " Count", q.CountPersistent());
+            }
+            return g.ToJson();
+        }
+
+        //public string QueueItemsCountAll()
+        //{
+        //    GenericKeyValue g = new GenericKeyValue();
+        //    var queues = MQ.Values.ToArray();
+        //    g.Add("MQueue", "Report");
+        //    foreach (var q in queues)
+        //    {
+        //        g.Add(q.QueueName + " CountMemory", q.CountMemory());
+        //        g.Add(q.QueueName + " CountPersistent", q.CountPersistent());
+        //    }
+        //    return g.ToJson();
+        //}
+
+
+        //public int QueueItemsCount(string queueName)
+        //{
+
+        //    if (queueName == null)
+        //    {
+        //        throw new ArgumentNullException("queueName");
+        //    }
+        //    if (queueName.Length == 0)
+        //    {
+        //        throw new ArgumentException("InvalidParameter", "queueName");
+        //    }
+        //    MQueue queue = null;
+        //    if (MQ.TryGetValue(queueName, out queue))
+        //    {
+        //        return queue.CountMemory();
+        //    }
+
+        //    return 0;
+        //}
+
         public int QueueCount(string queueName)
         {
 
@@ -1215,7 +1283,24 @@ namespace Nistec.Messaging.Server
             //}
             //return sb.ToString();
         }
-      
+
+        public string ReportCountersAll()
+        {
+            GenericKeyValue g = new GenericKeyValue();
+            var queues = MQ.Values.ToArray();
+            g.Add("MQueue", "Report");
+            foreach (var q in queues)
+            {
+                //g.Add(q.QueueName, q.QueueCounters());
+                foreach (var m in q.QueueCounters())
+                {
+                    g.Add(q.QueueName + " - "+m.Key, m.Value);
+                }
+            }
+            g.Add("MemorySize", MQueue.MemorySize());
+            return g.ToJson();
+        }
+
         public string  QueueCountAll()
         {
             GenericKeyValue g = new GenericKeyValue();
@@ -1224,7 +1309,10 @@ namespace Nistec.Messaging.Server
             foreach (var q in queues)
             {
                 g.Add(q.QueueName + " Count", q.Count);
+                g.Add(q.QueueName + " CountMemory", q.CountMemory());
+                g.Add(q.QueueName + " CountPersistent", q.CountPersistent());
             }
+            g.Add("MemorySize", MQueue.MemorySize());
             return g.ToJson();
         }
 
