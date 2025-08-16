@@ -14,43 +14,9 @@ using Nistec.Threading;
 namespace Nistec.Messaging.Listeners
 {
 
-    /// <summary>
-    /// Represents a thread-safe queue listener (FIFO) collection.
-    /// </summary>
-    public abstract class SessionListener : IListener
+    public abstract class SessionListener : SessionListener<IQueueMessage,Ptr>
     {
-        #region members
-
-        public const int DefaultInterval = 1000;
-
-        //protected QueueAdapter Adapter;
-
-        CancellationTokenSource canceller = new CancellationTokenSource();
-
         public QueueHost Source { get; protected set; }
-
-        public bool EnableResetEvent { get; set; }
-        public int Interval { get; set; }//{ get { return MinWait; } }
-        public int ConnectTimeout { get; protected set; }
-        public int ReadTimeout { get; protected set; } 
-        public bool IsAlive { get; protected set; }
-        public int WorkerCount { get; protected set; }
-        public int MaxConnection { get; set; }
-        public bool IsMultiTask { get; set; }
-
-        public bool IsAsync { get; protected set; }
-        public ListenerState State { get; private set; }
-
-        ILogger _Logger;
-        /// <summary>
-        /// Get or Set Logger that implements <see cref="ILogger"/> interface.
-        /// </summary>
-        public ILogger Logger { get { return _Logger; } set { if (value != null) _Logger = value; } }
-
-        public bool EnableDynamicWait { get; set; }
-        public string HostName { get; private set; }
-
-        #endregion
 
         #region ctor
         public SessionListener()//, int interval)
@@ -103,7 +69,112 @@ namespace Nistec.Messaging.Listeners
 
         #endregion
 
-        #region message events
+        #region override
+
+        public override void Commit(Ptr ptr)
+        {
+            QueueApi.Get(Source).Commit(ptr);
+        }
+
+        public override void Abort(Ptr ptr)
+        {
+            QueueApi.Get(Source).Abort(ptr);
+        }
+
+        #endregion
+    }
+
+#if (false)
+    /// <summary>
+    /// Represents a thread-safe queue listener (FIFO) collection.
+    /// </summary>
+    public abstract class SessionListener : IListener
+    {
+    #region members
+
+        public const int DefaultInterval = 1000;
+
+        //protected QueueAdapter Adapter;
+
+        CancellationTokenSource canceller = new CancellationTokenSource();
+
+        public QueueHost Source { get; protected set; }
+
+        public bool EnableResetEvent { get; set; }
+        public int Interval { get; set; }//{ get { return MinWait; } }
+        public int ConnectTimeout { get; protected set; }
+        public int ReadTimeout { get; protected set; } 
+        public bool IsAlive { get; protected set; }
+        public int WorkerCount { get; protected set; }
+        public int MaxConnection { get; set; }
+        public bool IsMultiTask { get; set; }
+
+        public bool IsAsync { get; protected set; }
+        public ListenerState State { get; private set; }
+
+        ILogger _Logger;
+        /// <summary>
+        /// Get or Set Logger that implements <see cref="ILogger"/> interface.
+        /// </summary>
+        public ILogger Logger { get { return _Logger; } set { if (value != null) _Logger = value; } }
+
+        public bool EnableDynamicWait { get; set; }
+        public string HostName { get; private set; }
+
+    #endregion
+
+    #region ctor
+        public SessionListener()//, int interval)
+        {
+        }
+        public SessionListener(QueueAdapter adapter)//, int interval)
+        {
+            Init(adapter);
+        }
+
+        public virtual void Init(QueueAdapter adapter)
+        {
+            if (adapter == null)
+            {
+                throw new ArgumentNullException("adapter");
+            }
+            if (adapter.Source == null)
+            {
+                throw new ArgumentNullException("adapter.Source");
+            }
+            //Adapter = adapter;
+
+            //_Owner = owner;
+            Source = adapter.Source;
+            HostName = Source.HostName;
+
+            //_TransferTo = adapter.TransferTo;
+
+            //_ServerName = channel.ServerName;
+            //_QueueName = channel.Source;
+            //IntervalWait = interval < MinWait ? MinWait : interval;// 1000;
+
+            Interval = adapter.Interval;
+            ConnectTimeout = adapter.ConnectTimeout;
+            ReadTimeout = adapter.ReadTimeout;
+            WorkerCount = adapter.WorkerCount;
+            MaxConnection = adapter.MaxConnection;
+            IsMultiTask = adapter.IsMultiTask;
+            IsAsync = adapter.IsAsync;
+            EnableResetEvent = true;// adapter.EnableResetEvent;
+            EnableDynamicWait = adapter.EnableDynamicWait;
+            //_ActionTransfer = adapter.AckAction;
+            //_AdapterOperation = adapter.OperationType;
+
+            //QApi = new QueueApi(adapter.Source);
+            //QApi.ReadTimeout = adapter.ReadTimeout;
+
+            State = ListenerState.Initilaized;
+        }
+
+    #endregion
+
+    #region message events
 
         /// <summary>
         /// ErrorOcurred
@@ -154,9 +225,9 @@ namespace Nistec.Messaging.Listeners
             //OnErrorOcurred(new GenericEventArgs<string>(message));
         }
 
-        #endregion
+    #endregion
 
-        #region override
+    #region override
 
         protected virtual void OnStateChanged(ListenerState state)
         {
@@ -232,16 +303,16 @@ namespace Nistec.Messaging.Listeners
             QueueApi.Get(Source).Abort(ptr);
         }
 
-        #endregion
+    #endregion
 
-        #region start/stop
+    #region start/stop
 
         bool lockWasTaken = false;
         object _locker = new object();
         Thread[] _workers;
-        long delay;
+        //long delay;
         long m_connections = 0;
-        long m_pause = 0;
+        //long m_pause = 0;
 
         public void Start()
         {
@@ -342,9 +413,9 @@ namespace Nistec.Messaging.Listeners
             args.Add("MaxThreads", WorkerCount);
             return args;
         }
-        #endregion
+    #endregion
 
-        #region Connection 
+    #region Connection 
         int connectionfactor = 0;
         int connectionmax = 0;
         int Incremented = 0;
@@ -383,20 +454,21 @@ namespace Nistec.Messaging.Listeners
                 //    Interlocked.Decrement(ref m_connections);
             }
         }
-        #endregion
+    #endregion
 
-        #region worker
+    #region worker
 
-        public void Delay(TimeSpan time)
-        {
-            Interlocked.Exchange(ref delay, (long)time.TotalMilliseconds);
-        }
+        //public void Delay(TimeSpan time)
+        //{
+        //    Interlocked.Exchange(ref delay, (long)time.TotalMilliseconds);
+        //}
 
         private readonly AutoResetEvent autoResetEvent = new AutoResetEvent(false);
 
         protected virtual void TaskWorker()
         {
             IsAlive = true;
+            int pause = 0;
             connectionmax = MaxConnection;
             // Start queue listener...
             OnInfo($"SessionListener started...MaxConnection is {connectionmax}");
@@ -407,15 +479,23 @@ namespace Nistec.Messaging.Listeners
                 try
                 {
 
-                    if (Interlocked.Read(ref delay) > 0)
+                    //if (Interlocked.Read(ref delay) > 0)
+                    //{
+                    //    Task.Delay((int)delay);
+                    //    Interlocked.Exchange(ref delay, 0);
+                    //}
+                    //while (Interlocked.Read(ref m_pause) > 0)
+                    //{
+                    //    Task.Delay((int)m_pause);
+                    //}
+
+                    Interlocked.Exchange(ref pause, ShouldPause());
+                    while (Interlocked.CompareExchange(ref pause, 0, 0) > 0)
                     {
-                        Task.Delay((int)delay);
-                        Interlocked.Exchange(ref delay, 0);
+                        OnInfo($"AgentListener QueueProcess ShouldPause {pause}");
+                        Thread.Sleep(pause);
                     }
-                    while (Interlocked.Read(ref m_pause) > 0)
-                    {
-                        Task.Delay((int)m_pause);
-                    }
+
                     //while (Interlocked.Read(ref m_connections) >= MaxConnection)
                     //{
                     //    Task.Delay(1000);
@@ -518,9 +598,9 @@ namespace Nistec.Messaging.Listeners
 
         }
 
-        #endregion
+    #endregion
     }
-
+#endif
 
 #if (false)
     /// <summary>

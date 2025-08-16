@@ -119,6 +119,7 @@
     <Compile Include="Listeners\QueueReceiver.cs" />
     <Compile Include="Listeners\SessionDispatcher.cs" />
     <Compile Include="Listeners\DataStreamListener.cs" />
+    <Compile Include="Listeners\SessionListenerBase.cs" />
     <Compile Include="Listeners\SessionListener.cs" />
     <Compile Include="Listeners\SessionManager.cs" />
     <Compile Include="Listeners\Interfaces.cs" />

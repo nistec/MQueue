@@ -10,82 +10,16 @@ using System.Collections.ObjectModel;
 using Nistec.Messaging.Remote;
 using Nistec.Logging;
 using Nistec.Threading;
-using Nistec.Channels;
 
 namespace Nistec.Messaging.Listeners
 {
 
-    public abstract class AgentSessionListener<T> : SessionListener<T, IAck> where T:class
-    {
-        public HostChannel Source { get; protected set; }
-
-        #region ctor
-        public AgentSessionListener()//, int interval)
-        {
-        }
-        public AgentSessionListener(AgentAdapter adapter)//, int interval)
-        {
-            Init(adapter);
-        }
-
-        public virtual void Init(AgentAdapter adapter)
-        {
-            if (adapter == null)
-            {
-                throw new ArgumentNullException("adapter");
-            }
-            if (adapter.Source == null)
-            {
-                throw new ArgumentNullException("adapter.Source");
-            }
-            //Adapter = adapter;
-
-            //_Owner = owner;
-            Source = adapter.Source;
-            HostName = Source.HostName;
-
-            //_TransferTo = adapter.TransferTo;
-
-            //_ServerName = channel.ServerName;
-            //_QueueName = channel.Source;
-            //IntervalWait = interval < MinWait ? MinWait : interval;// 1000;
-
-            Interval = adapter.Interval;
-            ConnectTimeout = adapter.ConnectTimeout;
-            ReadTimeout = adapter.ReadTimeout;
-            WorkerCount = adapter.WorkerCount;
-            MaxConnection = adapter.MaxConnection;
-            IsMultiTask = adapter.IsMultiTask;
-            IsAsync = adapter.IsAsync;
-            EnableResetEvent = true;// adapter.EnableResetEvent;
-            EnableDynamicWait = adapter.EnableDynamicWait;
-            //_ActionTransfer = adapter.AckAction;
-            //_AdapterOperation = adapter.OperationType;
-
-            //QApi = new QueueApi(adapter.Source);
-            //QApi.ReadTimeout = adapter.ReadTimeout;
-
-            State = ListenerState.Initilaized;
-        }
-
-        #endregion
-
-        #region override
-
-        protected virtual void CommitAsync(IAck ack)
-        {
-            //await Task.Run(null);
-        }
-
-        #endregion
-    }
-
-
-#if(false)
     /// <summary>
-    /// Represents a thread-safe queue listener (FIFO) collection.
+    /// Represents a thread-safe Generic Session Listener.
     /// </summary>
-    public abstract class AgentSessionListener<T> where T : IAgentMessage//, IListener
+    public abstract class SessionListener<T,P> : IListener
+    where T : class
+    //where P : class
     {
         #region members
 
@@ -95,7 +29,7 @@ namespace Nistec.Messaging.Listeners
 
         CancellationTokenSource canceller = new CancellationTokenSource();
 
-        public HostChannel Source { get; protected set; }
+        //public QueueHost Source { get; protected set; }
 
         public bool EnableResetEvent { get; set; }
         public int Interval { get; set; }//{ get { return MinWait; } }
@@ -116,20 +50,21 @@ namespace Nistec.Messaging.Listeners
         public ILogger Logger { get { return _Logger; } set { if (value != null) _Logger = value; } }
 
         public bool EnableDynamicWait { get; set; }
-        public string HostName { get; private set; }
+        public string HostName { get; protected set; }
 
         #endregion
 
         #region ctor
-        public AgentSessionListener()//, int interval)
+        /*
+        public SessionListener()//, int interval)
         {
         }
-        public AgentSessionListener(AgentAdapter adapter)//, int interval)
+        public SessionListener(QueueAdapter adapter)//, int interval)
         {
             Init(adapter);
         }
 
-        public virtual void Init(AgentAdapter adapter)
+        public virtual void Init(QueueAdapter adapter)
         {
             if (adapter == null)
             {
@@ -168,7 +103,7 @@ namespace Nistec.Messaging.Listeners
 
             State = ListenerState.Initilaized;
         }
-
+        */
         #endregion
 
         #region message events
@@ -232,13 +167,11 @@ namespace Nistec.Messaging.Listeners
         }
         protected virtual int ShouldPause()
         {
-            return 0;//Hold Sender Service
+           return PauseInterval;
         }
 
-        //protected abstract IQueueAck Send(QueueMessage message);
-
         protected abstract T Receive();
-        //protected abstract void Receive(IDynamicWait aw);
+
         protected virtual async Task<T> ReceiveAsync()
         {
             return await Task.Run(() =>
@@ -246,54 +179,48 @@ namespace Nistec.Messaging.Listeners
                 return Receive();
             });
         }
-        protected void Receive(AutoResetEvent are, Action<T> onReceived)
+        protected virtual void Receive(AutoResetEvent are, Action<T> onReceived)
         {
             var message = Receive();
             if (message != null)
+            {
+                ConnectionExchangeBegin();
                 onReceived(message);
+                ConnectionExchange(true);
+            }
+            else
+            {
+                ConnectionExchange(false);
+            }
             are.Set();
         }
-        //protected void Receive(Action<T> onReceived)
-        //{
-        //    var message = Receive();
-        //    if (message != null)
-        //        onReceived(message);
-        //}
-        protected async Task ReceiveAsync(AutoResetEvent are, Action<T> onReceived)
+
+        protected virtual async Task ReceiveAsync(AutoResetEvent are, Action<T> onReceived)
         {
             var message = await ReceiveAsync();
             if (message != null)
+            {
+                ConnectionExchangeBegin();
                 onReceived(message);
+                ConnectionExchange(true);
+            }
+            else
+            {
+                ConnectionExchange(false);
+            }
             are.Set();
         }
-        //protected async Task ReceiveAsync(Action<T> onReceived)
-        //{
-        //    var message = await ReceiveAsync();
-        //    if (message != null)
-        //        onReceived(message);
-        //}
 
-        //public virtual void Commit(Ptr ptr)
-        //{
-        //    QueueApi.Get(Source).Commit(ptr);
-        //}
-
-        //public virtual void Abort(Ptr ptr)
-        //{
-        //    QueueApi.Get(Source).Abort(ptr);
-        //}
-        protected virtual void CommitAsync(IAck ack)
+        public virtual void Commit(P ptr)
         {
-            //await Task.Run(null);
+            
         }
-        protected virtual void Commit(IAck ack)
-        {
 
-        }
-        protected virtual void Abort(IAck ack)
+        public virtual void Abort(P ptr)
         {
-
+            
         }
+
         #endregion
 
         #region start/stop
@@ -301,9 +228,9 @@ namespace Nistec.Messaging.Listeners
         bool lockWasTaken = false;
         object _locker = new object();
         Thread[] _workers;
-        long delay;
+        //long delay;
         long m_connections = 0;
-        long m_pause = 0;
+        int PauseInterval = 0;
 
         public void Start()
         {
@@ -320,13 +247,13 @@ namespace Nistec.Messaging.Listeners
                 _workers[i].Start();
             }
             State = ListenerState.Started;
-            OnInfo("AgentSessionListener Started");
+            OnInfo("SessionListener Started");
         }
         public void Stop()
         {
             Shutdown(true);
             State = ListenerState.Stoped;
-            OnInfo("AgentSessionListener Stoped");
+            OnInfo("SessionListener Stoped");
         }
         public void Shutdown(bool waitForWorkers)
         {
@@ -346,16 +273,16 @@ namespace Nistec.Messaging.Listeners
 
             if (paused)
             {
-                Interlocked.Exchange(ref m_pause, Math.Max(delay, 1000));
+                Interlocked.Exchange(ref PauseInterval, Math.Max(delay, 1000));
                 State = ListenerState.Paused;
-                OnEvent($"AgentSessionListener.Pause", $"State: {State}, HostName: {HostName}");
-                OnInfo($"AgentSessionListener Paused: {HostName}");
+                OnEvent($"SessionListener.Pause", $"State: {State}, HostName: {HostName}");
+                OnInfo($"SessionListener Paused: {HostName}");
             }
             else
             {
-                Interlocked.Exchange(ref m_pause, 0);
+                Interlocked.Exchange(ref PauseInterval, 0);
                 State = ListenerState.Started;
-                OnInfo($"AgentSessionListener No Paused: {HostName}");
+                OnInfo($"SessionListener No Paused: {HostName}");
             }
             return paused;
         }
@@ -391,7 +318,6 @@ namespace Nistec.Messaging.Listeners
         }
         public NameValueArgs Report()
         {
-
             var args = new NameValueArgs();
             args.Add("HostName", HostName);
             args.Add("MaxConnection", MaxConnection);
@@ -407,120 +333,163 @@ namespace Nistec.Messaging.Listeners
         }
         #endregion
 
+        #region Connection 
+        int connectionfactor = 0;
+        int connectionmax = 0;
+        //int Incremented = 0;
+        protected int ExchangeFactor = 10;
+
+        protected void ConnectionExchangeBegin()
+        {
+            Interlocked.Increment(ref m_connections);
+        }
+        protected void ConnectionExchange(bool hasValue)
+        {
+            if (hasValue)
+            {
+                //Interlocked.Increment(ref m_connections);
+                if (Interlocked.CompareExchange(ref connectionmax, 0, 0) < MaxConnection)
+                {
+                    Interlocked.Exchange(ref connectionmax, MaxConnection);
+                    Interlocked.Exchange(ref connectionfactor, 0);
+                    OnInfo($"SessionListener MaxConnection Increased to: {connectionmax}");
+                }
+                if (Interlocked.CompareExchange(ref m_connections, 0, 0) > 0)
+                    Interlocked.Decrement(ref m_connections);
+            }
+            else
+            {
+                if (Interlocked.CompareExchange(ref connectionfactor, 0, 0) < ExchangeFactor)
+                {
+                    Interlocked.Increment(ref connectionfactor);
+                }
+                else if (Interlocked.CompareExchange(ref connectionmax, 0, 0) > 1)
+                {
+                    Interlocked.Exchange(ref connectionmax, 1);
+                    OnInfo($"SessionListener MaxConnection is {connectionmax}");
+                }
+                //if (Interlocked.CompareExchange(ref m_connections, 0, 0) > 0)
+                //    Interlocked.Decrement(ref m_connections);
+            }
+        }
+        #endregion
+
         #region worker
 
-        public void Delay(TimeSpan time)
-        {
-            Interlocked.Exchange(ref delay, (long)time.TotalMilliseconds);
-        }
+        //public void Delay(TimeSpan time)
+        //{
+        //    Interlocked.Exchange(ref delay, (long)time.TotalMilliseconds);
+        //}
 
         private readonly AutoResetEvent autoResetEvent = new AutoResetEvent(false);
 
         protected virtual void TaskWorker()
         {
             IsAlive = true;
+            int pause = 0;
+            connectionmax = MaxConnection;
             // Start queue listener...
-            OnInfo("QListener started...");
+            OnInfo($"SessionListener started...MaxConnection is {connectionmax}");
 
             while (IsAlive)
             {
 
                 try
                 {
-
-                    if (Interlocked.Read(ref delay) > 0)
+                    Interlocked.Exchange(ref pause, ShouldPause());
+                    while (Interlocked.CompareExchange(ref pause, 0, 0) > 0)
                     {
-                        Task.Delay((int)delay);
-                        Interlocked.Exchange(ref delay, 0);
-                    }
-                    while (Interlocked.Read(ref m_pause) > 0)
-                    {
-                        Task.Delay((int)m_pause);
-                    }
-                    while (Interlocked.Read(ref m_connections) >= MaxConnection)
-                    {
-                        Task.Delay(1000);
+                        OnInfo($"AgentListener QueueProcess ShouldPause {pause}");
+                        Thread.Sleep(pause);
                     }
 
-                    Monitor.Enter(_locker);
-                    lockWasTaken = true;
-
-                    Interlocked.Increment(ref m_connections);
-                    Task.Run(() =>
+                    if (Interlocked.CompareExchange(ref m_connections, 0, 0) < connectionmax)
                     {
-                        Receive(autoResetEvent,OnMessageReceived);
-                    });
-                    autoResetEvent.WaitOne();
+                        Monitor.Enter(_locker);
+                        lockWasTaken = true;
+                        
+                        Task.Run(() =>
+                        {
+                            Receive(autoResetEvent, OnMessageReceived);
+                        });
+                        autoResetEvent.WaitOne();
+                    }
+                    else
+                    {
+                        OnInfo($"SessionListener current MaxConnection is {connectionmax}");
+                    }
+
                 }
                 catch (Exception ex)
                 {
                     autoResetEvent.Set();
-                    OnError("QListener error: " + ex.Message);
+                    OnError("SessionListener error: " + ex.Message);
                 }
                 finally
                 {
                     if (lockWasTaken) Monitor.Exit(_locker);
                 }
-                Interlocked.Decrement(ref m_connections);
-                Task.Delay(100);
+                Task.Delay(Interval);
             }
 
-            OnInfo("QListener stoped");
+            OnInfo("SessionListener stoped");
 
         }
 
         protected virtual void TaskWorkerAsync()
         {
             IsAlive = true;
+            int pause = 0;
+            connectionmax = MaxConnection;
             // Start queue listener...
-            OnInfo("QListener async started...");
+            OnInfo($"SessionListener async started...MaxConnection is {connectionmax}");
 
             while (IsAlive)
             {
                 try
                 {
 
-                    if (Interlocked.Read(ref delay) > 0)
+                    Interlocked.Exchange(ref pause, ShouldPause());
+                    while (Interlocked.CompareExchange(ref pause, 0, 0) > 0)
                     {
-                        Task.Delay((int)delay);
-                        Interlocked.Exchange(ref delay, 0);
+                        OnInfo($"AgentListener async QueueProcess ShouldPause {pause}");
+                        Thread.Sleep(pause);
                     }
-                    while (Interlocked.Read(ref m_pause) > 0)
-                    {
-                        Task.Delay((int)m_pause);
-                    }
-                    while (Interlocked.Read(ref m_connections) >= MaxConnection)
-                    {
-                        Task.Delay(1000);
-                    }
-                    Monitor.Enter(_locker);
-                    lockWasTaken = true;
 
-                    Interlocked.Increment(ref m_connections);
-                    var task = Task.Run(async () =>
+                    if (Interlocked.CompareExchange(ref m_connections, 0, 0) < connectionmax)
                     {
-                        await ReceiveAsync(autoResetEvent,OnMessageReceived);
-                    });
-                    autoResetEvent.WaitOne(Timeout.Infinite);
+                        Monitor.Enter(_locker);
+                        lockWasTaken = true;
+
+                        //Interlocked.Increment(ref m_connections);
+                        var task = Task.Run(async () =>
+                        {
+                            await ReceiveAsync(autoResetEvent, OnMessageReceived);
+                        });
+                        autoResetEvent.WaitOne(Timeout.Infinite);
+                    }
+                    else
+                    {
+                        OnInfo($"SessionListener async current MaxConnection is {connectionmax}");
+                    }
                 }
                 catch (Exception ex)
                 {
                     autoResetEvent.Set();
-                    OnError("QListener async error: " + ex.Message);
+                    OnError("SessionListener async error: " + ex.Message);
                 }
                 finally
                 {
                     if (lockWasTaken) Monitor.Exit(_locker);
                 }
-                Interlocked.Decrement(ref m_connections);
+                //Interlocked.Decrement(ref m_connections);
                 Task.Delay(Interval);
             }
 
-            OnInfo("QListener stoped...");
+            OnInfo("SessionListener stoped...");
 
         }
 
         #endregion
     }
-#endif
 }

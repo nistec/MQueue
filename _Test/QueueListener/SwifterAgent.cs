@@ -59,9 +59,9 @@ namespace QueueListenerDemo
             Console.WriteLine("OnStateChanged {0}, State: {1}", HostName, state.ToString());
         }
 
-        protected override bool ShouldPause()
+        protected override int ShouldPause()
         {
-            return false;// Netcell.Caching.CacheApi.DbRule(7) > 0;//Hold Controller Service
+            return 0;// Netcell.Caching.CacheApi.DbRule(7) > 0;//Hold Controller Service
         }
 
         #region Publish

@@ -15,6 +15,72 @@ using Nistec.Channels;
 namespace Nistec.Messaging.Listeners
 {
 
+    public abstract class DataStreamListener : SessionListener<IQueueMessage, IAck>
+    {
+        public HostChannel Source { get; protected set; }
+
+        #region ctor
+        public DataStreamListener()//, int interval)
+        {
+        }
+        public DataStreamListener(AgentAdapter adapter)//, int interval)
+        {
+            Init(adapter);
+        }
+
+        public virtual void Init(AgentAdapter adapter)
+        {
+            if (adapter == null)
+            {
+                throw new ArgumentNullException("adapter");
+            }
+            if (adapter.Source == null)
+            {
+                throw new ArgumentNullException("adapter.Source");
+            }
+            //Adapter = adapter;
+
+            //_Owner = owner;
+            Source = adapter.Source;
+            HostName = Source.HostName;
+
+            //_TransferTo = adapter.TransferTo;
+
+            //_ServerName = channel.ServerName;
+            //_QueueName = channel.Source;
+            //IntervalWait = interval < MinWait ? MinWait : interval;// 1000;
+
+            Interval = adapter.Interval;
+            ConnectTimeout = adapter.ConnectTimeout;
+            ReadTimeout = adapter.ReadTimeout;
+            WorkerCount = adapter.WorkerCount;
+            MaxConnection = adapter.MaxConnection;
+            IsMultiTask = adapter.IsMultiTask;
+            IsAsync = adapter.IsAsync;
+            EnableResetEvent = true;// adapter.EnableResetEvent;
+            EnableDynamicWait = adapter.EnableDynamicWait;
+            //_ActionTransfer = adapter.AckAction;
+            //_AdapterOperation = adapter.OperationType;
+
+            //QApi = new QueueApi(adapter.Source);
+            //QApi.ReadTimeout = adapter.ReadTimeout;
+
+            State = ListenerState.Initilaized;
+        }
+
+        #endregion
+
+        #region override
+
+        protected virtual void CommitAsync(IAck ack)
+        {
+            //await Task.Run(null);
+        }
+       
+        #endregion
+    }
+
+#if(false)
     /// <summary>
     /// Represents a thread-safe queue listener (FIFO) collection.
     /// </summary>
@@ -340,20 +406,62 @@ namespace Nistec.Messaging.Listeners
         }
         #endregion
 
+        #region Connection 
+        int connectionfactor = 0;
+        int connectionmax = 0;
+        int Incremented = 0;
+        protected int ExchangeFactor = 10;
+
+        protected void ConnectionExchangeBegin()
+        {
+            Interlocked.Increment(ref m_connections);
+        }
+        protected void ConnectionExchange(bool hasValue)
+        {
+            if (hasValue)
+            {
+                //Interlocked.Increment(ref m_connections);
+                if (Interlocked.CompareExchange(ref connectionmax, 0, 0) < MaxConnection)
+                {
+                    Interlocked.Exchange(ref connectionmax, MaxConnection);
+                    Interlocked.Exchange(ref connectionfactor, 0);
+                    OnInfo($"DataStreamListener MaxConnection Increased to: {connectionmax}");
+                }
+                if (Interlocked.CompareExchange(ref m_connections, 0, 0) > 0)
+                    Interlocked.Decrement(ref m_connections);
+            }
+            else
+            {
+                if (Interlocked.CompareExchange(ref connectionfactor, 0, 0) < ExchangeFactor)
+                {
+                    Interlocked.Increment(ref connectionfactor);
+                }
+                else if (Interlocked.CompareExchange(ref connectionmax, 0, 0) > 1)
+                {
+                    Interlocked.Exchange(ref connectionmax, 1);
+                    OnInfo($"DataStreamListener MaxConnection is {connectionmax}");
+                }
+                //if (Interlocked.CompareExchange(ref m_connections, 0, 0) > 0)
+                //    Interlocked.Decrement(ref m_connections);
+            }
+        }
+        #endregion
+
         #region worker
 
-        public void Delay(TimeSpan time)
-        {
-            Interlocked.Exchange(ref delay, (long)time.TotalMilliseconds);
-        }
+        //public void Delay(TimeSpan time)
+        //{
+        //    Interlocked.Exchange(ref delay, (long)time.TotalMilliseconds);
+        //}
 
         private readonly AutoResetEvent autoResetEvent = new AutoResetEvent(false);
 
         protected virtual void TaskWorker()
         {
             IsAlive = true;
+            int pause = 0;
             // Start queue listener...
-            OnInfo("QListener started...");
+            OnInfo("DataStreamListener started...");
 
             while (IsAlive)
             {
@@ -361,34 +469,46 @@ namespace Nistec.Messaging.Listeners
                 try
                 {
 
-                    if (Interlocked.Read(ref delay) > 0)
-                    {
-                        Task.Delay((int)delay);
-                        Interlocked.Exchange(ref delay, 0);
-                    }
-                    while (Interlocked.Read(ref m_pause) > 0)
-                    {
-                        Task.Delay((int)m_pause);
-                    }
-                    while (Interlocked.Read(ref m_connections) >= MaxConnection)
-                    {
-                        Task.Delay(1000);
-                    }
+                    //if (Interlocked.Read(ref delay) > 0)
+                    //{
+                    //    Task.Delay((int)delay);
+                    //    Interlocked.Exchange(ref delay, 0);
+                    //}
+                    //while (Interlocked.Read(ref m_pause) > 0)
+                    //{
+                    //    Task.Delay((int)m_pause);
+                    //}
+                    //while (Interlocked.Read(ref m_connections) >= MaxConnection)
+                    //{
+                    //    Task.Delay(1000);
+                    //}
 
-                    Monitor.Enter(_locker);
-                    lockWasTaken = true;
-
-                    Interlocked.Increment(ref m_connections);
-                    Task.Run(() =>
+                    Interlocked.Exchange(ref pause, ShouldPause());
+                    while (Interlocked.CompareExchange(ref pause, 0, 0) > 0)
                     {
-                        Receive(autoResetEvent,OnMessageReceived);
-                    });
-                    autoResetEvent.WaitOne();
+                        OnInfo($"DataStreamListener QueueProcess ShouldPause {pause}");
+                        Thread.Sleep(pause);
+                    }
+                    if (Interlocked.CompareExchange(ref m_connections, 0, 0) < connectionmax)
+                    {
+                        Monitor.Enter(_locker);
+                        lockWasTaken = true;
+
+                        Task.Run(() =>
+                        {
+                            Receive(autoResetEvent, OnMessageReceived);
+                        });
+                        autoResetEvent.WaitOne();
+                    }
+                    else
+                    {
+                        OnInfo($"DataStreamListener current MaxConnection is {connectionmax}");
+                    }
                 }
                 catch (Exception ex)
                 {
                     autoResetEvent.Set();
-                    OnError("QListener error: " + ex.Message);
+                    OnError("DataStreamListener error: " + ex.Message);
                 }
                 finally
                 {
@@ -398,34 +518,43 @@ namespace Nistec.Messaging.Listeners
                 Task.Delay(100);
             }
 
-            OnInfo("QListener stoped");
+            OnInfo("DataStreamListener stoped");
 
         }
 
         protected virtual void TaskWorkerAsync()
         {
             IsAlive = true;
+            int pause = 0;
             // Start queue listener...
-            OnInfo("QListener async started...");
+            OnInfo("DataStreamListener async started...");
 
             while (IsAlive)
             {
                 try
                 {
 
-                    if (Interlocked.Read(ref delay) > 0)
+                    //if (Interlocked.Read(ref delay) > 0)
+                    //{
+                    //    Task.Delay((int)delay);
+                    //    Interlocked.Exchange(ref delay, 0);
+                    //}
+                    //while (Interlocked.Read(ref m_pause) > 0)
+                    //{
+                    //    Task.Delay((int)m_pause);
+                    //}
+                    //while (Interlocked.Read(ref m_connections) >= MaxConnection)
+                    //{
+                    //    Task.Delay(1000);
+                    //}
+                    
+                    Interlocked.Exchange(ref pause, ShouldPause());
+                    while (Interlocked.CompareExchange(ref pause, 0, 0) > 0)
                     {
-                        Task.Delay((int)delay);
-                        Interlocked.Exchange(ref delay, 0);
+                        OnInfo($"DataStreamListener QueueProcess ShouldPause {pause}");
+                        Thread.Sleep(pause);
                     }
-                    while (Interlocked.Read(ref m_pause) > 0)
-                    {
-                        Task.Delay((int)m_pause);
-                    }
-                    while (Interlocked.Read(ref m_connections) >= MaxConnection)
-                    {
-                        Task.Delay(1000);
-                    }
+
                     Monitor.Enter(_locker);
                     lockWasTaken = true;
 
@@ -439,7 +568,7 @@ namespace Nistec.Messaging.Listeners
                 catch (Exception ex)
                 {
                     autoResetEvent.Set();
-                    OnError("QListener async error: " + ex.Message);
+                    OnError("DataStreamListener async error: " + ex.Message);
                 }
                 finally
                 {
@@ -449,11 +578,11 @@ namespace Nistec.Messaging.Listeners
                 Task.Delay(Interval);
             }
 
-            OnInfo("QListener stoped...");
+            OnInfo("DataStreamListener stoped...");
 
         }
 
         #endregion
     }
-
+#endif
 }

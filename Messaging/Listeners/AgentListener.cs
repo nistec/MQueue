@@ -38,7 +38,7 @@ namespace Nistec.Messaging.Listeners
         protected int WaitSecond = 120;
         protected int ReadTimeout = -1;
         protected int ConnectTimeout = -1;
-        protected bool Is_Pause = false;
+        //protected bool Is_Pause = false;
         protected int PauseInterval = 0;
         public HostChannel Source { get; set; }
         public bool Initilaized { get; protected set; }
@@ -276,7 +276,7 @@ namespace Nistec.Messaging.Listeners
 
         protected virtual int ShouldPause()
         {
-            return 0;
+            return PauseInterval;
         }
 
         #endregion
