@@ -162,9 +162,9 @@ namespace Nistec.Messaging.Listeners
         {
             //NLog.InfoFormat("OnStateChanged {0}, State: {1}", HostName, state.ToString());
         }
-        protected virtual bool ShouldPause()
+        protected virtual int ShouldPause()
         {
-            return false;//Hold Sender Service
+            return 0;//Hold Sender Service
         }
 
         //protected abstract IQueueAck Send(QueueMessage message);

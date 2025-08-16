@@ -277,9 +277,9 @@ namespace Nistec.Messaging.Listeners
             return State.ToString();
         }
 
-        protected virtual bool ShouldPause()
+        protected virtual int ShouldPause()
         {
-            return false;
+            return 0;
         }
 
         #endregion

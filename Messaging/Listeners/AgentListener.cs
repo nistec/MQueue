@@ -71,10 +71,7 @@ namespace Nistec.Messaging.Listeners
             WorkerCount = adapter.WorkerCount;
             Initilaized = false;
         }
-
-        #endregion
-
-
+        
         public AgentListener()
         {
             Initilaized = false;
@@ -89,6 +86,7 @@ namespace Nistec.Messaging.Listeners
             Initilaized = true;
             OnStateChanged(ListenerState.Initilaized);
         }
+        #endregion
 
         #region message events
         /*
@@ -276,9 +274,9 @@ namespace Nistec.Messaging.Listeners
             return State.ToString();
         }
 
-        protected virtual bool ShouldPause()
+        protected virtual int ShouldPause()
         {
-            return false;
+            return 0;
         }
 
         #endregion
@@ -352,15 +350,7 @@ namespace Nistec.Messaging.Listeners
             else if (Interlocked.CompareExchange(ref connectionfactor, 0, 0) < ExchangeFactor)
             {
                 Interlocked.Increment(ref connectionfactor);
-                //if (Interlocked.CompareExchange(ref connectionfactor, 0, 0) > factor)
-                //{
-                //    Interlocked.Exchange(ref connectionmax, 1);
-                //}
             }
-            //else if (Interlocked.CompareExchange(ref connectionfactor, 0, 0) > factor)
-            //{
-            //    Interlocked.Exchange(ref connectionmax, 1);
-            //}
             else if (Interlocked.CompareExchange(ref connectionmax, 0, 0) > 1)
             {
                 Interlocked.Exchange(ref connectionmax, 1);
@@ -393,18 +383,26 @@ namespace Nistec.Messaging.Listeners
                         Thread.Sleep(1000);
                     }
                     */
-                    while (keepAlive && ShouldPause())//(!(keepAlive && App_Servers.IsEnableQueue(server)))
+                    if (!keepAlive)
                     {
-                        if (pause == 10)
-                        {
-                            OnInfo($"AgentListener QueueProcess ShouldPause {pause}");
-                            pause = 0;
-                        }
-                        ++pause;
-
-                        Thread.Sleep(60000);
+                        break;
                     }
-                    pause = 0;
+                    Interlocked.Exchange(ref pause , ShouldPause());
+                    while (Interlocked.CompareExchange(ref pause, 0, 0) > 0)//(!(keepAlive && App_Servers.IsEnableQueue(server)))
+                    {
+                        OnInfo($"AgentListener QueueProcess ShouldPause {pause}");
+                        Thread.Sleep(pause);
+
+                        //if (pause == 10)
+                        //{
+                        //    OnInfo($"AgentListener QueueProcess ShouldPause {pause}");
+                        //    pause = 0;
+                        //}
+                        //++pause;
+
+                        //Thread.Sleep(60000);
+                    }
+                    //pause = 0;
                     //while (Thread.VolatileRead(ref m_connections) >= connectionmax)
                     //{
                     //    OnInfo($"AgentListener AgentProcess ShouldPause {++pause}, m_Connections {m_connections}");
@@ -512,7 +510,7 @@ namespace Nistec.Messaging.Listeners
 
 
 
-
+#if(false)
     public abstract class __AgentListener<T> where T : IAgentMessage
     {
         #region memebers
@@ -917,6 +915,7 @@ namespace Nistec.Messaging.Listeners
 
         #endregion
     }
+#endif
 
 #if (false)
     /// <summary>
