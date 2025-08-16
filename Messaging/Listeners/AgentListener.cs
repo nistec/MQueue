@@ -39,7 +39,6 @@ namespace Nistec.Messaging.Listeners
         protected int ReadTimeout = -1;
         protected int ConnectTimeout = -1;
         //protected bool Is_Pause = false;
-        protected int PauseInterval = 0;
         public HostChannel Source { get; set; }
         public bool Initilaized { get; protected set; }
 
@@ -111,6 +110,10 @@ namespace Nistec.Messaging.Listeners
         #endregion
 
         #region start/stop
+
+        int PauseInterval = 0;
+
+
         protected virtual void OnInfo(string message)
         {
 
@@ -187,6 +190,7 @@ namespace Nistec.Messaging.Listeners
                 OnError($"MQueueAgent Queue {HostName},  error:{ex.Message}");
             }
         }
+
         public bool Pause(OnOffState onOff, int delay)
         {
             //if (ActionWorker == null)
