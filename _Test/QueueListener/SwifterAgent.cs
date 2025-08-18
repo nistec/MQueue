@@ -86,18 +86,18 @@ namespace QueueListenerDemo
             try
             {
                 OnInfo($"SwifterAgent PublishMessageAsync ExecuteAsync {message.Print()}");
-                var msgIn = (MessageIn)message.GetBody();
+                var msgIn = message.GetBody();
                 if (msgIn == null)
                 {
                     throw new Exception($"GetBody error Cast from IQueueMessage.Body to MessageIn, item: {message.Print()}");
                 }
-                var publisher = new PublishIn(Publisher, msgIn);
-                publisher.Invoke(ack);
-                NLog.Info($"PublishMessageAsync Host: {HostName}, Messgae: {message.Print()}");
+                //var publisher = new PublishIn(Publisher, msgIn);
+                //publisher.Invoke(ack);
+                Console.WriteLine($"PublishMessageAsync Host: {HostName}, Messgae: {message.Print()}");
             }
             catch (Exception ex)
             {
-                NLog.ErrorFormat("PublishMessageAsync error :{0}, {1}", HostName, ex.Message);
+                Console.WriteLine("PublishMessageAsync error :{0}, {1}", HostName, ex.Message);
             }
         }
 
@@ -106,18 +106,18 @@ namespace QueueListenerDemo
             try
             {
                 OnInfo($"SwifterAgent PublishMessageAsync ExecuteAsync {message.Print()}");
-                var msgIn = (MessageIn)message.GetBody();
+                var msgIn = message.GetBody();
                 if (msgIn == null)
                 {
                     throw new Exception($"GetBody error Cast from IQueueMessage.Body to MessageIn, item: {message.Print()}");
                 }
-                var publisher = new PublishIn(Publisher, msgIn);
-                await publisher.InvokeAsync(ack);
-                NLog.Info($"PublishMessageAsync Host: {HostName}, Messgae: {message.Print()}");
+                //var publisher = new PublishIn(Publisher, msgIn);
+                //await publisher.InvokeAsync(ack);
+                Console.WriteLine($"PublishMessageAsync Host: {HostName}, Messgae: {message.Print()}");
             }
             catch (Exception ex)
             {
-                NLog.ErrorFormat("PublishMessageAsync error :{0}, {1}", HostName, ex.Message);
+                Console.WriteLine("PublishMessageAsync error :{0}, {1}", HostName, ex.Message);
             }
         }
 

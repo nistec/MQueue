@@ -42,6 +42,7 @@ namespace Nistec.Messaging.Server
         public TcpServerChannel(QueueChannel qChannel, string hostName)
         {
             Settings = QueueServerSettings.LoadTcpConfigServer(hostName);
+            IsAsync = Settings.IsAsync;
             QueueChannel = qChannel;
             //Settings.AllowedIp = allowedIps;
         }
@@ -52,9 +53,9 @@ namespace Nistec.Messaging.Server
         /// <param name="qChannel"></param>
         /// <param name="settings"></param>
         public TcpServerChannel(QueueChannel qChannel, TcpSettings settings)
-        //: base()
+        : base(settings)
         {
-            Settings = settings;
+            //Settings = settings;
             QueueChannel = qChannel;
         }
 
@@ -214,6 +215,12 @@ namespace Nistec.Messaging.Server
 
         protected override byte[] ServerHandle(byte[] bytes)
         {
+            if (bytes == null || bytes.Length == 0)
+            {
+                Log.Error("TcpServer ServerHandle bytes is null or empty");
+                return null;
+            }
+
             //Log.Info($"TcpServer ServerHandle QueueChannel: {QueueChannel}");
             //IDataStream response = null;
 
@@ -221,6 +228,11 @@ namespace Nistec.Messaging.Server
             {
                 using (QueueMessage qm = QueueMessage.Deserialize(bytes))
                 {
+                    if (qm == null)
+                    {
+                        Log.Error($"TcpServer ServerHandle QueueChannel.Producer Deserialize Error: {bytes.Length}");
+                        return null;
+                    }
                     var ack = AgentManager.Queue.ExecSet(qm);
                     return ack.Serialize();
                 }
@@ -230,6 +242,11 @@ namespace Nistec.Messaging.Server
             {
                 using (QueueRequest qr = QueueRequest.Deserialize(bytes))
                 {
+                    if (qr == null)
+                    {
+                        Log.Error($"TcpServer ServerHandle QueueChannel.Consumer Deserialize Error: {bytes.Length}");
+                        return null;
+                    }
                     var resmessgae = AgentManager.Queue.ExecGet(qr);
                     if (resmessgae == null)
                         return null;
@@ -241,6 +258,11 @@ namespace Nistec.Messaging.Server
             {
                 using (QueueRequest qr = QueueRequest.Deserialize(bytes))
                 {
+                    if (qr == null)
+                    {
+                        Log.Error($"TcpServer ServerHandle QueueChannel.Manager Deserialize Error: {bytes.Length}");
+                        return null;
+                    }
                     var resmessgae = AgentManager.Queue.ExecRequset(qr);
                     return resmessgae.DataStream();
                 }
@@ -255,12 +277,23 @@ namespace Nistec.Messaging.Server
 
         protected override async Task<byte[]> ServerHandleAsync(byte[] bytes)
         {
+            if (bytes == null || bytes.Length == 0)
+            {
+                Log.Error("TcpServer ServerHandleAsync bytes is null or empty");
+                return await Task.FromResult<byte[]>(null);
+            }
+
             //Log.Info($"TcpServer ServerHandleAsync QueueChannel: {QueueChannel}");
             //IDataStream response = null;
             if (QueueChannel == QueueChannel.Producer)
             {
                 using (QueueMessage qm = QueueMessage.Deserialize(bytes))
                 {
+                    if (qm == null)
+                    {
+                        Log.Error($"TcpServer ServerHandleAsync QueueChannel.Producer Deserialize Error: {bytes.Length}");
+                        return await Task.FromResult<byte[]>(null);
+                    }
                     return await AgentManager.Queue.ExecSetAsyncSerialized(qm);
                 }
                 //response =(IDataStream)new TransStream(ack, "Ack", TransType.Object); //binary
@@ -269,6 +302,11 @@ namespace Nistec.Messaging.Server
             {
                 using (QueueRequest qr = QueueRequest.Deserialize(bytes))
                 {
+                    if (qr == null)
+                    {
+                        Log.Error($"TcpServer ServerHandleAsync QueueChannel.Consumer Deserialize Error: {bytes.Length}");
+                        return await Task.FromResult<byte[]>(null);
+                    }
                     return await AgentManager.Queue.ExecGetAsyncSerialized(qr);
                 }
                 //if (resmessgae == null)
@@ -281,6 +319,11 @@ namespace Nistec.Messaging.Server
             {
                 using (QueueRequest qr = QueueRequest.Deserialize(bytes))
                 {
+                    if (qr == null)
+                    {
+                        Log.Error($"TcpServer ServerHandleAsync QueueChannel.Manager Deserialize Error: {bytes.Length}");
+                        return await Task.FromResult<byte[]>(null);
+                    }
                     return await AgentManager.Queue.ExecRequsetAsyncSerialized(qr);
                 }
                 //return resmessgae.DataStream();
