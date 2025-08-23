@@ -87,7 +87,8 @@ namespace Nistec.Messaging
             }
             return item;
         }
-
+        /*
+         //events-reference
         public override IEnumerable<IPersistEntity> QueryItems()
         {
 
@@ -130,7 +131,7 @@ namespace Nistec.Messaging
             }
             return list;
         }
-        
+        */
 
         protected override void ClearItems()
         {
@@ -184,7 +185,8 @@ namespace Nistec.Messaging
         #endregion
 
         #region override
-
+        /*
+        //events-reference
         protected override void OnErrorOccured(QueueItemEventArgs e)
         {
             base.OnErrorOccured(e);
@@ -202,7 +204,7 @@ namespace Nistec.Messaging
             base.OnMessageReceived(e);
             QLogger.Info("PriorityMemQueue OnMessageReceived : Host:{0}, Item:{1}", this.Name, e.Item.Print());
         }
-       
+       */
         #endregion
 
     }

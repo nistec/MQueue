@@ -1,5 +1,6 @@
 ﻿using Nistec.Data.Entities;
 using Nistec.Data.Sqlite;
+using Nistec.Generic;
 using Nistec.Messaging;
 using Nistec.Messaging.Listeners;
 using Nistec.Messaging.Remote;
@@ -20,7 +21,11 @@ namespace QueueListenerDemo
 
             //QueueDemo.DemoRequest();
 
-            var host = QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "Netcell");
+            //var queueHost=NetConfig.AppSettings.Get("QueueHost", "tcp:127.0.0.1:15001?Netcell");
+            //var queueName=NetConfig.AppSettings.Get("QueueName", "Netcell");
+
+            var host = QueueHost.Parse(NetConfig.AppSettings.Get("QueueHost", "tcp:127.0.0.1:15001?Netcell"));
+            //var host = QueueReceiver.GetHost("tcp", "127.0.0.1:15001", "Netcell");
             QListener ql = new QListener(QListener.CreateAdapter(host));
             ql.Start();
 

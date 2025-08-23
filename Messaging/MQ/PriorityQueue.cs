@@ -20,11 +20,12 @@ namespace Nistec.Messaging
 {
     public interface IPriorityQueue
     {
- 
+
         #region abstract
-
+        /*
+        //events-reference
         IEnumerable<IPersistEntity> QueryItems();
-
+        */
         #endregion
 
         #region Properties
@@ -189,11 +190,10 @@ namespace Nistec.Messaging
         #endregion
 
         #region events
-
+        /*
+         //events-reference
         public event QueueItemEventHandler MessageArrived;
         public event QueueItemEventHandler MessageReceived;
-        //public event QueueItemEventHandler TransactionBegin;
-        //public event QueueItemEventHandler TransactionEnd;
         public event QueueItemEventHandler ErrorOccured;
 
         protected virtual void OnMessageArrived(QueueItemEventArgs e)
@@ -207,24 +207,13 @@ namespace Nistec.Messaging
                 MessageReceived(this, e);
         }
 
-        //protected virtual void OnTransBegin(QueueItemEventArgs e)
-        //{
-        //    if (TransactionBegin != null)
-        //        TransactionBegin(this, e);
-        //}
-        //protected virtual void OnTransEnd(QueueItemEventArgs e)
-        //{
-        //    if (TransactionEnd != null)
-        //        TransactionEnd(this, e);
-        //}
-
         protected virtual void OnErrorOccured(QueueItemEventArgs e)
         {
             if (ErrorOccured != null)
                 ErrorOccured(this, e);
             Logger.Error("PriorityQueue OnError ", e.Message);
         }
-
+        */
         protected virtual void OnTryAdd(Ptr ptr, IQueueMessage item, bool result)
         {
             if (item != null)
@@ -240,6 +229,7 @@ namespace Nistec.Messaging
             if (item != null)
                 Logger.Debug("TryPeek {0} item:{1}", result, item.Print());
         }
+       
         #endregion
 
         #region abstract
@@ -257,11 +247,12 @@ namespace Nistec.Messaging
         internal protected abstract void ReloadItems();
 
         protected abstract IQueueMessage GetFirstItem();
-
+        /*
+         //events-reference
         public abstract IEnumerable<IPersistEntity> QueryItems();
 
         public abstract IEnumerable<IPersistEntity> QueryLabels();
-        
+        */
         public abstract bool ItemExists(Ptr ptr);
 
         //protected abstract bool TransBegin(Ptr ptr, out IQueueMessage item);
@@ -1004,13 +995,13 @@ namespace Nistec.Messaging
                 }
                 ((QueueMessage)item).SetState(MessageState.Receiving);
                 ((QueueMessage)item).Command = QueueCmd.Dequeue.ToString();
-                //item.Status = ItemState.Dequeue;
-                //((QueueMessage)item).SetSentTime();
-
+                /*
+                //events-reference
                 if (MessageReceived != null)
                 {
                     OnMessageReceived(new QueueItemEventArgs(item, MessageState.Receiving));
                 }
+                */
             }
             return item != null;
         }
@@ -1435,10 +1426,13 @@ namespace Nistec.Messaging
                         break;
                 }
                 //tran.Complete();
+                /*
+                //events-reference
                 if (MessageArrived != null)
                 {
                     OnMessageArrived(new QueueItemEventArgs(item, MessageState.Arrived));
                 }
+                */
                 if (item != null)
                     Logger.Info("PriorityQueue Enqueue ", item.Print());
                 return new QueueAck(MessageState.Arrived, item);// new Ptr(ptr, PtrState.Arrived);

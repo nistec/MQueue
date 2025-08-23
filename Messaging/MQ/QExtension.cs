@@ -13,12 +13,12 @@ using Nistec.Messaging.Io;
 using Nistec.Serialization;
 using Nistec.Channels;
 using System.Threading;
+using System.Collections.Concurrent;
 
 namespace Nistec.Messaging
 {
     public static class QExtension
     {
- 
 
         public static NetProtocol GetProtocol(this HostProtocol protocol)
         {

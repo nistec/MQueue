@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Threading;
 using Nistec.Collections;
 using System.Collections.Concurrent;
+using Nistec.Serialization;
 
 namespace Nistec.Messaging
 {
@@ -125,7 +126,12 @@ namespace Nistec.Messaging
 
             if (!ptr.IsEmpty)
             {
-                OnDequeueMessage(ptr);
+                //events-reference
+                //OnDequeueMessage(ptr);
+
+                Ptr copy = ptr.Copy();
+                ptr.Dispose();
+                return copy;
             }
            
             return ptr;
@@ -137,15 +143,34 @@ namespace Nistec.Messaging
         /// <param name="ptr"></param>
         public new bool TryDequeue(out Ptr ptr)
         {
+
+            Ptr temp = Ptr.Empty;
+            bool found=base.TryDequeue(out temp);
+            if (found)
+            {
+                ptr = temp.Copy();
+                temp.Dispose();
+            }
+            else
+            {
+                ptr = Ptr.Empty;
+            }
+
+            return found;
+
+
+            /*
             if (base.TryDequeue(out ptr))
             {
                 if (!ptr.IsEmpty)
                 {
-                    OnDequeueMessage(ptr);
+                    //events-reference
+                    //OnDequeueMessage(ptr);
                     return true;
                 }
             }
             return false;
+            */
         }
 
         /// <summary>
@@ -156,7 +181,9 @@ namespace Nistec.Messaging
         {
             //Stopwatch w = Stopwatch.StartNew();
             base.Enqueue(ptr);
-            OnEnqueueMessage(ptr);
+            //events-reference
+            //OnEnqueueMessage(ptr);
+
             //w.Stop();
             //Console.WriteLine("GenericPtrQueue ElapsedMilliseconds:{0}", w.ElapsedMilliseconds);
         }
@@ -175,10 +202,12 @@ namespace Nistec.Messaging
             Ptr ptr;
             while (this.TryDequeue(out ptr))
             {
+                ptr.Dispose();
                 // do nothing
             }
         }
-
+        /*
+        //events-reference
         private void OnDequeueMessage(Ptr ptr)
         {
             if (DequeueMessage != null)
@@ -191,7 +220,7 @@ namespace Nistec.Messaging
                 OnEnqueueMessage( new PtrItemEventArgs(ptr, ItemState.Enqueue));
 
         }
-
+        
         /// <summary>
         /// OnDequeueMessage
         /// </summary>
@@ -211,8 +240,10 @@ namespace Nistec.Messaging
                 EnqueueMessage(this, e);
 
         }
- 
+        */
         #endregion
+
+        
 
         /// <summary>
         /// Queue items Clone

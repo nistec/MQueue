@@ -19,7 +19,7 @@ namespace Nistec.Messaging
     //    Guid ItemId{get;set;}
     //    string Source { get; set; }
     //}
-    public struct Ptr
+    public struct Ptr: ISerialEntity
     {
         string m_Identifier;
         DateTime m_ArrivedTime;
@@ -105,6 +105,12 @@ namespace Nistec.Messaging
             m_State = state;
             m_Retry = item.Retry;
             //MessageType = item.MessageType;
+        }
+      
+        public void Dispose()
+        {
+            m_Identifier = null;
+            m_Host = null;
         }
 
         public bool IsEmpty
@@ -334,7 +340,19 @@ namespace Nistec.Messaging
         {
             return identifier == Identifier;
         }
+        public Ptr Copy()
+        {
+            return Deserialize(Serialize());
+        }
 
+        public byte[] Serialize()
+        {
+            return BinarySerializer.SerializeToBytes(this);
+        }
+        public static Ptr Deserialize(byte[] bytes)
+        {
+            return BinarySerializer.Deserialize<Ptr>(bytes);
+        }
 
         //internal static string GetPtrLocation(string host, string priority, string folderId, long uniqueId)
         //{

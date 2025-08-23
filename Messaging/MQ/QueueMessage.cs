@@ -397,6 +397,9 @@ namespace Nistec.Messaging
 
         public QueueMessage Copy()
         {
+
+            return QueueMessage.Deserialize(this.Serialize());
+            /*
             var copy = new QueueMessage(this.Identifier)
             {
                 MessageState = this.MessageState,
@@ -431,6 +434,7 @@ namespace Nistec.Messaging
             };
 
             return copy;
+            */
         }
 
         public object Clone()
@@ -1669,7 +1673,7 @@ namespace Nistec.Messaging
         //        return ser.Deserialize(stream, true);
         //    }
         //}
-
+        /*
         /// <summary>
         ///  Deserialize body stream to generic object.
         /// </summary>
@@ -1680,7 +1684,7 @@ namespace Nistec.Messaging
             return GenericTypes.Cast<T>(GetBody());
         }
 
-        /*
+        
          /// <summary>
          /// Set the given value to body stream using <see cref="BinarySerializer"/>, This method is a part of <see cref="IMessageStream"/> implementation..
          /// </summary>

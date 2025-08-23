@@ -285,11 +285,13 @@ namespace Nistec.Messaging.Listeners
         //    return Queue.GetFirstItem();
         //}
 
+        /*
+        //events-reference
         public IEnumerable<IPersistEntity> QueryItems()
         {
             return Queue.QueryItems();
         }
-
+        */
         public void ClearItems()
         {
             Queue.Clear();

@@ -196,7 +196,7 @@ namespace QueueTasker
 
         public static void PublishItemAsync(int i)
         {
-            var host = QueueHost.Parse(QueueClient.Config_QHost + "?" + QueueClient.Config_QName);
+            var host = QueueHost.Parse(QueueClient.Config_QHost);// + "?" + QueueClient.Config_QName);
             QueueApi q = QueueClient.GetApi(host);
             //var item = QueueClient.CreateQueueItem("Hello world " + DateTime.Now.ToString("s"), "test");
             var item = QueueClient.CreateItem(i);

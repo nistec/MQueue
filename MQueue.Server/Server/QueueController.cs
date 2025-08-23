@@ -18,6 +18,7 @@ using System.IO;
 using Nistec.Logging;
 using Nistec.Channels;
 using System.Threading.Tasks;
+using Nistec.Serialization;
 
 namespace Nistec.Messaging.Server
 {
@@ -327,66 +328,71 @@ namespace Nistec.Messaging.Server
                             GetValidQ(request.Host).LoadFromBackup(request.Args.Get("path"), ref state);
                             return new TransStream((int)state,"Load From Backup to queue " + request.Host, TransType.State);
                         }
-
-                        /*
-                    //publish\subscribe
-                    case QueueCmd.TopicAdd:
-                        throw new Exception("Operation not supported");
-                    case QueueCmd.TopicRemove:
-                        throw new Exception("Operation not supported");
-                    case QueueCmd.TopicPublish:
-                        throw new Exception("Operation not supported");
-                    case QueueCmd.TopicSubscribe:
-                        throw new Exception("Operation not supported");
-                    case QueueCmd.TopicRemoveItem:
-                        throw new Exception("Operation not supported");
-                    case QueueCmd.TopicCommit:
-                        throw new Exception("Operation not supported");
-                    case QueueCmd.TopicAbort:
-                        throw new Exception("Operation not supported");
-                    case QueueCmd.TopicHold:
+                    case QueueCmd.MemoryFree:
                         {
-                            MQueue mq = GetValidQ(request.Host);
-                            //mq.Topic.HoldTopic();
-                            TopicDispatcher.Pause(OnOffState.On);
-                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
+                            MessageState state = MessageState.None;
+                            int memory=(int) CmdMemoryFree()/1024;
+                            return new TransStream((int)memory, $"Memory: {memory} bytes", TransType.State);
                         }
-                    case QueueCmd.TopicHoldRelease:
-                        {
-                            MQueue mq = GetValidQ(request.Host);
-                            //mq.Topic.ReleaseHoldTopic();
-                            TopicDispatcher.Pause(OnOffState.Off);
-                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
-                        }
-                    case QueueCmd.TopicSubscribeHold:
-                        {
-                            MQueue mq = GetValidQ(request.Host);
-                            //mq.Topic.HoldSubscriber(request.Label);
-                            LoadTopicSubscribers(mq, request.Label, "remove");
-                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
-                        }
-                    case QueueCmd.TopicSubscribeRelease:
-                        {
-                            MQueue mq = GetValidQ(request.Host);
-                            //mq.Topic.ReleaseHoldSubscriber(request.Label);
-                            LoadTopicSubscribers(mq, request.Label, "remove");
-                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
-                        }
-                    case QueueCmd.TopicSubscribeAdd:
-                        {
-                            MQueue mq = GetValidQ(request.Host);
-                            LoadTopicSubscribers(mq, request.Label, "add");
-                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
-                        }
-                    case QueueCmd.TopicSubscribeRemove:
-                        {
-                            MQueue mq = GetValidQ(request.Host);
-                            //TopicController tc = new TopicController(mq);
-                            //tc.RemoveSubscriber(request.Label);
-                            LoadTopicSubscribers(mq, request.Label, "remove");
-                            return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
-                        }
-                        */
+                    /*
+                //publish\subscribe
+                case QueueCmd.TopicAdd:
+                    throw new Exception("Operation not supported");
+                case QueueCmd.TopicRemove:
+                    throw new Exception("Operation not supported");
+                case QueueCmd.TopicPublish:
+                    throw new Exception("Operation not supported");
+                case QueueCmd.TopicSubscribe:
+                    throw new Exception("Operation not supported");
+                case QueueCmd.TopicRemoveItem:
+                    throw new Exception("Operation not supported");
+                case QueueCmd.TopicCommit:
+                    throw new Exception("Operation not supported");
+                case QueueCmd.TopicAbort:
+                    throw new Exception("Operation not supported");
+                case QueueCmd.TopicHold:
+                    {
+                        MQueue mq = GetValidQ(request.Host);
+                        //mq.Topic.HoldTopic();
+                        TopicDispatcher.Pause(OnOffState.On);
+                        return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
+                    }
+                case QueueCmd.TopicHoldRelease:
+                    {
+                        MQueue mq = GetValidQ(request.Host);
+                        //mq.Topic.ReleaseHoldTopic();
+                        TopicDispatcher.Pause(OnOffState.Off);
+                        return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
+                    }
+                case QueueCmd.TopicSubscribeHold:
+                    {
+                        MQueue mq = GetValidQ(request.Host);
+                        //mq.Topic.HoldSubscriber(request.Label);
+                        LoadTopicSubscribers(mq, request.Label, "remove");
+                        return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
+                    }
+                case QueueCmd.TopicSubscribeRelease:
+                    {
+                        MQueue mq = GetValidQ(request.Host);
+                        //mq.Topic.ReleaseHoldSubscriber(request.Label);
+                        LoadTopicSubscribers(mq, request.Label, "remove");
+                        return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
+                    }
+                case QueueCmd.TopicSubscribeAdd:
+                    {
+                        MQueue mq = GetValidQ(request.Host);
+                        LoadTopicSubscribers(mq, request.Label, "add");
+                        return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
+                    }
+                case QueueCmd.TopicSubscribeRemove:
+                    {
+                        MQueue mq = GetValidQ(request.Host);
+                        //TopicController tc = new TopicController(mq);
+                        //tc.RemoveSubscriber(request.Label);
+                        LoadTopicSubscribers(mq, request.Label, "remove");
+                        return TransStream.WriteState((int)MessageState.Ok, "Ok");// TransType.State);
+                    }
+                    */
                     //reports
                     case QueueCmd.Exists:
                         //responseAck = true;
@@ -718,12 +724,15 @@ namespace Nistec.Messaging.Server
                 case QueueCmd.QueueProperty:
                     var res = Q.Property();//.QueueProperty();
                     return new TransStream(res, TransType.Object);
+                /*
+                //events-reference
                 case QueueCmd.ReportQueueItems:
                     var items = Q.QueryItems();
                     return new TransStream(items, TransType.Object);
                 case QueueCmd.QueryLabels:
                     var qlabels = Q.QueryLabels();
                     return new TransStream(qlabels, TransType.Object);
+                */
                 default:
                     throw new NotSupportedException(request.QCommand.ToString());
             }
@@ -1282,6 +1291,17 @@ namespace Nistec.Messaging.Server
             //    sb.AppendLine(q.QueueName + " Backup path: " + path + ", ");
             //}
             //return sb.ToString();
+        }
+
+
+        public long  CmdMemoryFree()
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            long memory = GC.GetTotalMemory(false);
+            Console.WriteLine($"Memory: {memory} bytes");
+            return memory;
+
         }
 
         public string ReportCountersAll()

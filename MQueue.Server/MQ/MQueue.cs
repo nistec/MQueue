@@ -224,13 +224,12 @@ namespace Nistec.Messaging
             //Q = prop.Factory();
             Q=new PriorityComplexQueue(prop);
             Q.Logger = Logger;
-
+            /*
+            //events-reference
             Q.MessageArrived += new QueueItemEventHandler(Q_MessageArrived);
             Q.MessageReceived += new QueueItemEventHandler(Q_MessageReceived);
-            //Q.TransactionBegin += new QueueItemEventHandler(Q_MessageTransBegin);
-            //Q.TransactionEnd += new QueueItemEventHandler(Q_MessageTransEnd);
             Q.ErrorOccured += new QueueItemEventHandler(Q_ErrorOccured);
-            //InitRecoverQueue(DefaultIntervalMinuteRecover);
+            */
 
             if(prop.ReloadOnStart)
             {
@@ -338,11 +337,11 @@ namespace Nistec.Messaging
                     if (Q != null)
                     {
                         resetEvent = null;
-
+                        /*
+                        //events-reference
                         Q.MessageArrived -= new QueueItemEventHandler(Q_MessageArrived);
                         Q.MessageReceived -= new QueueItemEventHandler(Q_MessageReceived);
-                        //Q.TransactionBegin -= new QueueItemEventHandler(Q_MessageTransBegin);
-                        //Q.TransactionEnd -= new QueueItemEventHandler(Q_MessageTransEnd);
+                        */
                     }
 
                     m_QueueName = null;
@@ -1319,6 +1318,8 @@ namespace Nistec.Messaging
         {
             return Q.CountMemory();
         }
+        /*
+        //events-reference
 
         /// <summary>
         /// Get persist items
@@ -1346,7 +1347,7 @@ namespace Nistec.Messaging
         {
             return Q.QueryItems();
         }
-
+        */
         /// <summary>
         /// Peek Message
         /// </summary>

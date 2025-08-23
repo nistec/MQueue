@@ -4,6 +4,7 @@ using Nistec.Data.Sqlite;
 using Nistec.Messaging.Server;
 using Nistec.Serialization;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.Linq;
@@ -13,6 +14,19 @@ namespace Nistec.Messaging
 {
     public static class QServerExtension
     {
+        public static bool TryFetch(this ConcurrentDictionary<Ptr, IQueueMessage> conDictionary, Ptr key, out IQueueMessage message)
+        {
+            IQueueMessage item;
+            if (conDictionary.TryRemove(key, out item))
+            {
+                message = item.Copy();
+                item.Dispose();
+                item = null;
+                return true;
+            }
+            message = null;
+            return false;
+        }
 
         public static DbLiteSettings GetDbSettings(string QueueName)
         {

@@ -83,7 +83,6 @@ namespace Nistec.Messaging
         DisableQueue = 37,
         ClearQueue = 38,
         BackupQueue=39,
-
         //publish\subscribe
         TopicAdd = 40,
         TopicRemove = 41,
@@ -102,6 +101,7 @@ namespace Nistec.Messaging
 
         BackupAll= 53,
         LoadFromBackup=54,
+        MemoryFree = 55,
         //reports
         Exists = 60,
         QueueProperty = 61,
@@ -174,6 +174,7 @@ namespace Nistec.Messaging
         TopicSubscribeRemove = 52,
         BackupAll = 53,
         LoadFromBackup = 54,
+        MemoryFree = 55
     };
 
     public enum QueueCmdReport : byte //: byte

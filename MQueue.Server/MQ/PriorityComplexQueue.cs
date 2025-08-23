@@ -220,7 +220,7 @@ namespace Nistec.Messaging
 
             if (CoverMode == CoverMode.Persistent)
             {
-                if (QueueItems.TryRemove(ptr, out item))
+                if (QueueItems.TryFetch(ptr, out item))
                 {
                     if (CommitMode == CommitMode.OnDisk)
                     {
@@ -239,7 +239,7 @@ namespace Nistec.Messaging
             }
             else
             {
-                if (QueueItems.TryRemove(ptr, out item))
+                if (QueueItems.TryFetch(ptr, out item))
                 {
                     return true;
                 }
@@ -374,7 +374,8 @@ namespace Nistec.Messaging
             }
         }
 
-
+        /*
+         //events-reference
         public override IEnumerable<IPersistEntity> QueryItems()
         {
             try
@@ -431,6 +432,7 @@ namespace Nistec.Messaging
             return new List<IPersistEntity>();
 
         }
+        */
         protected override void ClearItems()
         {
             QueueItems.Clear();
@@ -502,7 +504,8 @@ namespace Nistec.Messaging
         #endregion
 
         #region override events
-
+        /*
+        //events-reference
         protected override void OnErrorOccured(QueueItemEventArgs e)
         {
             base.OnErrorOccured(e);
@@ -520,7 +523,7 @@ namespace Nistec.Messaging
             base.OnMessageReceived(e);
             Logger.Info("PriorityPersistQueue OnMessageReceived : Host:{0}, Item:{1}", this.Name, e.Item.Print());
         }
-
+        */
         #endregion
 
         #region override trans

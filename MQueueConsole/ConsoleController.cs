@@ -388,7 +388,11 @@ namespace Nistec.QueueConsole
                             ts = api.OperateQueue(QueueCmdOperation.TopicSubscribeRemove, key);
                             Display(cmd, ts);
                             break;
-                        
+                        case "memoryfree":
+                            ts = api.OperateQueue(QueueCmdOperation.MemoryFree, key);
+                            Display(cmd, ts);
+                            break;
+
                         case "exists":
                             ts = api.Report(QueueCmdReport.Exists, key);
                             Display(cmd, ts);
@@ -645,6 +649,7 @@ namespace Nistec.QueueConsole
             Console.WriteLine("release-hold-dequeue");
             Console.WriteLine("enable-queue");
             Console.WriteLine("disable-queue");
+            Console.WriteLine("memory-free");
 
             Console.WriteLine("topic-add");
             Console.WriteLine("topic-remove");

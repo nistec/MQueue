@@ -74,7 +74,8 @@ namespace Nistec.Messaging
             }
             return item;
         }
-
+        /*
+        //events-reference
         public override IEnumerable<IPersistEntity> QueryItems()
         {
 
@@ -112,7 +113,7 @@ namespace Nistec.Messaging
             //if no items
             return new List<IPersistEntity>();
         }
-        
+        */
 
         protected override void ClearItems()
         {
@@ -231,7 +232,8 @@ namespace Nistec.Messaging
         #endregion
 
         #region override events
-
+        /*
+        //events-reference
         protected override void OnErrorOccured(QueueItemEventArgs e)
         {
             base.OnErrorOccured(e);
@@ -249,7 +251,7 @@ namespace Nistec.Messaging
             base.OnMessageReceived(e);
             Logger.Info("PriorityPersistQueue OnMessageReceived : Host:{0}, Item:{1}", this.Name, e.Item.Print());
         }
-
+        */
         #endregion
 
         #region override trans
