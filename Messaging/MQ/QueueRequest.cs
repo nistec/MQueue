@@ -554,11 +554,23 @@ namespace Nistec.Messaging
 
         public byte[] Serialize()
         {
-            return BinarySerializer.SerializeToBytes(this);
+            using (var stream = new NetStream())
+            {
+                using (var streamer = new BinaryStreamer(stream))
+                {
+                    EntityWrite(stream, streamer);
+                }
+                return stream.ToArray();
+            }
+            //return BinarySerializer.SerializeToBytes(this);
         }
         public static QueueRequest Deserialize(byte[] bytes)
         {
-            return BinarySerializer.Deserialize<QueueRequest>(bytes);
+            using (var stream = new NetStream(bytes))
+            {
+                return new QueueRequest(new NetStream(bytes));
+            }
+            //return BinarySerializer.Deserialize<QueueRequest>(bytes);
         }
 
         //public string ToJson()

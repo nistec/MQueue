@@ -594,6 +594,22 @@ namespace Nistec.Messaging
         }
 
         /// <summary>
+        /// Initialize a new instance of MessageStream from stream using for <see cref="ISerialEntity"/>.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="streamer"></param>
+        public QueueMessage(byte[] bytes) : this()
+        {
+            using (var stream = new NetStream(bytes))
+            {
+                using (var streamer = new BinaryStreamer(stream))
+                {
+                    EntityRead(stream, streamer);
+                }
+            }
+        }
+
+        /// <summary>
         /// Initialize a new instance of MessageStream from <see cref="SerializeInfo"/>.
         /// </summary>
         /// <param name="info"></param>
@@ -1588,13 +1604,24 @@ namespace Nistec.Messaging
 
         #region Converters
 
+      
         public byte[] Serialize()
         {
-            return BinarySerializer.SerializeToBytes(this);
+            using (var stream = new NetStream())
+            {
+                using (var streamer = new BinaryStreamer(stream))
+                {
+                    EntityWrite(stream, streamer);
+                }
+                return stream.ToArray();
+            }
+           // return BinarySerializer.SerializeToBytes(this);
         }
         public static QueueMessage Deserialize(byte[] bytes)
         {
-            return BinarySerializer.Deserialize<QueueMessage>(bytes);
+            QueueMessage qm = new QueueMessage(bytes);
+            return qm;
+            //return BinarySerializer.Deserialize<QueueMessage>(bytes);
         }
 
         //public PersistItem ToPersistItem()

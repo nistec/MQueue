@@ -106,7 +106,30 @@ namespace Nistec.Messaging
             m_Retry = item.Retry;
             //MessageType = item.MessageType;
         }
-      
+        public Ptr(byte[] bytes)
+        {
+
+            using (var stream = new NetStream(bytes)) {
+
+                using (var streamer = new BinaryStreamer(stream))
+                {
+
+                    string mmsg = streamer.ReadFixedString();
+                    if (mmsg != MessageContext.QPTR)
+                    {
+                        throw new Exception("Incorrect message format");
+                    }
+                    m_State = (PtrState)streamer.ReadValue<byte>();
+                    m_Retry = streamer.ReadValue<int>();
+                    m_Identifier = streamer.ReadString();
+                    m_Host = streamer.ReadString();
+                    m_ArrivedTime = streamer.ReadValue<DateTime>();
+                    m_TimeOut = streamer.ReadValue<int>();
+                }
+                //EntityRead(stream, null);
+            }
+        }
+
         public void Dispose()
         {
             m_Identifier = null;
@@ -347,11 +370,20 @@ namespace Nistec.Messaging
 
         public byte[] Serialize()
         {
-            return BinarySerializer.SerializeToBytes(this);
+            using (var stream = new NetStream())
+            {
+                using (var streamer = new BinaryStreamer(stream))
+                {
+                    EntityWrite(stream, streamer);
+                }
+                return stream.ToArray();
+            }
+            //return BinarySerializer.SerializeToBytes(this);
         }
         public static Ptr Deserialize(byte[] bytes)
         {
-            return BinarySerializer.Deserialize<Ptr>(bytes);
+            return  new Ptr(bytes);
+            //return BinarySerializer.Deserialize<Ptr>(bytes);
         }
 
         //internal static string GetPtrLocation(string host, string priority, string folderId, long uniqueId)

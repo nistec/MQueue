@@ -1,10 +1,13 @@
 ﻿using Nistec.Messaging.Config;
 using Nistec.Messaging.Topic;
+using Nistec.Threading;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
+using System.Threading;
+using System.Threading.Tasks;
+using System.Timers;
 
 namespace Nistec.Messaging.Server
 {
@@ -13,7 +16,7 @@ namespace Nistec.Messaging.Server
     public class AgentManager
     {
 
-        readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> memWaiter = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
+        //readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> memWaiter = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
 
 
         public static void StartController()
@@ -78,21 +81,54 @@ namespace Nistec.Messaging.Server
             }
         }
 
+        static GcWatcher gcwatcher;
+
         public static void Start()//bool enableQueueController, bool enableTopicController)
         {
             Settings.Load();
             Queue.LoadQueueConfig(Settings.EnableJournalQueue);
 
-            //if (enableQueueController)
-            //    Queue.LoadQueueConfig();
-            //if (enableTopicController)
-            //    Topic.LoadTopicConfig();
+            int gcinterval = Settings.GcWatcherInterval;
+            gcwatcher = new GcWatcher(gcinterval);
+            gcwatcher.Start();
         }
 
         public static void Stop()
         {
+            gcwatcher.Stop();
+            //Interlocked.Exchange(ref gc_listen,0);
+        }
+    }
+
+    public class GcWatcher:ThreadTimer
+    {
+        int LastCount = 0;
+        int counter = 0;
+        public GcWatcher(int interval) : base(interval)
+        {
 
         }
 
+        protected override void OnElapsed(ElapsedEventArgs e)
+        {
+            base.OnElapsed(e);
+            counter++;
+            try
+            {
+                int count=AgentManager.Queue.QueueAllCount();
+
+                if (count == 0 || (count == LastCount && counter > 5))
+                {
+                    counter = 0;
+                    int memory = (int)AgentManager.Queue.CmdMemoryFree() / 1024;
+                    AgentManager.Queue.Logger.Log(Logging.LoggerLevel.Info, $"Memory: {memory} kb");
+                }
+                LastCount = count;
+            }
+            catch (Exception ex)
+            {
+                AgentManager.Queue.Logger.Log(Logging.LoggerLevel.Error, $"AgentManager.RunGcWatcher error : {ex.Message}");
+            }
+        }
     }
 }

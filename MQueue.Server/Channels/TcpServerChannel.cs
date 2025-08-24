@@ -18,7 +18,7 @@ using Nistec.Generic;
 namespace Nistec.Messaging.Server
 {
 
-    public class TcpServerChannel : TcpSoketServer//<IQueueRequest, TransStream>
+    public class TcpServerChannel : TcpThreadSoketServer//<IQueueRequest, TransStream>
     {
         QueueChannel QueueChannel;
 
@@ -226,7 +226,7 @@ namespace Nistec.Messaging.Server
 
             if (QueueChannel == QueueChannel.Producer)
             {
-                using (QueueMessage qm = QueueMessage.Deserialize(bytes))
+                using (QueueMessage qm = new QueueMessage(bytes))
                 {
                     if (qm == null)
                     {
@@ -287,7 +287,7 @@ namespace Nistec.Messaging.Server
             //IDataStream response = null;
             if (QueueChannel == QueueChannel.Producer)
             {
-                using (QueueMessage qm = QueueMessage.Deserialize(bytes))
+                using (QueueMessage qm = new QueueMessage(bytes))
                 {
                     if (qm == null)
                     {

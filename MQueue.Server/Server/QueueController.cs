@@ -456,6 +456,7 @@ namespace Nistec.Messaging.Server
             return null;
         }
 
+        /*
         internal async Task ExecGetAsync(IQueueMessage request, Action<IQueueMessage> response)
         {
             await Task.Run(() =>
@@ -508,6 +509,7 @@ namespace Nistec.Messaging.Server
 
             return null;
         }
+        */
         internal async Task ExecGetAsync(IQueueRequest request, Action<IQueueMessage> response)
         {
             await Task.Run(() =>
@@ -1256,7 +1258,7 @@ namespace Nistec.Messaging.Server
             return 0;
         }
 
-        public int IsQueueCountAll()
+        public int QueueAllCount()
         {
             int count = 0;
             GenericKeyValue g = new GenericKeyValue();

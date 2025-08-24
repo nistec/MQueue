@@ -49,9 +49,21 @@ namespace Nistec.Messaging
 
         protected override bool TryDequeue(Ptr ptr, out IQueueMessage item)
         {
-            var res = m_db.TryRemove(ptr.Identifier, out item);
-            OnTryDequeue(ptr, item, res);
-            return res;
+            IQueueMessage temp;
+            if (m_db.TryRemove(ptr.Identifier, out temp))
+            {
+                item = temp.Copy();
+                temp.Dispose();
+                temp = null;
+                OnTryDequeue(ptr, item, true);
+                return true;
+            }
+            item = null;
+            return false;
+
+            //var res = m_db.TryRemove(ptr.Identifier, out temp);
+            //OnTryDequeue(ptr, item, res);
+            //return res;
         }
 
         protected override IQueueMessage GetFirstItem()

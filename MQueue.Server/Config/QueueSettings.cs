@@ -103,6 +103,9 @@ namespace Nistec.Messaging.Config
         /// <summary>EnablePerformanceCounter.</summary>
         public readonly bool EnablePerformanceCounter = false;
 
+        public readonly int GcWatcherInterval = 600000;
+        
+
         /*
         /// <summary>EnableMailerQueue.</summary>
         public readonly bool EnableMailerQueue = false;
@@ -181,6 +184,9 @@ namespace Nistec.Messaging.Config
             EnablePerformanceCounter = table.Get<bool>("EnablePerformanceCounter", false);
             MaxTopicConnections = table.Get<int>("MaxTopicConnections", 5);
             AllowedIps = table.Get<string>("AllowedIps", null);
+            GcWatcherInterval = table.Get<int>("GcWatcherInterval", 600000);
+
+            
 
             QueueDefaults.DefaultExpiration = DefaultExpiration;
             QueueDefaults.EnableLog = EnableLog;

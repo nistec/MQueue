@@ -176,6 +176,9 @@ namespace Nistec.Services
 
             try
             {
+                AgentManager.Stop();
+
+
                 //if (m_ServerDequeue != null)
                 //    m_ServerDequeue.Stop();
                 if (m_PipeServerProducer != null)
@@ -201,6 +204,7 @@ namespace Nistec.Services
                 //    m_FolderServer.Stop(true);
                 //if (m_DbServer != null)
                 //    m_DbServer.Stop(true);
+
 
                 Netlog.Debug(serviceName + " stoped.");
             }
