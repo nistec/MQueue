@@ -1224,7 +1224,7 @@ namespace Nistec.Messaging
             try
             {
 
-                using (TransactionScope scope = TransHelper.GetTransactionScope())
+                //using (TransactionScope scope = TransHelper.GetTransactionScope())
                 {
 
                     if (!highQ.IsEmpty && highQ.TryDequeue(out ptr))
@@ -1243,29 +1243,10 @@ namespace Nistec.Messaging
                     {
                         item = null;
                     }
-                    scope.Complete();
-                    //changed:syncCount:
-                    //if (ptr == Guid.Empty)
-                    //    ptr = mediumQ.Dequeue();
-                    //else if (ptr == Guid.Empty)
-                    //    ptr = normalQ.Dequeue();
-
-                    //if (ptr.IsEmpty)
-                    //{
-                    //    return GetFirstItem();
-                    //}
-                    //else
-                    //{
-                    //    return DequeueScop(ptr);
-                    //}
-
-                    //if (item == null)
-                    //{
-                    //    Thread.Sleep(300);
-                    //    return Dequeue();
-                    //}
+                    //scope.Complete();
+                   
                 }
-                DequeueScopEvent(item);
+                //DequeueScopEvent(item);
                 if (item != null)
                     Logger.Info("PriorityQueue Dequeue ", item.Print());
             }

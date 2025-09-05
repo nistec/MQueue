@@ -541,6 +541,36 @@ namespace Nistec.Messaging.Server
             {
                 throw new MessageException(MessageState.InvalidMessageHost, "Invalid message.Host ");
             }
+            MQueue Q;
+
+            if (MQ.TryGetValue(request.Host, out Q))
+            {
+
+                if (Q == null)
+                {
+                    throw new MessageException(MessageState.InvalidMessageHost, "message.HostName not found " + request.Host);
+                }
+                switch (request.QCommand)
+                {
+                    case QueueCmd.Dequeue:
+                        return Q.Dequeue();
+                    case QueueCmd.DequeuePriority:
+                        return Q.Dequeue(request.Priority);
+                    case QueueCmd.Peek:
+                        return Q.Peek();
+                    case QueueCmd.PeekPriority:
+                        return Q.Peek(request.Priority);
+                    case QueueCmd.Consume:
+                        return Q.Consume(request.Expiration);// (Guid.NewGuid().ToString());// request.Identifier);
+                }
+                return null;
+            }
+            else
+            {
+                //return null;
+                throw new KeyNotFoundException("Queue not found: " + request.Host);
+            }
+            /*
             MQueue Q = Get(request.Host);
             if (Q == null)
             {
@@ -561,6 +591,7 @@ namespace Nistec.Messaging.Server
             }
 
             return null;
+            */
         }
 
         internal async Task ExecSetAsync(QueueMessage item, Action<IQueueAck> response)
@@ -938,6 +969,44 @@ namespace Nistec.Messaging.Server
             if (MQ.TryGetValue(queueName, out queue))
             {
                 return queue;
+            }
+            else
+            {
+                //return null;
+                throw new KeyNotFoundException("Queue not found: " + queueName);
+            }
+        }
+
+        public IQueueMessage DoGet(string queueName, QueueCmd cmd, QueueRequest request)
+        {
+            if (string.IsNullOrEmpty(queueName))
+            {
+                throw new ArgumentNullException("QueueManager.Get queueName is null or empty");
+            }
+
+            MQueue Q;
+
+            if (MQ.TryGetValue(queueName, out Q))
+            {
+
+                if (Q == null)
+                {
+                    throw new MessageException(MessageState.InvalidMessageHost, "message.HostName not found " + request.Host);
+                }
+                switch (cmd)
+                {
+                    case QueueCmd.Dequeue:
+                        return Q.Dequeue();
+                    case QueueCmd.DequeuePriority:
+                        return Q.Dequeue(request.Priority);
+                    case QueueCmd.Peek:
+                        return Q.Peek();
+                    case QueueCmd.PeekPriority:
+                        return Q.Peek(request.Priority);
+                    case QueueCmd.Consume:
+                        return Q.Consume(request.Expiration);// (Guid.NewGuid().ToString());// request.Identifier);
+                }
+                return null;
             }
             else
             {

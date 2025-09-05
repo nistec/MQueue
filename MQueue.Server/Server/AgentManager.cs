@@ -122,6 +122,8 @@ namespace Nistec.Messaging.Server
                     counter = 0;
                     int memory = (int)AgentManager.Queue.CmdMemoryFree() / 1024;
                     AgentManager.Queue.Logger.Log(Logging.LoggerLevel.Info, $"Memory: {memory} kb");
+
+
                 }
                 LastCount = count;
             }
