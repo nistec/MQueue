@@ -81,7 +81,11 @@ namespace Nistec.Messaging
         IQueueAck Enqueue(IQueueMessage item);
         IQueueMessage Dequeue();
         IQueueMessage Dequeue(Priority priority);
+#if (SEQUENCE)
+        IQueueMessage Dequeue(string ptr);
+#else
         IQueueMessage Dequeue(Ptr ptr);
+#endif
         IQueueMessage Consume(int maxSecondWait);
         bool TryDequeue(out IQueueMessage item);
         IQueueMessage Peek();

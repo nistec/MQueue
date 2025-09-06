@@ -1367,6 +1367,16 @@ namespace Nistec.Messaging
             return Q.Peek(priority);
         }
 
+#if (SEQUENCE)
+        /// <summary>
+        /// Peek Message
+        /// </summary>
+        /// <returns></returns>
+        public IQueueMessage Peek(string ptr)
+        {
+            return Q.Peek(ptr);
+        }
+#else
         /// <summary>
         /// Peek Message
         /// </summary>
@@ -1375,7 +1385,7 @@ namespace Nistec.Messaging
         {
             return Q.Peek(ptr);
         }
-
+#endif
         public bool TryDequeue(out IQueueMessage item)
         {
             if (HoldDequeue)
@@ -1516,6 +1526,21 @@ namespace Nistec.Messaging
             return Q.Dequeue(priority);
         }
 
+#if (SEQUENCE)
+        /// <summary>
+        /// Dequeue Message
+        /// </summary>
+        /// <returns></returns>
+        public IQueueMessage Dequeue(string ptr)
+        {
+            if (HoldDequeue)
+            {
+                Logger.Warn("This queue in hold - " + QueueName);
+                return null;
+            }
+            return Q.Dequeue(ptr);
+        }
+#else
         /// <summary>
         /// Dequeue Message
         /// </summary>
@@ -1529,6 +1554,8 @@ namespace Nistec.Messaging
             }
             return Q.Dequeue(ptr);
         }
+
+#endif
 
         /// <summary>
         /// Enqueue Message
@@ -1589,7 +1616,7 @@ namespace Nistec.Messaging
         }
 
 
-        #endregion
+#endregion
 
         //======================================================
 
@@ -1602,7 +1629,7 @@ namespace Nistec.Messaging
         public string TargetPath { get; internal set; }
 
 
-        #region sys file
+#region sys file
 
         private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
@@ -1626,9 +1653,9 @@ namespace Nistec.Messaging
             return Path.Combine(GetQueuePath(), "Backup") + "\\";
         }
 
-        #endregion
+#endregion
 
-        #region View
+#region View
         /*
         /// <summary>
         /// GetQueueItems
@@ -1660,9 +1687,9 @@ namespace Nistec.Messaging
             return dt;
         }
         */
-        #endregion
+#endregion
 
-        #region commands properties
+#region commands properties
 
         public MQprop Property()
         {
@@ -1854,7 +1881,7 @@ namespace Nistec.Messaging
 
             }
         }
-        #endregion
+#endregion
 
         internal static void LogAction(MessageState state, string message)
         {

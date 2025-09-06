@@ -51,7 +51,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>..\References\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;SEQUENCE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -107,6 +107,9 @@
     <Compile Include="Config\QueueServerConfig.cs" />
     <Compile Include="Config\QueueServerConfigItems.cs" />
     <Compile Include="Config\QueueServerSettings.cs" />
+    <Compile Include="GQ\SequenceComplexGQueue.cs" />
+    <Compile Include="GQ\SequenceComplexQueue.cs" />
+    <Compile Include="GQ\PriorityComplexGQueue.cs" />
     <Compile Include="MQ\MQprop.cs" />
     <Compile Include="MQ\MessageAckServer.cs">
       <SubType>Code</SubType>

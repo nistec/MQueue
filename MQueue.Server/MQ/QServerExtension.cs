@@ -14,6 +14,34 @@ namespace Nistec.Messaging
 {
     public static class QServerExtension
     {
+        public static bool TryFetch(this ConcurrentDictionary<Guid, IQueueMessage> conDictionary, Guid key, out IQueueMessage message)
+        {
+            IQueueMessage item;
+            if (conDictionary.TryRemove(key, out item))
+            {
+                message = item.Copy();
+                item.Dispose();
+                item = null;
+                return true;
+            }
+            message = null;
+            return false;
+        }
+
+        public static bool TryFetch(this ConcurrentDictionary<string, IQueueMessage> conDictionary, string key, out IQueueMessage message)
+        {
+            IQueueMessage item;
+            if (conDictionary.TryRemove(key, out item))
+            {
+                message = item.Copy();
+                item.Dispose();
+                item = null;
+                return true;
+            }
+            message = null;
+            return false;
+        }
+
         public static bool TryFetch(this ConcurrentDictionary<Ptr, IQueueMessage> conDictionary, Ptr key, out IQueueMessage message)
         {
             IQueueMessage item;
