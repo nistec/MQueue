@@ -18,6 +18,109 @@ using Nistec.Generic;
 namespace Nistec.Messaging.Server
 {
 
+    /// <summary>
+    /// Represent a queue tcp server listner.
+    /// </summary>
+    public class TcpServerChannelQ : TcpServer<IQueueMessage>
+    {
+        QueueChannel QueueChannel;
+
+        #region override
+        /// <summary>
+        /// OnStart
+        /// </summary>
+        protected override void OnStart()
+        {
+            base.OnStart();
+            AgentManager.StartController();
+            Log.Info("TcpServerChannel started :{0}, QueueChannel:{1}", this.Settings.HostName, QueueChannel.ToString());
+        }
+        /// <summary>
+        /// OnStop
+        /// </summary>
+        protected override void OnStop()
+        {
+            base.OnStop();
+            AgentManager.StopController();
+            Log.Info("TcpServerChannel stoped :{0}, QueueChannel:{1}", this.Settings.HostName, QueueChannel.ToString());
+        }
+
+
+        /// <summary>
+        /// OnLoad
+        /// </summary>
+        protected override void OnLoad()
+        {
+            base.OnLoad();
+
+        }
+        #endregion
+
+        #region ctor
+
+        /// <summary>
+        /// Constractor with extra parameters
+        /// </summary>
+        /// <param name="qChannel"></param>
+        /// <param name="hostName"></param>
+        public TcpServerChannelQ(QueueChannel qChannel, string hostName)
+        {
+            Settings = QueueServerSettings.LoadTcpConfigServer(hostName);
+            QueueChannel = qChannel;
+        }
+
+        /// <summary>
+        /// Constractor using <see cref="TcpSettings"/> settings.
+        /// </summary>
+        /// <param name="qChannel"></param>
+        /// <param name="settings"></param>
+        public TcpServerChannelQ(QueueChannel qChannel, TcpSettings settings)
+        //: base()
+        {
+            Settings = settings;
+            QueueChannel = qChannel;
+        }
+
+        #endregion
+
+        #region abstract methods
+        /// <summary>
+        /// Execute client request and return response as stream.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        protected override TransStream ExecRequset(IQueueMessage message)
+        {
+            return AgentManager.Queue.ExecRequset(message);
+        }
+        /// <summary>
+        /// Read Request
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <returns></returns>
+        protected override IQueueMessage ReadRequest(NetworkStream stream)
+        {
+            //IQueueMessage message = null;
+            //using (var ntStream = new NetStream())
+            //{
+            //    ntStream.CopyFrom(stream, readTimeout, ReceiveBufferSize);
+
+            //    if (QueueChannel == QueueChannel.Producer)
+            //        message= new QueueItem(stream, null);
+            //    else
+            //        message= new QueueRequest(stream);
+            //}
+            //return message;
+
+            if (QueueChannel == QueueChannel.Producer)
+                return new QueueMessage(stream, null);
+            else
+                return new QueueRequest(stream);
+        }
+
+        #endregion
+    }
+
     public class TcpServerChannel : TcpThreadSoketServer//<IQueueRequest, TransStream>
     {
         QueueChannel QueueChannel;
@@ -247,10 +350,25 @@ namespace Nistec.Messaging.Server
                         Log.Error($"TcpServer ServerHandle QueueChannel.Consumer Deserialize Error: {bytes.Length}");
                         return null;
                     }
-                    var resmessgae = AgentManager.Queue.ExecGet(qr);
+                    /*
+                    IQueueMessage resmessgae = null;
+                    do
+                    {
+                        resmessgae = AgentManager.Queue.ExecGet(qr);
+                        if (resmessgae == null)
+                            Task.Delay(100);
+                    } while (resmessgae == null);
                     if (resmessgae == null)
                         return null;
                     return resmessgae.Serialize();
+                    */
+                    //var resmessgae = AgentManager.Queue.ExecGet(qr);
+                    using (var resmessgae = AgentManager.Queue.ExecGet(qr))
+                    {
+                        if (resmessgae == null)
+                            return null;
+                        return resmessgae.Serialize();
+                    }
                 }
                 //response =(IDataStream)new TransStream(resmessgae.Serialize()); //binary
             }
@@ -307,7 +425,27 @@ namespace Nistec.Messaging.Server
                         Log.Error($"TcpServer ServerHandleAsync QueueChannel.Consumer Deserialize Error: {bytes.Length}");
                         return await Task.FromResult<byte[]>(null);
                     }
-                    return await AgentManager.Queue.ExecGetAsyncSerialized(qr);
+                    /*
+                    IQueueMessage resmessgae = null;
+                    do
+                    {
+                        resmessgae = await AgentManager.Queue.ExecGetAsync(qr);
+                        if (resmessgae == null)
+                            await Task.Delay(100);
+                    } while (resmessgae == null);
+                    
+                    if (resmessgae == null)
+                        return null;
+                    return resmessgae.Serialize();
+                    */
+                    using (var resmessgae = await AgentManager.Queue.ExecGetAsync(qr))
+                    {
+                        if (resmessgae == null)
+                            return null;
+                        return resmessgae.Serialize();
+                    }
+
+                    //return await AgentManager.Queue.ExecGetAsyncSerialized(qr);
                 }
                 //if (resmessgae == null)
                 //    return null;

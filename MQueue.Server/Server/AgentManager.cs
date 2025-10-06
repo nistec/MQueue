@@ -81,21 +81,22 @@ namespace Nistec.Messaging.Server
             }
         }
 
-        static GcWatcher gcwatcher;
+        //static GcWatcher gcwatcher;
 
         public static void Start()//bool enableQueueController, bool enableTopicController)
         {
             Settings.Load();
             Queue.LoadQueueConfig(Settings.EnableJournalQueue);
 
-            int gcinterval = Settings.GcWatcherInterval;
-            gcwatcher = new GcWatcher(gcinterval);
-            gcwatcher.Start();
+            //int gcinterval = Settings.GcWatcherInterval;
+            //gcwatcher = new GcWatcher(gcinterval);
+            //gcwatcher.Start();
         }
 
         public static void Stop()
         {
-            gcwatcher.Stop();
+            //gcwatcher.Stop();
+
             //Interlocked.Exchange(ref gc_listen,0);
         }
     }
