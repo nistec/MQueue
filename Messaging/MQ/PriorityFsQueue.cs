@@ -168,7 +168,7 @@ namespace Nistec.Messaging
         {
             return Task<bool>.Factory.StartNew(() =>
                 m_fs.DeleteItem(item)
-            ).Result;
+            ).GetAwaiter().GetResult();
             //return true;
         }
 

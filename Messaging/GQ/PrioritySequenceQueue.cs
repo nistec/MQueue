@@ -16,6 +16,7 @@ using Nistec.Runtime.Advanced;
 using System.Threading.Tasks;
 using Nistec.Serialization;
 
+
 namespace Nistec.Messaging
 {
     public interface IPrioritySequenceQueue

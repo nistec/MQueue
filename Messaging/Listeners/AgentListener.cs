@@ -25,11 +25,12 @@ namespace Nistec.Messaging.Listeners
         //const string ActiveMQueueName = "controller";
 
         #region memebers
-        private int isQueueRunning = 0;
-        private bool keepAlive = false;
+        protected int isQueueRunning = 0;
+        protected bool keepAlive = false;
         private GenericThreadPool threadPool;
         static object m_lock = new object();
 
+        protected int InternalQueueDelay = 0;
         //protected int MaxThread = 1;
         //MaxConnections = 30;
         protected int m_connections;
@@ -146,6 +147,8 @@ namespace Nistec.Messaging.Listeners
             keepAlive = true;
             threadPool = new GenericThreadPool(WorkerCount);
             threadPool.StartThreadPool(new ParameterizedThreadStart(AgentProcess));
+            if(InternalQueueDelay>0)
+                StartInternalQueue();
             OnInfo($"AgentListener Started {HostName}");
         }
 
@@ -157,12 +160,14 @@ namespace Nistec.Messaging.Listeners
 
                 keepAlive = false;
                 int count = 0;
-                while (Thread.VolatileRead(ref isQueueRunning) > 0 && count < 30)
+                while (Thread.VolatileRead(ref isQueueRunning) > 0 && (InternalCount() >0)  && count < 30)
                 {
                     Thread.Sleep(1000);
                     count++;
                     //Log.Debug("QueueStop:" + count.ToString());
                 }
+                if (InternalQueueDelay>0)
+                    StopInternalQueue();
 
                 if (threadPool != null)
                 {
@@ -285,6 +290,30 @@ namespace Nistec.Messaging.Listeners
 
         #endregion
 
+        #region start/stop InternalQueue
+
+        protected virtual int InternalCount()
+        {
+            return 0;
+        }
+
+        /// <summary>
+        /// Start the internal queue listener.
+        /// </summary>
+        protected virtual void StartInternalQueue()
+        {
+        }
+
+
+        /// <summary>
+        /// Stop the queue listener.
+        /// </summary>
+        protected virtual void StopInternalQueue()
+        {
+        }
+        #endregion
+
+
         #region Publish
 
         protected virtual void OnMessageReceived(T message)
@@ -322,6 +351,10 @@ namespace Nistec.Messaging.Listeners
         }
 
         protected abstract T ReadMessage(int WaitSecond);
+        protected virtual void ProcessMessage(T message)
+        {
+
+        }
 
         protected string GetIdentifier(T message)
         {
@@ -430,6 +463,7 @@ namespace Nistec.Messaging.Listeners
                                 if (message.Body != null && message.AckState == (int)ChannelState.Received)
                                 {
                                     //Interlocked.Increment(ref m_connections);
+                                    ProcessMessage(message);
                                     ThreadPool.QueueUserWorkItem(AgentWorker, message);
                                     //Task.Run(()=> AgentItemWorker(message));
                                     //ConnectionExchange(true);

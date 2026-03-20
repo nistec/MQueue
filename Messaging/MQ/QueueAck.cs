@@ -175,9 +175,9 @@ namespace Nistec.Messaging
             //a.Add("Label", Label);
             //a.Add("Response", Response);
             //a.Add("State", MessageState.ToString());
-            //if (!Host.IsNull()) a.Add("Identifier", Identifier);
-            //if (!Host.IsNull()) a.Add("Host", Host);
-            //if (!Host.IsNull()) a.Add("Label", Label);
+            //if (!Host==null) a.Add("Identifier", Identifier);
+            //if (!Host==null) a.Add("Host", Host);
+            //if (!Host==null) a.Add("Label", Label);
 
             //return JsonSerializer.Serialize(a.ToJson());
             //return GenericKeyValue.Create("Label", Label, "Response", Response, "State", MessageState).ToJson();

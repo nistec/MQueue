@@ -115,7 +115,10 @@ namespace Nistec.Messaging.Server
             if (QueueChannel == QueueChannel.Producer)
                 return new QueueMessage(stream, null);
             else
-                return new QueueRequest(stream);
+            {
+                MessageStream ms= new QueueRequest(stream);
+                return (IQueueMessage)ms;
+            }
         }
 
         #endregion
